@@ -73,7 +73,7 @@ export default function Auth() {
           <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <Package className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">AssetHub</h1>
+          <h1 className="text-2xl font-bold text-foreground">SensusHub</h1>
           <p className="text-sm text-muted-foreground">
             {isLogin ? "Masuk ke akun Anda" : "Buat akun baru"}
           </p>
