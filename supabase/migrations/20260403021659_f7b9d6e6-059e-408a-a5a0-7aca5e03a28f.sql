@@ -1,0 +1,1 @@
+INSERT INTO public.companies (name) VALUES ('PT Maju Jaya');

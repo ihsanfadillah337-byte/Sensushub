@@ -1,0 +1,1 @@
+ALTER TABLE public.asset_reports ADD COLUMN IF NOT EXISTS resolusi JSONB DEFAULT '{}'::jsonb;

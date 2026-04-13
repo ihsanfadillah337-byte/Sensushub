@@ -1,0 +1,61 @@
+// TypeScript interfaces untuk struktur database Inventarisasi Manajemen Aset
+// Digunakan sebagai referensi tipe di seluruh frontend
+
+export interface Company {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface CompanyInsert {
+  name: string;
+}
+
+export interface CompanyUpdate {
+  name?: string;
+}
+
+// Tipe untuk custom_data JSONB - mendukung dynamic fields
+export type CustomData = Record<string, string | number | boolean | null>;
+
+export interface Asset {
+  id: string;
+  company_id: string;
+  kode_aset: string;
+  nama_aset: string;
+  kategori: string;
+  lokasi_ruangan: string;
+  image_url: string | null;
+  qr_url: string | null;
+  custom_data: CustomData;
+  created_at: string;
+  kode_divisi: string | null;
+  kib: string | null;
+}
+
+export interface AssetInsert {
+  company_id: string;
+  kode_aset: string;
+  nama_aset: string;
+  kategori: string;
+  lokasi_ruangan: string;
+  image_url?: string | null;
+  qr_url?: string | null;
+  custom_data?: CustomData;
+}
+
+export interface AssetUpdate {
+  company_id?: string;
+  kode_aset?: string;
+  nama_aset?: string;
+  kategori?: string;
+  lokasi_ruangan?: string;
+  image_url?: string | null;
+  qr_url?: string | null;
+  custom_data?: CustomData;
+}
+
+// Asset dengan relasi company (untuk query join)
+export interface AssetWithCompany extends Asset {
+  companies: Company;
+}
