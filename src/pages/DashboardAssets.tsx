@@ -365,7 +365,21 @@ export default function DashboardAssets() {
                   <TableRow key={asset.id} data-state={selectedIds.has(asset.id) ? "selected" : undefined}>
                     <TableCell><Checkbox checked={selectedIds.has(asset.id)} onCheckedChange={() => toggleOne(asset.id)} /></TableCell>
                     <TableCell className="font-mono text-sm font-medium text-foreground">{asset.kode_aset}</TableCell>
-                    <TableCell className="text-sm text-foreground">{asset.nama_aset}</TableCell>
+                    <TableCell className="text-sm text-foreground">
+                      <div className="flex items-center gap-1.5">
+                        {asset.nama_aset}
+                        {(() => {
+                          const cd = typeof asset.custom_data === "object" && asset.custom_data && !Array.isArray(asset.custom_data) ? asset.custom_data as Record<string, unknown> : null;
+                          if (cd?.["status_aset"] === "Unit Pengganti") {
+                            return <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">Pengganti</Badge>;
+                          }
+                          if (cd?.["status_aset"] === "Usul Hapus") {
+                            return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">Usul Hapus</Badge>;
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge variant="secondary">{asset.kategori}</Badge>
                     </TableCell>

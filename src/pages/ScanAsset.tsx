@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ImageIcon, MapPin, Building2, Tag, AlertTriangle, SearchX,
+  ImageIcon, MapPin, Building2, Tag, AlertTriangle, PackageX, ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -155,12 +155,24 @@ export default function ScanAsset() {
   if (!asset || error) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-3 px-4">
-          <SearchX className="h-16 w-16 mx-auto text-muted-foreground/40" />
-          <h1 className="text-xl font-bold text-foreground">Aset Tidak Ditemukan</h1>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-            ID aset yang Anda scan tidak terdaftar dalam sistem. Pastikan QR Code valid.
-          </p>
+        <div className="text-center space-y-5 px-6 max-w-sm mx-auto">
+          <div className="mx-auto h-20 w-20 rounded-2xl bg-muted flex items-center justify-center">
+            <PackageX className="h-10 w-10 text-muted-foreground/60" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-bold text-foreground">Aset Tidak Ditemukan</h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Data aset ini tidak ada dalam sistem. Aset mungkin telah ditarik, dihapuskan secara resmi dari inventaris, atau diregistrasi ulang dengan kode baru.
+            </p>
+          </div>
+          <div className="pt-2 space-y-2">
+            <Button variant="outline" className="w-full gap-2" onClick={() => window.history.back()}>
+              ← Kembali
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Jika Anda yakin aset ini masih aktif, silakan hubungi admin pengelola inventaris.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -175,9 +187,29 @@ export default function ScanAsset() {
   );
   const statusStyle = getDynamicStatus();
 
+  // Determine if asset is pending deletion
+  const assetCd = typeof asset.custom_data === "object" && asset.custom_data && !Array.isArray(asset.custom_data)
+    ? (asset.custom_data as Record<string, unknown>)
+    : null;
+  const statusAset = assetCd?.["status_aset"] ? String(assetCd["status_aset"]) : "";
+  const isUsulHapus = statusAset === "Usul Hapus" || statusAset === "Dihapuskan";
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-md px-4 py-6 space-y-5">
+
+        {/* Usul Hapus Warning Banner */}
+        {isUsulHapus && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 flex items-start gap-3">
+            <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-destructive">Aset Dalam Proses Penghapusan</p>
+              <p className="text-xs text-destructive/80 mt-0.5">
+                Aset ini telah diusulkan untuk dihapuskan dari inventaris. Pelaporan kendala tidak tersedia.
+              </p>
+            </div>
+          </div>
+        )}
         {/* Hero / Photo placeholder */}
         <div className="relative aspect-[4/3] w-full rounded-xl bg-muted flex items-center justify-center overflow-hidden">
           {asset.image_url ? (
@@ -256,15 +288,17 @@ export default function ScanAsset() {
         <div className="h-16" />
       </div>
 
-      {/* FAB */}
-      <div className="fixed bottom-0 inset-x-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
-        <div className="mx-auto max-w-md">
-          <Button size="lg" variant="destructive" className="w-full gap-2 shadow-lg" onClick={() => setReportOpen(true)}>
-            <AlertTriangle className="h-4 w-4" />
-            Lapor Kendala
-          </Button>
+      {/* FAB — hidden if asset is pending deletion */}
+      {!isUsulHapus && (
+        <div className="fixed bottom-0 inset-x-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
+          <div className="mx-auto max-w-md">
+            <Button size="lg" variant="destructive" className="w-full gap-2 shadow-lg" onClick={() => setReportOpen(true)}>
+              <AlertTriangle className="h-4 w-4" />
+              Lapor Kendala
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Report dialog */}
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>

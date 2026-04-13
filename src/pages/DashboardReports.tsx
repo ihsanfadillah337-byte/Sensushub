@@ -207,6 +207,24 @@ export default function DashboardReports() {
         await queryClient.invalidateQueries({ queryKey: ["assets"] });
       }
 
+      if (resolusiForm.aksi === "Diganti" && resolveReport.asset_id) {
+        const { data: asset } = await supabase
+          .from("assets")
+          .select("custom_data")
+          .eq("id", resolveReport.asset_id)
+          .single();
+
+        const currentCustom = (asset?.custom_data as Record<string, any>) || {};
+        const { error: assetErr } = await supabase
+          .from("assets")
+          .update({
+            custom_data: { ...currentCustom, status_aset: "Unit Pengganti", Kondisi: "Baik" },
+          })
+          .eq("id", resolveReport.asset_id);
+        if (assetErr) throw assetErr;
+        await queryClient.invalidateQueries({ queryKey: ["assets"] });
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["asset_reports"] });
       toast.success("Tiket diselesaikan.");
       setResolveReport(null);
