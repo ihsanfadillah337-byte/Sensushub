@@ -107,10 +107,10 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
       {col.type === "coded_dropdown" && expandedCol === col.id && col.options && !col.options_tree && (
         <div className="px-5 pb-3 pl-14">
           <div className="rounded border border-border bg-muted/20 divide-y divide-border">
-            {(col.options || []).map((o, i) => (
+            {(col.options || []).filter(Boolean).map((o, i) => (
               <div key={i} className="flex items-center gap-3 px-3 py-1.5 text-xs">
-                <span className="font-mono text-muted-foreground w-12">{o.code}</span>
-                <span className="text-foreground">{o.label}</span>
+                <span className="font-mono text-muted-foreground w-12">{o?.code || ''}</span>
+                <span className="text-foreground">{o?.label || ''}</span>
               </div>
             ))}
           </div>

@@ -153,7 +153,7 @@ function TreeNodeEditor({
 
       {expanded && hasChildren && (
         <div>
-          {(node.children || []).map((child, idx) => (
+          {(node.children || []).filter(Boolean).map((child, idx) => (
             <TreeNodeEditor
               key={idx}
               node={child}
@@ -320,7 +320,7 @@ export default function TreeBuilder({ levels, tree, onLevelsChange, onTreeChange
         )}
 
         <div className="space-y-0.5">
-          {(tree || []).map((node, idx) => (
+          {(tree || []).filter(Boolean).map((node, idx) => (
             <TreeNodeEditor
               key={idx}
               node={node}
