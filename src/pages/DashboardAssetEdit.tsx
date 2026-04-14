@@ -194,11 +194,11 @@ export default function DashboardAssetEdit() {
         if (newPrefixKode && oldPrefix !== newPrefixKode) {
            // Prefix changed, pull new sequential number
            let startNum = 1;
-           const { data: existing } = await supabase
+           const prefixReq = await supabase
               .from("assets").select("kode_aset").eq("company_id", companyId)
               .ilike("kode_aset", `${newPrefixKode}${kibCodeConfig.separator}%`);
-           if (existing && existing.length > 0) {
-              const numbers = existing.map((a) => {
+           if (prefixReq.data && prefixReq.data.length > 0) {
+              const numbers = prefixReq.data.map((a) => {
                 const parts = a.kode_aset.split(kibCodeConfig.separator);
                 return parseInt(parts[parts.length - 1], 10) || 0;
               });
@@ -211,15 +211,18 @@ export default function DashboardAssetEdit() {
            const oldFallbackPrefix = asset.kode_aset.split("-").slice(0, -1).join("-");
            
            if (oldFallbackPrefix !== fallbackPrefix) {
-             let startNum = 1;
-             const { data: existing } = await supabase
+             let startNumFb = 1;
+             const fallbackReq = await supabase
                 .from("assets").select("kode_aset").eq("company_id", companyId)
                 .ilike("kode_aset", `${fallbackPrefix}-%`);
-             if (existing && existing.length > 0) {
-                const numbers = existing.map((a) => { const match = a.kode_aset.match(/-(\d+)$/); return match ? parseInt(match[1], 10) : 0; });
-                startNum = Math.max(...numbers) + 1;
+             if (fallbackReq.data && fallbackReq.data.length > 0) {
+                const numbersFb = fallbackReq.data.map((a) => { 
+                   const match = a.kode_aset.match(/-(\d+)$/); 
+                   return match ? parseInt(match[1], 10) : 0; 
+                });
+                startNumFb = Math.max(...numbersFb) + 1;
              }
-             finalKodeAset = `${fallbackPrefix}-${String(startNum).padStart(3, "0")}`;
+             finalKodeAset = `${fallbackPrefix}-${String(startNumFb).padStart(3, "0")}`;
            }
         }
       }
