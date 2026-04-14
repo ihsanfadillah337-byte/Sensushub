@@ -143,6 +143,11 @@ export default function DashboardAssetEdit() {
 
     setIsSubmitting(true);
     try {
+      const divisiItem = masterDivisi.find((d) => d.code === selectedDivisi);
+      const kibItem = masterKib.find((k) => k.code === selectedKib);
+      const kodeDivisiLabel = divisiItem ? divisiItem.label : asset?.kode_divisi || null;
+      const kibLabelFull = kibItem ? `${kibItem.code} - ${kibItem.label}` : asset?.kib || null;
+
       // Build custom_data ONLY from current KIB columns + base fields
       const customDataJson: Record<string, string | number | null> = {};
 
@@ -178,10 +183,7 @@ export default function DashboardAssetEdit() {
       if (tanggalPerolehan) customDataJson["Tanggal Perolehan"] = tanggalPerolehan;
       if (nilaiAset) customDataJson["Nilai Aset"] = Number(nilaiAset);
 
-      const divisiItem = masterDivisi.find((d) => d.code === selectedDivisi);
-      const kibItem = masterKib.find((k) => k.code === selectedKib);
-      const kodeDivisiLabel = divisiItem ? divisiItem.label : asset?.kode_divisi || null;
-      const kibLabelFull = kibItem ? `${kibItem.code} - ${kibItem.label}` : asset?.kib || null;
+
 
       // Handle Code Re-generation
       const kibCodeConfig = getCodeConfigForKib(kibLabel);
