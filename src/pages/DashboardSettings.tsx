@@ -1,4 +1,4 @@
-import { Plus, Trash2, Columns3, AlertCircle, ChevronDown, ChevronUp, Building2, FolderOpen, Lock, Unlock, GripVertical, KeyRound } from "lucide-react";
+import { Plus, Trash2, Columns3, AlertCircle, ChevronDown, ChevronUp, Building2, FolderOpen, Lock, Unlock, GripVertical, KeyRound, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,6 +91,7 @@ export default function DashboardSettings() {
   const [newType, setNewType] = useState<string>("");
   const [codedOptions, setCodedOptions] = useState<CodedOption[]>([]);
   const [expandedCol, setExpandedCol] = useState<string | null>(null);
+  const [codeBuilderKib, setCodeBuilderKib] = useState<string | null>(null);
 
   // Lock/PIN state
   const [isLocked, setIsLocked] = useState(true);
@@ -171,10 +172,7 @@ export default function DashboardSettings() {
       </div>
 
       <MasterDataSection title="Master Divisi / Satuan Kerja" icon={<Building2 className="h-4 w-4 text-primary" />} items={masterDivisi} setItems={setMasterDivisi} labelPlaceholder="cth: Bagian Umum" codePlaceholder="cth: 01" />
-      <MasterDataSection title="Master KIB" icon={<FolderOpen className="h-4 w-4 text-primary" />} items={masterKib} setItems={setMasterKib} labelPlaceholder="cth: Peralatan dan Mesin" codePlaceholder="cth: 02" />
-
-      {/* WYSIWYG Code Builder */}
-      <CodeBuilder />
+      <MasterDataSection title="Master KIB" icon={<FolderOpen className="h-4 w-4 text-primary" />} items={masterKib} setItems={setMasterKib} labelPlaceholder="cth: Peralatan dan Mesin" codePlaceholder="cth: 02" onEditCode={(kibLabel) => setCodeBuilderKib(kibLabel)} />
 
       {/* Custom Columns per KIB */}
       <div className="rounded-lg border border-border bg-card">
@@ -362,6 +360,18 @@ export default function DashboardSettings() {
               toast.success("PIN berhasil diubah!");
             }}>Simpan</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Per-KIB Code Builder Dialog */}
+      <Dialog open={!!codeBuilderKib} onOpenChange={(open) => { if (!open) setCodeBuilderKib(null); }}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Hash className="h-4 w-4 text-primary" />
+              Format Kode Aset — {codeBuilderKib}
+            </DialogTitle>
+          </DialogHeader>
+          {codeBuilderKib && <CodeBuilder kibLabel={codeBuilderKib} />}
         </DialogContent>
       </Dialog>
     </div>

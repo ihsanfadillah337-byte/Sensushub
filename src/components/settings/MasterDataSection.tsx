@@ -1,4 +1,4 @@
-import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ interface MasterDataSectionProps {
   setItems: (items: MasterItem[] | ((prev: MasterItem[]) => MasterItem[])) => void;
   labelPlaceholder?: string;
   codePlaceholder?: string;
+  onEditCode?: (kibLabel: string) => void;
 }
 
 export default function MasterDataSection({
@@ -22,6 +23,7 @@ export default function MasterDataSection({
   setItems,
   labelPlaceholder = "cth: Bagian Umum",
   codePlaceholder = "cth: 01",
+  onEditCode,
 }: MasterDataSectionProps) {
   const [newLabel, setNewLabel] = useState("");
   const [newCode, setNewCode] = useState("");
@@ -115,6 +117,11 @@ export default function MasterDataSection({
                       <span className="text-sm font-medium text-foreground">{item.label}</span>
                     </div>
                     <div className="flex items-center gap-1">
+                      {onEditCode && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-primary transition-opacity" onClick={() => onEditCode(item.label)} title="Format Kode Aset">
+                          <Hash className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-primary transition-opacity" onClick={() => startEdit(item)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>

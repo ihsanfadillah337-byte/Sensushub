@@ -21,7 +21,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 export default function DashboardAssetsNew() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { getColumnsForKib, masterDivisi, masterKib, codeConfig } = useCustomColumns();
+  const { getColumnsForKib, getCodeConfigForKib, masterDivisi, masterKib } = useCustomColumns();
   const { companyId } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,18 +113,20 @@ export default function DashboardAssetsNew() {
       const kodeDivisiLabel = divisiItem ? divisiItem.label : null;
       const kibLabelFull = kibItem ? `${kibItem.code} - ${kibItem.label}` : null;
 
-      // Build code prefix using dynamic configuration
-      const prefixKode = buildCodePrefix(codeConfig, codeValueMap);
+      // Get per-KIB code configuration
+      const kibCodeConfig = getCodeConfigForKib(kibLabel);
+
+      // Build code prefix using per-KIB configuration
+      const prefixKode = buildCodePrefix(kibCodeConfig, codeValueMap);
       let startNum = 1;
 
       if (prefixKode) {
-        const escapedSep = codeConfig.separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const { data: existing } = await supabase
           .from("assets").select("kode_aset").eq("company_id", companyId)
-          .ilike("kode_aset", `${prefixKode}${codeConfig.separator}%`);
+          .ilike("kode_aset", `${prefixKode}${kibCodeConfig.separator}%`);
         if (existing && existing.length > 0) {
           const numbers = existing.map((a) => {
-            const parts = a.kode_aset.split(codeConfig.separator);
+            const parts = a.kode_aset.split(kibCodeConfig.separator);
             return parseInt(parts[parts.length - 1], 10) || 0;
           });
           startNum = Math.max(...numbers) + 1;
@@ -142,7 +144,7 @@ export default function DashboardAssetsNew() {
 
       const payload = Array.from({ length: quantity }, (_, i) => {
         const kodeAset = prefixKode
-          ? buildAssetCode(codeConfig, codeValueMap, startNum + i)
+          ? buildAssetCode(kibCodeConfig, codeValueMap, startNum + i)
           : `${namaAset.trim().toUpperCase().replace(/\s+/g, "-")}-${String(startNum + i).padStart(3, "0")}`;
         return {
           company_id: companyId,
@@ -169,6 +171,7 @@ export default function DashboardAssetsNew() {
   };
 
   const codePreview = useMemo(() => {
+    const kibCodeConfig = getCodeConfigForKib(kibLabel);
     const codeValueMap: CodeValueMap = {};
     if (selectedDivisi) codeValueMap.divisi = selectedDivisi;
     if (selectedKib) codeValueMap.kib = selectedKib;
@@ -177,11 +180,11 @@ export default function DashboardAssetsNew() {
         codeValueMap[col.name] = customData[col.name];
       }
     }
-    const preview = buildCodePreview(codeConfig, codeValueMap);
+    const preview = buildCodePreview(kibCodeConfig, codeValueMap);
     if (preview !== "—") return preview;
     if (namaAset.trim()) return `${namaAset.trim().toUpperCase().replace(/\s+/g, "-")}-001`;
     return "—";
-  }, [selectedDivisi, selectedKib, customData, customColumns, codeConfig, namaAset]);
+  }, [selectedDivisi, selectedKib, customData, customColumns, kibLabel, getCodeConfigForKib, namaAset]);
 
   return (
     <div className="space-y-6 max-w-3xl">
