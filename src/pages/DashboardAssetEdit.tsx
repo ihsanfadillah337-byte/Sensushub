@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Json } from "@/integrations/supabase/types";
 import { getSmartLocation } from "@/lib/smartLocation";
+import { buildAssetCode, buildCodePrefix, type CodeValueMap } from "@/lib/assetCode";
 import CascadingDropdown, { getTreeCodeValue, getTreeLabelChain } from "@/components/CascadingDropdown";
 
 const KONDISI_OPTIONS = ["Baik", "Rusak Ringan", "Rusak Berat"];
@@ -24,7 +25,7 @@ export default function DashboardAssetEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { getColumnsForKib, masterDivisi, masterKib } = useCustomColumns();
+  const { getColumnsForKib, getCodeConfigForKib, masterDivisi, masterKib } = useCustomColumns();
   const { companyId } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -145,16 +146,26 @@ export default function DashboardAssetEdit() {
       // Build custom_data ONLY from current KIB columns + base fields
       const customDataJson: Record<string, string | number | null> = {};
 
+      // Build value map for code generator
+      const codeValueMap: CodeValueMap = {};
+      if (divisiItem) codeValueMap.divisi = divisiItem.code;
+      if (kibItem) codeValueMap.kib = kibItem.code;
+
       for (const col of customColumns) {
         const val = customData[col.name];
         if (val !== undefined && val !== "") {
           if (col.type === "coded_dropdown") {
             if (col.options_tree) {
+              const codeStr = getTreeCodeValue(val);
               const labelStr = getTreeLabelChain(col, val);
               customDataJson[col.name] = labelStr;
+              if (codeStr) codeValueMap[col.name] = codeStr;
             } else {
               const selectedOpt = col.options?.find((o) => o.code === val);
-              customDataJson[col.name] = selectedOpt ? selectedOpt.label : val;
+              if (selectedOpt) {
+                customDataJson[col.name] = selectedOpt.label;
+                codeValueMap[col.name] = selectedOpt.code;
+              }
             }
           } else {
             customDataJson[col.name] = col.type === "number" ? Number(val) : val;
@@ -172,6 +183,47 @@ export default function DashboardAssetEdit() {
       const kodeDivisiLabel = divisiItem ? divisiItem.label : asset?.kode_divisi || null;
       const kibLabelFull = kibItem ? `${kibItem.code} - ${kibItem.label}` : asset?.kib || null;
 
+      // Handle Code Re-generation
+      const kibCodeConfig = getCodeConfigForKib(kibLabel);
+      const newPrefixKode = buildCodePrefix(kibCodeConfig, codeValueMap);
+      let finalKodeAset = asset?.kode_aset;
+
+      if (asset?.kode_aset) {
+        const oldPrefix = asset.kode_aset.substring(0, asset.kode_aset.lastIndexOf(kibCodeConfig.separator));
+        
+        if (newPrefixKode && oldPrefix !== newPrefixKode) {
+           // Prefix changed, pull new sequential number
+           let startNum = 1;
+           const { data: existing } = await supabase
+              .from("assets").select("kode_aset").eq("company_id", companyId)
+              .ilike("kode_aset", `${newPrefixKode}${kibCodeConfig.separator}%`);
+           if (existing && existing.length > 0) {
+              const numbers = existing.map((a) => {
+                const parts = a.kode_aset.split(kibCodeConfig.separator);
+                return parseInt(parts[parts.length - 1], 10) || 0;
+              });
+              startNum = Math.max(...numbers) + 1;
+           }
+           finalKodeAset = buildAssetCode(kibCodeConfig, codeValueMap, startNum);
+        } else if (!newPrefixKode) {
+           // Changed to fallback strategy, re-apply fallback but respect same increment logic if prefix matches
+           const fallbackPrefix = namaAset.trim().toUpperCase().replace(/\s+/g, "-");
+           const oldFallbackPrefix = asset.kode_aset.split("-").slice(0, -1).join("-");
+           
+           if (oldFallbackPrefix !== fallbackPrefix) {
+             let startNum = 1;
+             const { data: existing } = await supabase
+                .from("assets").select("kode_aset").eq("company_id", companyId)
+                .ilike("kode_aset", `${fallbackPrefix}-%`);
+             if (existing && existing.length > 0) {
+                const numbers = existing.map((a) => { const match = a.kode_aset.match(/-(\d+)$/); return match ? parseInt(match[1], 10) : 0; });
+                startNum = Math.max(...numbers) + 1;
+             }
+             finalKodeAset = `${fallbackPrefix}-${String(startNum).padStart(3, "0")}`;
+           }
+        }
+      }
+
       const { error } = await supabase
         .from("assets")
         .update({
@@ -182,6 +234,7 @@ export default function DashboardAssetEdit() {
           image_url: imageUrl,
           kode_divisi: kodeDivisiLabel,
           kib: kibLabelFull,
+          kode_aset: finalKodeAset,
         })
         .eq("id", id!);
 
