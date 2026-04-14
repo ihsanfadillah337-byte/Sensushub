@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, ImagePlus, Save, Package, X, Loader2, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSmartLocation } from "@/lib/smartLocation";
+import { buildAssetCode, buildCodePrefix, buildCodePreview, type CodeValueMap } from "@/lib/assetCode";
 
 const KONDISI_OPTIONS = ["Baik", "Rusak Ringan", "Rusak Berat"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -20,7 +21,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 export default function DashboardAssetsNew() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { getColumnsForKib, masterDivisi, masterKib } = useCustomColumns();
+  const { getColumnsForKib, masterDivisi, masterKib, codeConfig } = useCustomColumns();
   const { companyId } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,12 +81,13 @@ export default function DashboardAssetsNew() {
     setIsSubmitting(true);
     try {
       const customDataJson: Record<string, string | number | null> = {};
-      const codeParts: string[] = [];
-
       const divisiItem = masterDivisi.find((d) => d.code === selectedDivisi);
       const kibItem = masterKib.find((k) => k.code === selectedKib);
-      if (divisiItem) codeParts.push(divisiItem.code);
-      if (kibItem) codeParts.push(kibItem.code);
+
+      // Build value map for code generator
+      const codeValueMap: CodeValueMap = {};
+      if (divisiItem) codeValueMap.divisi = divisiItem.code;
+      if (kibItem) codeValueMap.kib = kibItem.code;
 
       // Follow drag-and-drop order from customColumns (already ordered by KIB)
       for (const col of customColumns) {
@@ -95,7 +97,7 @@ export default function DashboardAssetsNew() {
             const selectedOpt = col.options?.find((o) => o.code === val);
             if (selectedOpt) {
               customDataJson[col.name] = selectedOpt.label;
-              codeParts.push(selectedOpt.code);
+              codeValueMap[col.name] = selectedOpt.code;
             }
           } else {
             customDataJson[col.name] = col.type === "number" ? Number(val) : val;
@@ -111,19 +113,22 @@ export default function DashboardAssetsNew() {
       const kodeDivisiLabel = divisiItem ? divisiItem.label : null;
       const kibLabelFull = kibItem ? `${kibItem.code} - ${kibItem.label}` : null;
 
-      let kodeAsetBase: string;
+      // Build code prefix using dynamic configuration
+      const prefixKode = buildCodePrefix(codeConfig, codeValueMap);
       let startNum = 1;
 
-      if (codeParts.length > 0) {
-        const prefixKode = codeParts.join(".");
+      if (prefixKode) {
+        const escapedSep = codeConfig.separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const { data: existing } = await supabase
           .from("assets").select("kode_aset").eq("company_id", companyId)
-          .ilike("kode_aset", `${prefixKode}.%`);
+          .ilike("kode_aset", `${prefixKode}${codeConfig.separator}%`);
         if (existing && existing.length > 0) {
-          const numbers = existing.map((a) => { const parts = a.kode_aset.split("."); return parseInt(parts[parts.length - 1], 10) || 0; });
+          const numbers = existing.map((a) => {
+            const parts = a.kode_aset.split(codeConfig.separator);
+            return parseInt(parts[parts.length - 1], 10) || 0;
+          });
           startNum = Math.max(...numbers) + 1;
         }
-        kodeAsetBase = prefixKode;
       } else {
         const prefix = namaAset.trim().toUpperCase().replace(/\s+/g, "-");
         const { data: existing } = await supabase
@@ -133,23 +138,24 @@ export default function DashboardAssetsNew() {
           const numbers = existing.map((a) => { const match = a.kode_aset.match(/-(\d+)$/); return match ? parseInt(match[1], 10) : 0; });
           startNum = Math.max(...numbers) + 1;
         }
-        kodeAsetBase = prefix;
       }
 
-      const useDot = codeParts.length > 0;
-      const separator = useDot ? "." : "-";
-
-      const payload = Array.from({ length: quantity }, (_, i) => ({
-        company_id: companyId,
-        nama_aset: namaAset.trim(),
-        kategori: kibItem ? kibItem.label : "Lainnya",
-        lokasi_ruangan: getSmartLocation(customDataJson as Record<string, unknown>, kodeDivisiLabel),
-        kode_aset: `${kodeAsetBase}${separator}${String(startNum + i).padStart(3, "0")}`,
-        custom_data: customDataJson,
-        image_url: imageUrl,
-        kode_divisi: kodeDivisiLabel,
-        kib: kibLabelFull,
-      }));
+      const payload = Array.from({ length: quantity }, (_, i) => {
+        const kodeAset = prefixKode
+          ? buildAssetCode(codeConfig, codeValueMap, startNum + i)
+          : `${namaAset.trim().toUpperCase().replace(/\s+/g, "-")}-${String(startNum + i).padStart(3, "0")}`;
+        return {
+          company_id: companyId,
+          nama_aset: namaAset.trim(),
+          kategori: kibItem ? kibItem.label : "Lainnya",
+          lokasi_ruangan: getSmartLocation(customDataJson as Record<string, unknown>, kodeDivisiLabel),
+          kode_aset: kodeAset,
+          custom_data: customDataJson,
+          image_url: imageUrl,
+          kode_divisi: kodeDivisiLabel,
+          kib: kibLabelFull,
+        };
+      });
 
       const { error } = await supabase.from("assets").insert(payload);
       if (error) throw error;
@@ -162,17 +168,20 @@ export default function DashboardAssetsNew() {
     } finally { setIsSubmitting(false); }
   };
 
-  const codePreview = (() => {
-    const parts: string[] = [];
-    if (selectedDivisi) parts.push(selectedDivisi);
-    if (selectedKib) parts.push(selectedKib);
+  const codePreview = useMemo(() => {
+    const codeValueMap: CodeValueMap = {};
+    if (selectedDivisi) codeValueMap.divisi = selectedDivisi;
+    if (selectedKib) codeValueMap.kib = selectedKib;
     for (const col of customColumns) {
-      if (col.type === "coded_dropdown" && customData[col.name]) parts.push(customData[col.name]);
+      if (col.type === "coded_dropdown" && customData[col.name]) {
+        codeValueMap[col.name] = customData[col.name];
+      }
     }
-    if (parts.length > 0) return `${parts.join(".")}.001`;
+    const preview = buildCodePreview(codeConfig, codeValueMap);
+    if (preview !== "—") return preview;
     if (namaAset.trim()) return `${namaAset.trim().toUpperCase().replace(/\s+/g, "-")}-001`;
     return "—";
-  })();
+  }, [selectedDivisi, selectedKib, customData, customColumns, codeConfig, namaAset]);
 
   return (
     <div className="space-y-6 max-w-3xl">

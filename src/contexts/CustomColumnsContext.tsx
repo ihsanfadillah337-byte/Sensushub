@@ -20,6 +20,29 @@ export interface MasterItem {
   code: string;
 }
 
+export interface CodeBlock {
+  id: string;
+  label: string;
+  source: 'divisi' | 'kib' | 'custom_column';
+  columnName?: string;
+  isVisible: boolean;
+  isFixed: boolean;
+}
+
+export interface CodeConfiguration {
+  separator: '-' | '.' | '/';
+  blocks: CodeBlock[];
+}
+
+const DEFAULT_CODE_CONFIG: CodeConfiguration = {
+  separator: '.',
+  blocks: [
+    { id: 'divisi', label: 'Kode Divisi', source: 'divisi', isVisible: true, isFixed: false },
+    { id: 'kib', label: 'Kode KIB', source: 'kib', isVisible: true, isFixed: false },
+    { id: 'serial', label: 'Nomor Urut', source: 'custom_column', isVisible: true, isFixed: true },
+  ],
+};
+
 /** KIB-keyed map: { "KIB A": [...columns], "KIB B": [...columns] } */
 export type KibColumnsMap = Record<string, CustomColumn[]>;
 
@@ -29,6 +52,8 @@ interface CustomColumnsContextType {
   kibColumns: KibColumnsMap;
   setKibColumns: (update: KibColumnsMap | ((prev: KibColumnsMap) => KibColumnsMap)) => void;
   getColumnsForKib: (kibLabel: string) => CustomColumn[];
+  codeConfig: CodeConfiguration;
+  setCodeConfig: (update: CodeConfiguration | ((prev: CodeConfiguration) => CodeConfiguration)) => void;
   masterDivisi: MasterItem[];
   setMasterDivisi: (items: MasterItem[] | ((prev: MasterItem[]) => MasterItem[])) => void;
   masterKib: MasterItem[];
@@ -43,6 +68,7 @@ const CustomColumnsContext = createContext<CustomColumnsContextType | undefined>
 export function CustomColumnsProvider({ children }: { children: ReactNode }) {
   const { companyId } = useAuth();
   const [kibColumns, setKibColumnsState] = useState<KibColumnsMap>({});
+  const [codeConfig, setCodeConfigState] = useState<CodeConfiguration>(DEFAULT_CODE_CONFIG);
   const [masterDivisi, setMasterDivisiState] = useState<MasterItem[]>([]);
   const [masterKib, setMasterKibState] = useState<MasterItem[]>([]);
   const [settingsPin, setSettingsPin] = useState("123456");
@@ -71,7 +97,14 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
           // Old format – wrap in global key
           setKibColumnsState({ __global__: data.custom_column_schema as unknown as CustomColumn[] });
         } else if (typeof data.custom_column_schema === "object") {
-          setKibColumnsState(data.custom_column_schema as unknown as KibColumnsMap);
+          const schema = data.custom_column_schema as Record<string, unknown>;
+          // Extract code config if present
+          if (schema.__code_config__ && typeof schema.__code_config__ === 'object') {
+            setCodeConfigState(schema.__code_config__ as unknown as CodeConfiguration);
+          }
+          // Filter out __code_config__ from kib columns map
+          const { __code_config__, ...kibMap } = schema;
+          setKibColumnsState(kibMap as unknown as KibColumnsMap);
         } else {
           setKibColumnsState({});
         }
@@ -95,6 +128,13 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
     load();
   }, [companyId]);
 
+  const persistSchema = (kibMap: KibColumnsMap, cc: CodeConfiguration) => {
+    if (companyId) {
+      const merged = { ...kibMap, __code_config__: cc };
+      supabase.from("companies").update({ custom_column_schema: merged } as any).eq("id", companyId).then();
+    }
+  };
+
   const persistField = (field: string, value: unknown) => {
     if (companyId) {
       supabase.from("companies").update({ [field]: value } as any).eq("id", companyId).then();
@@ -104,7 +144,15 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
   const setKibColumns = (update: KibColumnsMap | ((prev: KibColumnsMap) => KibColumnsMap)) => {
     setKibColumnsState((prev) => {
       const next = typeof update === "function" ? update(prev) : update;
-      persistField("custom_column_schema", next);
+      persistSchema(next, codeConfig);
+      return next;
+    });
+  };
+
+  const setCodeConfig = (update: CodeConfiguration | ((prev: CodeConfiguration) => CodeConfiguration)) => {
+    setCodeConfigState((prev) => {
+      const next = typeof update === "function" ? update(prev) : update;
+      persistSchema(kibColumns, next);
       return next;
     });
   };
@@ -138,7 +186,7 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CustomColumnsContext.Provider value={{ columns, kibColumns, setKibColumns, getColumnsForKib, masterDivisi, setMasterDivisi, masterKib, setMasterKib, settingsPin, setSettingsPin: updateSettingsPin, isLoading }}>
+    <CustomColumnsContext.Provider value={{ columns, kibColumns, setKibColumns, getColumnsForKib, codeConfig, setCodeConfig, masterDivisi, setMasterDivisi, masterKib, setMasterKib, settingsPin, setSettingsPin: updateSettingsPin, isLoading }}>
       {children}
     </CustomColumnsContext.Provider>
   );

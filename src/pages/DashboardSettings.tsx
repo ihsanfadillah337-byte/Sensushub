@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { useCustomColumns, type CodedOption, type CustomColumn } from "@/contexts/CustomColumnsContext";
 import MasterDataSection from "@/components/settings/MasterDataSection";
+import CodeBuilder from "@/components/settings/CodeBuilder";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
@@ -171,6 +172,9 @@ export default function DashboardSettings() {
 
       <MasterDataSection title="Master Divisi / Satuan Kerja" icon={<Building2 className="h-4 w-4 text-primary" />} items={masterDivisi} setItems={setMasterDivisi} labelPlaceholder="cth: Bagian Umum" codePlaceholder="cth: 01" />
       <MasterDataSection title="Master KIB" icon={<FolderOpen className="h-4 w-4 text-primary" />} items={masterKib} setItems={setMasterKib} labelPlaceholder="cth: Peralatan dan Mesin" codePlaceholder="cth: 02" />
+
+      {/* WYSIWYG Code Builder */}
+      <CodeBuilder />
 
       {/* Custom Columns per KIB */}
       <div className="rounded-lg border border-border bg-card">
