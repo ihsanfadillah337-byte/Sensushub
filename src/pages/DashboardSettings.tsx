@@ -90,20 +90,20 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
       {col.type === "coded_dropdown" && expandedCol === col.id && col.options_tree && col.dropdown_levels && (
         <div className="px-5 pb-3 pl-14">
           <div className="rounded border border-border bg-muted/20 p-2 space-y-1">
-            {col.dropdown_levels.map((lv, i) => (
+            {(col.dropdown_levels || []).map((lv, i) => (
               <div key={i} className="flex items-center gap-2 text-[10px]">
                 <span className="font-mono text-muted-foreground bg-muted px-1 rounded">L{i + 1}</span>
                 <span className="text-foreground">{lv || `Level ${i + 1}`}</span>
               </div>
             ))}
-            <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t border-border/50">Tree: {countTreeNodes(col.options_tree)} node</div>
+            <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t border-border/50">Tree: {countTreeNodes(col.options_tree || [])} node</div>
           </div>
         </div>
       )}
       {col.type === "coded_dropdown" && expandedCol === col.id && col.options && !col.options_tree && (
         <div className="px-5 pb-3 pl-14">
           <div className="rounded border border-border bg-muted/20 divide-y divide-border">
-            {col.options.map((o, i) => (
+            {(col.options || []).map((o, i) => (
               <div key={i} className="flex items-center gap-3 px-3 py-1.5 text-xs">
                 <span className="font-mono text-muted-foreground w-12">{o.code}</span>
                 <span className="text-foreground">{o.label}</span>
