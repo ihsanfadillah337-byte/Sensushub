@@ -26,10 +26,14 @@ import { CSS } from "@dnd-kit/utilities";
 const MAX_COLUMNS = 10;
 
 function countTreeNodes(nodes: TreeNode[]): number {
+  if (!nodes || !Array.isArray(nodes)) return 0;
   let count = 0;
   for (const n of nodes) {
+    if (!n) continue;
     count++;
-    if (n.children) count += countTreeNodes(n.children);
+    if (n.children && Array.isArray(n.children)) {
+      count += countTreeNodes(n.children);
+    }
   }
   return count;
 }

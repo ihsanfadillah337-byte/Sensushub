@@ -264,12 +264,13 @@ export default function TreeBuilder({ levels, tree, onLevelsChange, onTreeChange
     onTreeChange((tree || []).filter((_, i) => i !== idx));
   };
 
-  // Count total nodes
   const countNodes = (nodes: TreeNode[]): number => {
+    if (!nodes || !Array.isArray(nodes)) return 0;
     let count = 0;
-    for (const n of (nodes || [])) {
+    for (const n of nodes) {
+      if (!n) continue;
       count++;
-      if (n.children) count += countNodes(n.children);
+      if (n.children && Array.isArray(n.children)) count += countNodes(n.children);
     }
     return count;
   };
