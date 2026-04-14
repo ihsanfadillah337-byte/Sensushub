@@ -165,60 +165,59 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
   };
 
   const setMasterKib = (update: MasterItem[] | ((prev: MasterItem[]) => MasterItem[])) => {
-    setMasterKibState((prev) => {
-      const next = typeof update === "function" ? update(prev) : update;
-      
-      const deletedLabels: string[] = [];
-      const renamedItems: { oldLabel: string; newLabel: string }[] = [];
-      
-      for (const p of prev) {
-        const matchingNext = next.find((n) => n.id === p.id);
-        if (!matchingNext) {
-          deletedLabels.push(p.label); // KIB was deleted
-        } else if (matchingNext.label !== p.label) {
-          renamedItems.push({ oldLabel: p.label, newLabel: matchingNext.label }); // KIB was renamed
+    // Evaluate next state outside to avoid nested setState updaters
+    const next = typeof update === "function" ? update(masterKib) : update;
+    
+    const deletedLabels: string[] = [];
+    const renamedItems: { oldLabel: string; newLabel: string }[] = [];
+    
+    for (const p of masterKib) {
+      const matchingNext = next.find((n) => n.id === p.id);
+      if (!matchingNext) {
+        deletedLabels.push(p.label); // KIB was deleted
+      } else if (matchingNext.label !== p.label) {
+        renamedItems.push({ oldLabel: p.label, newLabel: matchingNext.label }); // KIB was renamed
+      }
+    }
+
+    if (deletedLabels.length > 0 || renamedItems.length > 0) {
+      const nextCols = { ...kibColumns };
+      let changed = false;
+
+      // Process deletions
+      for (const label of deletedLabels) {
+        if (nextCols[label]) {
+          delete nextCols[label];
+          changed = true;
         }
       }
 
-      if (deletedLabels.length > 0 || renamedItems.length > 0) {
-        setKibColumnsState((prevCols) => {
-          const nextCols = { ...prevCols };
-          let changed = false;
-
-          // Process deletions
-          for (const label of deletedLabels) {
-            if (nextCols[label]) {
-              delete nextCols[label];
-              changed = true;
-            }
-          }
-
-          // Process renames
-          for (const rename of renamedItems) {
-            if (nextCols[rename.oldLabel]) {
-              nextCols[rename.newLabel] = nextCols[rename.oldLabel];
-              delete nextCols[rename.oldLabel];
-              changed = true;
-            }
-          }
-
-          // Save both synchronously if columns changed
-          if (changed && companyId) {
-            supabase.from("companies").update({
-              master_kib: next as any,
-              custom_column_schema: nextCols as any
-            }).eq("id", companyId).then();
-            return nextCols;
-          } else {
-            persistField("master_kib", next);
-          }
-          return prevCols;
-        });
-      } else {
-        persistField("master_kib", next);
+      // Process renames
+      for (const rename of renamedItems) {
+        if (nextCols[rename.oldLabel]) {
+          nextCols[rename.newLabel] = nextCols[rename.oldLabel];
+          delete nextCols[rename.oldLabel];
+          changed = true;
+        }
       }
-      return next;
-    });
+
+      if (changed && companyId) {
+        // Save both synchronously
+        supabase.from("companies").update({
+          master_kib: next as any,
+          custom_column_schema: nextCols as any
+        }).eq("id", companyId).then();
+        
+        // Update local states concurrently
+        setKibColumnsState(nextCols);
+        setMasterKibState(next);
+        return;
+      }
+    }
+    
+    // Normal update (no schema changes needed)
+    persistField("master_kib", next);
+    setMasterKibState(next);
   };
 
   const updateSettingsPin = (pin: string) => {
