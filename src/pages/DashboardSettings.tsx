@@ -74,12 +74,12 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
         <div className="flex items-center gap-1">
           {col.type === "coded_dropdown" && (expandedCol === col.id ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />)}
           {!isLocked && (
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary"
+            <div className="flex items-center gap-1">
+               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary transition-colors"
                  onClick={(e) => { e.stopPropagation(); onEdit(col); }} title="Edit Kolom">
                  <Pencil className="h-3 w-3" />
                </Button>
-               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive transition-colors"
                  onClick={(e) => { e.stopPropagation(); onRemove(col.id); }} title="Hapus Kolom">
                  <Trash2 className="h-3.5 w-3.5" />
                </Button>

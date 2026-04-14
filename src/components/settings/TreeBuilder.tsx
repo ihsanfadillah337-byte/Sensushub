@@ -117,7 +117,7 @@ function TreeNodeEditor({
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+              className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors shrink-0"
               onClick={startEditing}
               title="Edit Node"
             >
@@ -142,7 +142,7 @@ function TreeNodeEditor({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            className="h-6 w-6 text-muted-foreground hover:text-destructive transition-colors shrink-0"
             onClick={onRemove}
             title={hasChildren ? "Hapus Node beserta sub-cabangnya" : "Hapus Node"}
           >
@@ -205,7 +205,7 @@ function LevelItem({ idx, level, onUpdate, onRemove }: { idx: number; level: str
       ) : (
         <div className="flex-1 flex items-center justify-between">
           <span className="text-xs">{level || <span className="text-muted-foreground italic">Level {idx + 1}</span>}</span>
-          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary shrink-0" onClick={() => setEditing(true)}>
               <Pencil className="h-3 w-3" />
             </Button>
