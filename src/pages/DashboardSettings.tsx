@@ -11,9 +11,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useState } from "react";
-import { useCustomColumns, type CodedOption, type CustomColumn } from "@/contexts/CustomColumnsContext";
+import { useCustomColumns, type CodedOption, type CustomColumn, type TreeNode } from "@/contexts/CustomColumnsContext";
 import MasterDataSection from "@/components/settings/MasterDataSection";
 import CodeBuilder from "@/components/settings/CodeBuilder";
+import TreeBuilder from "@/components/settings/TreeBuilder";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
@@ -23,6 +24,15 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 const MAX_COLUMNS = 10;
+
+function countTreeNodes(nodes: TreeNode[]): number {
+  let count = 0;
+  for (const n of nodes) {
+    count++;
+    if (n.children) count += countTreeNodes(n.children);
+  }
+  return count;
+}
 
 const typeLabels: Record<string, string> = {
   text: "Text", number: "Number", date: "Date", coded_dropdown: "Dropdown Berkode",
@@ -53,8 +63,11 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
           <span className="text-xs text-muted-foreground tabular-nums w-5">{index + 1}.</span>
           <span className="text-sm font-medium text-foreground">{col.name}</span>
           <Badge variant="secondary" className={`text-[10px] ${typeBadgeClass[col.type]}`}>{typeLabels[col.type]}</Badge>
-          {col.type === "coded_dropdown" && col.options && (
+          {col.type === "coded_dropdown" && col.options && !col.options_tree && (
             <span className="text-[10px] text-muted-foreground">({col.options.length} opsi)</span>
+          )}
+          {col.type === "coded_dropdown" && col.options_tree && (
+            <span className="text-[10px] text-muted-foreground">({col.dropdown_levels?.length || 1} level)</span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -67,7 +80,20 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
           )}
         </div>
       </div>
-      {col.type === "coded_dropdown" && expandedCol === col.id && col.options && (
+      {col.type === "coded_dropdown" && expandedCol === col.id && col.options_tree && col.dropdown_levels && (
+        <div className="px-5 pb-3 pl-14">
+          <div className="rounded border border-border bg-muted/20 p-2 space-y-1">
+            {col.dropdown_levels.map((lv, i) => (
+              <div key={i} className="flex items-center gap-2 text-[10px]">
+                <span className="font-mono text-muted-foreground bg-muted px-1 rounded">L{i + 1}</span>
+                <span className="text-foreground">{lv || `Level ${i + 1}`}</span>
+              </div>
+            ))}
+            <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t border-border/50">Tree: {countTreeNodes(col.options_tree)} node</div>
+          </div>
+        </div>
+      )}
+      {col.type === "coded_dropdown" && expandedCol === col.id && col.options && !col.options_tree && (
         <div className="px-5 pb-3 pl-14">
           <div className="rounded border border-border bg-muted/20 divide-y divide-border">
             {col.options.map((o, i) => (
@@ -90,6 +116,8 @@ export default function DashboardSettings() {
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<string>("");
   const [codedOptions, setCodedOptions] = useState<CodedOption[]>([]);
+  const [treeBuilderLevels, setTreeBuilderLevels] = useState<string[]>(["Level 1"]);
+  const [treeBuilderNodes, setTreeBuilderNodes] = useState<TreeNode[]>([]);
   const [expandedCol, setExpandedCol] = useState<string | null>(null);
   const [codeBuilderKib, setCodeBuilderKib] = useState<string | null>(null);
 
@@ -135,14 +163,25 @@ export default function DashboardSettings() {
     if (currentColumns.some((c) => c.name.toLowerCase() === newName.trim().toLowerCase())) { toast.error("Nama kolom sudah digunakan."); return; }
     let newCol: CustomColumn;
     if (newType === "coded_dropdown") {
-      const valid = codedOptions.filter((o) => o.label.trim() && o.code.trim());
-      if (valid.length < 1) { toast.error("Tambahkan minimal 1 opsi dengan Label dan Kode."); return; }
-      newCol = { id: crypto.randomUUID(), name: newName.trim(), type: "coded_dropdown", options: valid.map((o) => ({ label: o.label.trim(), code: o.code.trim() })) };
+      // Check if tree mode (has levels defined)
+      if (treeBuilderLevels.length > 0 && treeBuilderNodes.length > 0) {
+        newCol = {
+          id: crypto.randomUUID(),
+          name: newName.trim(),
+          type: "coded_dropdown",
+          dropdown_levels: treeBuilderLevels.map((l) => l.trim() || `Level`),
+          options_tree: treeBuilderNodes,
+        };
+      } else {
+        const valid = codedOptions.filter((o) => o.label.trim() && o.code.trim());
+        if (valid.length < 1) { toast.error("Tambahkan minimal 1 opsi."); return; }
+        newCol = { id: crypto.randomUUID(), name: newName.trim(), type: "coded_dropdown", options: valid.map((o) => ({ label: o.label.trim(), code: o.code.trim() })) };
+      }
     } else {
       newCol = { id: crypto.randomUUID(), name: newName.trim(), type: newType as "text" | "number" | "date" };
     }
     setKibColumns((prev) => ({ ...prev, [selectedKibKey]: [...(prev[selectedKibKey] || []), newCol] }));
-    setNewName(""); setNewType(""); setCodedOptions([]);
+    setNewName(""); setNewType(""); setCodedOptions([]); setTreeBuilderLevels(["Level 1"]); setTreeBuilderNodes([]);
     toast.success(`Kolom "${newCol.name}" berhasil ditambahkan.`);
   };
 
@@ -233,22 +272,12 @@ export default function DashboardSettings() {
               </div>
 
               {newType === "coded_dropdown" && (
-                <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-foreground">Opsi Dropdown</p>
-                    <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={handleAddOption}>
-                      <Plus className="h-3 w-3" /> Tambah Opsi
-                    </Button>
-                  </div>
-                  {codedOptions.length === 0 && <p className="text-[11px] text-muted-foreground">Klik "Tambah Opsi" untuk menambahkan pilihan dropdown.</p>}
-                  {codedOptions.map((opt, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <Input className="flex-1 h-8 text-xs" placeholder="Label" value={opt.label} onChange={(e) => handleOptionChange(idx, "label", e.target.value)} />
-                      <Input className="w-24 h-8 text-xs font-mono" placeholder="Kode" value={opt.code} onChange={(e) => handleOptionChange(idx, "code", e.target.value)} />
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0" onClick={() => handleRemoveOption(idx)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                    </div>
-                  ))}
-                </div>
+                <TreeBuilder
+                  levels={treeBuilderLevels}
+                  tree={treeBuilderNodes}
+                  onLevelsChange={setTreeBuilderLevels}
+                  onTreeChange={setTreeBuilderNodes}
+                />
               )}
 
               {isMaxReached && (

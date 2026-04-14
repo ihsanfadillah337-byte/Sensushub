@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Json } from "@/integrations/supabase/types";
 import { getSmartLocation } from "@/lib/smartLocation";
+import CascadingDropdown, { getTreeCodeValue, getTreeLabelChain } from "@/components/CascadingDropdown";
 
 const KONDISI_OPTIONS = ["Baik", "Rusak Ringan", "Rusak Berat"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -148,8 +149,13 @@ export default function DashboardAssetEdit() {
         const val = customData[col.name];
         if (val !== undefined && val !== "") {
           if (col.type === "coded_dropdown") {
-            const selectedOpt = col.options?.find((o) => o.code === val);
-            customDataJson[col.name] = selectedOpt ? selectedOpt.label : val;
+            if (col.options_tree) {
+              const labelStr = getTreeLabelChain(col, val);
+              customDataJson[col.name] = labelStr;
+            } else {
+              const selectedOpt = col.options?.find((o) => o.code === val);
+              customDataJson[col.name] = selectedOpt ? selectedOpt.label : val;
+            }
           } else {
             customDataJson[col.name] = col.type === "number" ? Number(val) : val;
           }
@@ -314,9 +320,15 @@ export default function DashboardAssetEdit() {
           </div>
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {customColumns.map((col) => (
-              <div key={col.id} className="space-y-1.5">
+              <div key={col.id} className={`space-y-1.5 ${col.options_tree ? 'sm:col-span-2' : ''}`}>
                 <Label className="text-xs font-medium text-muted-foreground">{col.name}</Label>
-                {col.type === "coded_dropdown" && col.options ? (
+                {col.type === "coded_dropdown" && col.options_tree ? (
+                  <CascadingDropdown
+                    column={col}
+                    value={customData[col.name] || ""}
+                    onChange={(v) => setCustomData((p) => ({ ...p, [col.name]: v }))}
+                  />
+                ) : col.type === "coded_dropdown" && col.options ? (
                   <Select
                     value={customData[col.name] || ""}
                     onValueChange={(v) => setCustomData((p) => ({ ...p, [col.name]: v }))}

@@ -17,6 +17,7 @@ import {
   DEFAULT_CODE_CONFIG,
   type CodeBlock,
   type CodeConfiguration,
+  type TreeNode,
 } from "@/contexts/CustomColumnsContext";
 import { buildCodePreview, type CodeValueMap } from "@/lib/assetCode";
 
@@ -81,6 +82,20 @@ function SortableBlock({
   );
 }
 
+/* ─── Helper for Tree Code Preview ─── */
+function getFirstLeafCode(nodes: TreeNode[]): string {
+  const codes: string[] = [];
+  let current: TreeNode[] | undefined = nodes;
+  
+  while (current && current.length > 0) {
+    const first = current[0];
+    codes.push(first.code);
+    current = first.children;
+  }
+  
+  return codes.join(".");
+}
+
 /* ─── Main Code Builder Component (per-KIB) ─── */
 interface CodeBuilderProps {
   kibLabel: string;
@@ -112,8 +127,12 @@ export default function CodeBuilder({ kibLabel }: CodeBuilderProps) {
     if (kibItem) map.kib = kibItem.code;
     // Sample values from this KIB's coded_dropdown columns only
     for (const col of kibColumns) {
-      if (col.type === "coded_dropdown" && col.options && col.options.length > 0) {
-        map[col.name] = col.options[0].code;
+      if (col.type === "coded_dropdown") {
+        if (col.options_tree && col.options_tree.length > 0) {
+          map[col.name] = getFirstLeafCode(col.options_tree);
+        } else if (col.options && col.options.length > 0) {
+          map[col.name] = col.options[0].code;
+        }
       }
     }
     return map;

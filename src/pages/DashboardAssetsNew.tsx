@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSmartLocation } from "@/lib/smartLocation";
 import { buildAssetCode, buildCodePrefix, buildCodePreview, type CodeValueMap } from "@/lib/assetCode";
+import CascadingDropdown, { getTreeCodeValue, getTreeLabelChain } from "@/components/CascadingDropdown";
 
 const KONDISI_OPTIONS = ["Baik", "Rusak Ringan", "Rusak Berat"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -94,10 +95,19 @@ export default function DashboardAssetsNew() {
         const val = customData[col.name];
         if (val !== undefined && val !== "") {
           if (col.type === "coded_dropdown") {
-            const selectedOpt = col.options?.find((o) => o.code === val);
-            if (selectedOpt) {
-              customDataJson[col.name] = selectedOpt.label;
-              codeValueMap[col.name] = selectedOpt.code;
+            if (col.options_tree) {
+              // Nested tree: value is "01>02>03", code is "01.02.03", label is chain
+              const codeStr = getTreeCodeValue(val);
+              const labelStr = getTreeLabelChain(col, val);
+              customDataJson[col.name] = labelStr;
+              if (codeStr) codeValueMap[col.name] = codeStr;
+            } else {
+              // Legacy flat dropdown
+              const selectedOpt = col.options?.find((o) => o.code === val);
+              if (selectedOpt) {
+                customDataJson[col.name] = selectedOpt.label;
+                codeValueMap[col.name] = selectedOpt.code;
+              }
             }
           } else {
             customDataJson[col.name] = col.type === "number" ? Number(val) : val;
@@ -177,7 +187,12 @@ export default function DashboardAssetsNew() {
     if (selectedKib) codeValueMap.kib = selectedKib;
     for (const col of customColumns) {
       if (col.type === "coded_dropdown" && customData[col.name]) {
-        codeValueMap[col.name] = customData[col.name];
+        if (col.options_tree) {
+          const codeStr = getTreeCodeValue(customData[col.name]);
+          if (codeStr) codeValueMap[col.name] = codeStr;
+        } else {
+          codeValueMap[col.name] = customData[col.name];
+        }
       }
     }
     const preview = buildCodePreview(kibCodeConfig, codeValueMap);
@@ -276,9 +291,15 @@ export default function DashboardAssetsNew() {
           </div>
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {customColumns.map((col) => (
-              <div key={col.id} className="space-y-1.5">
+              <div key={col.id} className={`space-y-1.5 ${col.options_tree ? 'sm:col-span-2' : ''}`}>
                 <Label className="text-xs font-medium text-muted-foreground">{col.name}</Label>
-                {col.type === "coded_dropdown" && col.options ? (
+                {col.type === "coded_dropdown" && col.options_tree ? (
+                  <CascadingDropdown
+                    column={col}
+                    value={customData[col.name] || ""}
+                    onChange={(v) => setCustomData((p) => ({ ...p, [col.name]: v }))}
+                  />
+                ) : col.type === "coded_dropdown" && col.options ? (
                   <Select value={customData[col.name] || ""} onValueChange={(v) => setCustomData((p) => ({ ...p, [col.name]: v }))}>
                     <SelectTrigger><SelectValue placeholder={`Pilih ${col.name.toLowerCase()}`} /></SelectTrigger>
                     <SelectContent>

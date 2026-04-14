@@ -7,11 +7,19 @@ export interface CodedOption {
   code: string;
 }
 
+export interface TreeNode {
+  label: string;
+  code: string;
+  children?: TreeNode[];
+}
+
 export interface CustomColumn {
   id: string;
   name: string;
   type: "text" | "number" | "date" | "coded_dropdown";
   options?: CodedOption[];
+  dropdown_levels?: string[];
+  options_tree?: TreeNode[];
 }
 
 export interface CodeBlock {
