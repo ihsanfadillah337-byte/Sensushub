@@ -42,10 +42,11 @@ const typeBadgeClass: Record<string, string> = {
   date: "bg-muted text-muted-foreground", coded_dropdown: "bg-primary/10 text-primary",
 };
 
-function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol, onRemove }: {
+function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol, onRemove, onEdit }: {
   col: CustomColumn; index: number; isLocked: boolean;
   expandedCol: string | null; setExpandedCol: (id: string | null) => void;
   onRemove: (id: string) => void;
+  onEdit: (col: CustomColumn) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: col.id, disabled: isLocked });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -73,10 +74,16 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
         <div className="flex items-center gap-1">
           {col.type === "coded_dropdown" && (expandedCol === col.id ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />)}
           {!isLocked && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-              onClick={(e) => { e.stopPropagation(); onRemove(col.id); }}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary"
+                 onClick={(e) => { e.stopPropagation(); onEdit(col); }} title="Edit Kolom">
+                 <Pencil className="h-3 w-3" />
+               </Button>
+               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                 onClick={(e) => { e.stopPropagation(); onRemove(col.id); }} title="Hapus Kolom">
+                 <Trash2 className="h-3.5 w-3.5" />
+               </Button>
+            </div>
           )}
         </div>
       </div>
@@ -113,6 +120,7 @@ export default function DashboardSettings() {
   const { kibColumns, setKibColumns, masterDivisi, setMasterDivisi, masterKib, setMasterKib, settingsPin, setSettingsPin } = useCustomColumns();
 
   const [selectedKibKey, setSelectedKibKey] = useState<string>("");
+  const [editingColId, setEditingColId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<string>("");
   const [codedOptions, setCodedOptions] = useState<CodedOption[]>([]);
@@ -156,11 +164,46 @@ export default function DashboardSettings() {
     setCodedOptions((prev) => prev.map((o, i) => (i === idx ? { ...o, [field]: value } : o)));
   };
 
-  const handleAdd = () => {
+  const handleEdit = (col: CustomColumn) => {
+    setEditingColId(col.id);
+    setNewName(col.name);
+    setNewType(col.type);
+    if (col.type === "coded_dropdown") {
+      setCodedOptions(col.options || []);
+      setTreeBuilderLevels(col.dropdown_levels || ["Level 1"]);
+      setTreeBuilderNodes(col.options_tree || []);
+    } else {
+      setCodedOptions([]);
+      setTreeBuilderLevels(["Level 1"]);
+      setTreeBuilderNodes([]);
+    }
+    // Scroll to top to ensure user sees the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingColId(null);
+    setNewName("");
+    setNewType("");
+    setCodedOptions([]);
+    setTreeBuilderLevels(["Level 1"]);
+    setTreeBuilderNodes([]);
+  };
+
+  const handleSaveColumn = () => {
     if (!selectedKibKey) { toast.error("Pilih KIB terlebih dahulu."); return; }
     if (!newName.trim()) { toast.error("Nama kolom wajib diisi."); return; }
     if (!newType) { toast.error("Pilih tipe data terlebih dahulu."); return; }
-    if (currentColumns.some((c) => c.name.toLowerCase() === newName.trim().toLowerCase())) { toast.error("Nama kolom sudah digunakan."); return; }
+    
+    // Validasi duplikat nama kolom (kecuali untuk dirinya sendiri jika sedang edit)
+    const isDuplicate = currentColumns.some((c) => 
+      c.name.toLowerCase() === newName.trim().toLowerCase() && c.id !== editingColId
+    );
+    if (isDuplicate) { 
+      toast.error("Nama kolom sudah digunakan."); 
+      return; 
+    }
+    
     let newCol: CustomColumn;
     if (newType === "coded_dropdown") {
       // Check if tree mode (has levels defined)
@@ -178,11 +221,20 @@ export default function DashboardSettings() {
         newCol = { id: crypto.randomUUID(), name: newName.trim(), type: "coded_dropdown", options: valid.map((o) => ({ label: o.label.trim(), code: o.code.trim() })) };
       }
     } else {
-      newCol = { id: crypto.randomUUID(), name: newName.trim(), type: newType as "text" | "number" | "date" };
+      newCol = { id: editingColId || crypto.randomUUID(), name: newName.trim(), type: newType as "text" | "number" | "date" };
     }
-    setKibColumns((prev) => ({ ...prev, [selectedKibKey]: [...(prev[selectedKibKey] || []), newCol] }));
-    setNewName(""); setNewType(""); setCodedOptions([]); setTreeBuilderLevels(["Level 1"]); setTreeBuilderNodes([]);
-    toast.success(`Kolom "${newCol.name}" berhasil ditambahkan.`);
+    
+    setKibColumns((prev) => {
+       const cols = prev[selectedKibKey] || [];
+       if (editingColId) {
+         return { ...prev, [selectedKibKey]: cols.map(c => c.id === editingColId ? newCol : c) };
+       } else {
+         return { ...prev, [selectedKibKey]: [...cols, newCol] };
+       }
+    });
+    
+    cancelEdit();
+    toast.success(editingColId ? `Kolom "${newCol.name}" berhasil diperbarui.` : `Kolom "${newCol.name}" berhasil ditambahkan.`);
   };
 
   const handleRemove = (id: string) => {
@@ -266,9 +318,20 @@ export default function DashboardSettings() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button size="sm" className="gap-1.5 h-9" onClick={handleAdd} disabled={isMaxReached}>
-                  <Plus className="h-4 w-4" /><span className="hidden sm:inline">Tambah</span>
-                </Button>
+                {editingColId ? (
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" className="gap-1.5 justify-center flex-1" onClick={handleSaveColumn}>
+                      <Check className="h-4 w-4" /> Simpan
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={cancelEdit}>
+                      <X className="h-4 w-4" /> Batal
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" className="gap-1.5 w-full justify-center" onClick={handleSaveColumn} disabled={isMaxReached}>
+                    <Plus className="h-4 w-4" /> Tambah
+                  </Button>
+                )}
               </div>
 
               {newType === "coded_dropdown" && (
@@ -317,7 +380,7 @@ export default function DashboardSettings() {
               <SortableContext items={currentColumns.map((c) => c.id)} strategy={verticalListSortingStrategy}>
                 <ul className="divide-y divide-border">
                   {currentColumns.map((col, index) => (
-                    <SortableColumnItem key={col.id} col={col} index={index} isLocked={isLocked} expandedCol={expandedCol} setExpandedCol={setExpandedCol} onRemove={handleRemove} />
+                    <SortableColumnItem key={col.id} col={col} index={index} isLocked={isLocked} expandedCol={expandedCol} setExpandedCol={setExpandedCol} onRemove={handleRemove} onEdit={handleEdit} />
                   ))}
                 </ul>
               </SortableContext>
