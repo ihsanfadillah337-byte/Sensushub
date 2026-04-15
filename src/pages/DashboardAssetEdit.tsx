@@ -367,7 +367,7 @@ export default function DashboardAssetEdit() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Nilai Aset / Harga</Label>
-            <Input type="number" placeholder="0" value={nilaiAset} onChange={(e) => setNilaiAset(e.target.value)} />
+            <Input type="number" placeholder="0" value={nilaiAset} onChange={(e) => setNilaiAset(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} />
           </div>
         </div>
       </section>
@@ -408,6 +408,7 @@ export default function DashboardAssetEdit() {
                     type={col.type === "number" ? "number" : col.type === "date" ? "date" : "text"}
                     value={customData[col.name] || ""}
                     onChange={(e) => setCustomData((p) => ({ ...p, [col.name]: e.target.value }))}
+                    onWheel={(e) => col.type === "number" && (e.target as HTMLInputElement).blur()}
                   />
                 )}
               </div>

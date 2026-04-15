@@ -277,7 +277,7 @@ export default function DashboardAssetsNew() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Nilai Aset / Harga</Label>
-            <Input type="number" placeholder="0" value={nilaiAset} onChange={(e) => setNilaiAset(e.target.value)} />
+            <Input type="number" placeholder="0" value={nilaiAset} onChange={(e) => setNilaiAset(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} />
           </div>
         </div>
       </section>
@@ -309,7 +309,7 @@ export default function DashboardAssetsNew() {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Input type={col.type === "number" ? "number" : col.type === "date" ? "date" : "text"} placeholder={col.type === "number" ? "0" : `Masukkan ${col.name.toLowerCase()}`} value={customData[col.name] || ""} onChange={(e) => setCustomData((p) => ({ ...p, [col.name]: e.target.value }))} />
+                  <Input type={col.type === "number" ? "number" : col.type === "date" ? "date" : "text"} placeholder={col.type === "number" ? "0" : `Masukkan ${col.name.toLowerCase()}`} value={customData[col.name] || ""} onChange={(e) => setCustomData((p) => ({ ...p, [col.name]: e.target.value }))} onWheel={(e) => col.type === "number" && (e.target as HTMLInputElement).blur()} />
                 )}
               </div>
             ))}
@@ -336,7 +336,7 @@ export default function DashboardAssetsNew() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Jumlah Item (Bulk Insert)</Label>
-              <Input type="number" min={1} max={999} value={quantity} onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} />
+              <Input type="number" min={1} max={999} value={quantity} onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} onWheel={(e) => (e.target as HTMLInputElement).blur()} />
               <p className="text-[11px] text-muted-foreground">Sistem akan men-generate kode aset otomatis.</p>
             </div>
           </div>

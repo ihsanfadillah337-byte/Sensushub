@@ -447,6 +447,7 @@ export default function DashboardReports() {
                   placeholder="0"
                   value={resolusiForm.biaya}
                   onChange={(e) => setResolusiForm((f) => ({ ...f, biaya: e.target.value }))}
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
                 />
               </div>
               <div className="space-y-2">
