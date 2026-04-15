@@ -22,6 +22,9 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 // Helper: resolve smart location from asset's custom_data
 function assetSmartLocation(a: { custom_data: unknown; kode_divisi: string | null }): string {
@@ -130,10 +133,11 @@ export default function DashboardAssets() {
     }
   }, [selectedIds, queryClient]);
 
-  const handlePrintLabels = useCallback(async () => {
+  const handlePrintLabels = useCallback(async (mode: "thermal" | "a4" = "thermal") => {
     const selected = assets.filter((a) => selectedIds.has(a.id));
     if (selected.length === 0) return;
-    selected.sort((a, b) => a.kategori.localeCompare(b.kategori));
+    
+    // Grouping will be handled strictly by the LabelPDF component logic
     setIsPrinting(true);
     try {
       const { pdf } = await import("@react-pdf/renderer");
@@ -149,6 +153,7 @@ export default function DashboardAssets() {
           }))}
           companyName={companyName || "Perusahaan Saya"}
           baseUrl={window.location.origin}
+          mode={mode}
         />
       ).toBlob();
       const url = URL.createObjectURL(blob);
@@ -282,10 +287,22 @@ export default function DashboardAssets() {
                 <Trash2 className="h-4 w-4" />
                 Hapus Terpilih ({selectedIds.size})
               </Button>
-              <Button size="sm" variant="outline" className="gap-1.5" disabled={isPrinting} onClick={handlePrintLabels}>
-                {isPrinting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-                Cetak Label ({selectedIds.size})
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="gap-1.5" disabled={isPrinting}>
+                    {isPrinting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                    Cetak Label ({selectedIds.size})
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handlePrintLabels("thermal")}>
+                    Cetak Thermal (10x5cm)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handlePrintLabels("a4")}>
+                    Cetak Kertas A4 (Grid)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           )}
           <Button size="sm" variant="outline" className="gap-1.5" disabled={isExportingExcel || assets.length === 0} onClick={handleExportExcel}>
