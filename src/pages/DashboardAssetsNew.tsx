@@ -110,7 +110,9 @@ export default function DashboardAssetsNew() {
               }
             }
           } else {
-            customDataJson[col.name] = col.type === "number" ? Math.round(Number(val)) : val;
+            customDataJson[col.name] = col.type === "number" 
+              ? Math.round(Number(String(val).replace(/[^0-9.-]+/g, ""))) 
+              : val;
           }
         }
       }
@@ -118,7 +120,7 @@ export default function DashboardAssetsNew() {
       // Store extra base fields in custom_data
       if (kondisi) customDataJson["Kondisi"] = kondisi;
       if (tanggalPerolehan) customDataJson["Tanggal Perolehan"] = tanggalPerolehan;
-      if (nilaiAset) customDataJson["Nilai Aset"] = Math.round(Number(nilaiAset));
+      if (nilaiAset) customDataJson["Nilai Aset"] = Math.round(Number(String(nilaiAset).replace(/[^0-9.-]+/g, "")));
 
       const kodeDivisiLabel = divisiItem ? divisiItem.label : null;
       const kibLabelFull = kibItem ? `${kibItem.code} - ${kibItem.label}` : null;
