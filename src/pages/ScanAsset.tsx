@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ImageIcon, MapPin, Building2, Tag, AlertTriangle, PackageX, ShieldAlert,
+  ImageIcon, MapPin, Building2, Tag, AlertTriangle, PackageX, ShieldAlert, ChevronRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -272,13 +272,33 @@ export default function ScanAsset() {
                 Detail Tambahan
               </AccordionTrigger>
               <AccordionContent>
-                <dl className="space-y-2 text-sm">
-                  {customEntries.map(([label, value]) => (
-                    <div key={label} className="flex justify-between">
-                      <dt className="text-muted-foreground">{label}</dt>
-                      <dd className="font-medium text-foreground">{value}</dd>
-                    </div>
-                  ))}
+                <dl className="space-y-3 text-sm">
+                  {customEntries.map(([label, value]) => {
+                    const isBreadcrumb = value.includes(" > ");
+                    return (
+                      <div key={label} className={`flex ${isBreadcrumb ? 'flex-col gap-1.5' : 'justify-between items-start gap-4'}`}>
+                        <dt className="text-muted-foreground shrink-0">{label}</dt>
+                        <dd className={`font-medium text-foreground break-words w-full sm:w-auto ${isBreadcrumb ? 'text-left' : 'text-right'}`}>
+                          {isBreadcrumb ? (
+                            <div className="flex flex-wrap gap-1 mt-0.5 justify-start">
+                              {value.split(" > ").map((part, idx, arr) => (
+                                <div key={idx} className="flex items-center">
+                                  <span className="bg-muted/60 text-muted-foreground px-2 py-1 rounded-md text-xs font-medium">
+                                    {part.trim()}
+                                  </span>
+                                  {idx < arr.length - 1 && (
+                                    <ChevronRight className="h-3 w-3 text-muted-foreground/50 mx-0.5 shrink-0" />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="whitespace-pre-wrap">{value}</span>
+                          )}
+                        </dd>
+                      </div>
+                    );
+                  })}
                 </dl>
               </AccordionContent>
             </AccordionItem>
