@@ -66,7 +66,7 @@ function handlePrintBeritaAcara(report: any) {
     ["Nama Pelapor", report.nama_pelapor || "-"],
     ["Kontak Pelapor", report.kontak_pelapor || "-"],
     ["Tindakan (Resolusi)", resolusi?.aksi || "-"],
-    ["Total Biaya", `Rp ${Number(resolusi?.biaya || 0).toLocaleString("id-ID")}`],
+    ["Total Biaya", `Rp ${Math.round(Number(resolusi?.biaya || 0)).toLocaleString("id-ID")}`],
     ["Catatan Teknisi", resolusi?.catatan || "-"],
     ["Tanggal Selesai", resolusi?.resolved_at ? new Date(resolusi.resolved_at).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" }) : "-"],
   ];
@@ -178,7 +178,7 @@ export default function DashboardReports() {
     try {
       const resolusi = {
         aksi: resolusiForm.aksi,
-        biaya: Number(resolusiForm.biaya) || 0,
+        biaya: Math.round(Number(resolusiForm.biaya) || 0),
         catatan: resolusiForm.catatan,
         resolved_at: new Date().toISOString(),
       };
@@ -337,7 +337,7 @@ export default function DashboardReports() {
                           <p className="truncate">{report.deskripsi || "—"}</p>
                           {report.status === "Selesai" && resolusi?.aksi && (
                             <p className="text-xs mt-1 text-chart-1">
-                              ✓ {resolusi.aksi} — Rp{Number(resolusi.biaya || 0).toLocaleString("id-ID")}
+                              ✓ {resolusi.aksi} — Rp{Math.round(Number(resolusi.biaya || 0)).toLocaleString("id-ID")}
                             </p>
                           )}
                         </TableCell>

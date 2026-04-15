@@ -24,7 +24,8 @@ const PIE_COLORS: Record<string, string> = {
 };
 const BAR_COLORS = ["#3b82f6", "#6366f1", "#8b5cf6", "#06b6d4", "#14b8a6", "#f59e0b", "#f43f5e", "#ec4899"];
 
-function formatRupiah(num: number) {
+function formatRupiah(rawNum: number) {
+  const num = Math.round(rawNum);
   if (num >= 1_000_000_000) return `Rp ${(num / 1_000_000_000).toFixed(1)}M`;
   if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(1)}Jt`;
   if (num >= 1_000) return `Rp ${(num / 1_000).toFixed(0)}Rb`;

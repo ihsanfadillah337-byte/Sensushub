@@ -173,7 +173,7 @@ export default function DashboardAssetEdit() {
               }
             }
           } else {
-            customDataJson[col.name] = col.type === "number" ? Number(val) : val;
+            customDataJson[col.name] = col.type === "number" ? Math.round(Number(val)) : val;
           }
         }
       }
@@ -181,7 +181,7 @@ export default function DashboardAssetEdit() {
       // Store base fields in custom_data
       if (kondisi) customDataJson["Kondisi"] = kondisi;
       if (tanggalPerolehan) customDataJson["Tanggal Perolehan"] = tanggalPerolehan;
-      if (nilaiAset) customDataJson["Nilai Aset"] = Number(nilaiAset);
+      if (nilaiAset) customDataJson["Nilai Aset"] = Math.round(Number(nilaiAset));
 
 
 
