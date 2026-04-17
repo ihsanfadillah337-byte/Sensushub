@@ -1,5 +1,5 @@
-import { useParams } from "react-router-dom";
-import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ImageIcon, MapPin, Building2, Tag, AlertTriangle, PackageX, ShieldAlert, ChevronRight
+  ImageIcon, MapPin, Building2, Tag, AlertTriangle, PackageX, ShieldAlert, ChevronRight,
+  ClipboardCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,13 +23,34 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
+import type { AppRole } from "@/types/supabase";
 
 export default function ScanAsset() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [reportOpen, setReportOpen] = useState(false);
   const [reportForm, setReportForm] = useState({ judul: "", deskripsi: "", nama_pelapor: "", kontak_pelapor: "" });
   const [submitting, setSubmitting] = useState(false);
+
+  // Dual-Scan: Check if current visitor is an authenticated auditor/admin
+  const [auditorRole, setAuditorRole] = useState<AppRole | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        if (profile?.role === "auditor" || profile?.role === "super_admin") {
+          setAuditorRole(profile.role as AppRole);
+        }
+      } catch { /* silent — public page */ }
+    })();
+  }, []);
 
   const { data: asset, isLoading, error } = useQuery({
     queryKey: ["asset", id],
@@ -307,6 +329,27 @@ export default function ScanAsset() {
 
         <div className="h-16" />
       </div>
+
+      {/* Dual-Scan: Auditor Banner */}
+      {auditorRole && (
+        <div className="fixed bottom-16 inset-x-0 px-4 z-20">
+          <div className="mx-auto max-w-md">
+            <button
+              onClick={() => navigate(`/dashboard/census/audit/${asset.id}`)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
+            >
+              <div className="h-10 w-10 rounded-lg bg-primary-foreground/15 flex items-center justify-center shrink-0">
+                <ClipboardCheck className="h-5 w-5" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-sm font-semibold">Masuk Mode Audit Sensus</p>
+                <p className="text-xs opacity-80">Anda terdeteksi sebagai {auditorRole === 'super_admin' ? 'Admin' : 'Auditor'}</p>
+              </div>
+              <ChevronRight className="h-5 w-5 opacity-60" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* FAB — hidden if asset is pending deletion */}
       {!isUsulHapus && (
