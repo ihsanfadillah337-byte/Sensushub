@@ -57,6 +57,7 @@ export default function DashboardCensus() {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "belum" | "sudah">("all");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
   const scannerRef = useRef<any>(null);
@@ -174,9 +175,16 @@ export default function DashboardCensus() {
     const q = searchQuery.toLowerCase();
     return assets.filter((a) => {
       if (q && !a.nama_aset.toLowerCase().includes(q) && !a.kode_aset.toLowerCase().includes(q)) return false;
+      // Status filter
+      if (statusFilter !== "all") {
+        const cd = getCd(a);
+        const hasAudit = !!getTerakhirDiaudit(cd);
+        if (statusFilter === "sudah" && !hasAudit) return false;
+        if (statusFilter === "belum" && hasAudit) return false;
+      }
       return true;
     });
-  }, [assets, searchQuery]);
+  }, [assets, searchQuery, statusFilter]);
 
   // ─── Reset Sensus ─────────────────────────────────────
   const handleResetSensus = async () => {
@@ -496,14 +504,36 @@ export default function DashboardCensus() {
 
         {/* ========== TAB 2: DAFTAR ASET ========== */}
         <TabsContent value="list" className="mt-6 space-y-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari kode atau nama aset…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari kode atau nama aset…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-0.5 self-start">
+              {[
+                { key: "all" as const, label: "Semua" },
+                { key: "belum" as const, label: "Belum Dicek" },
+                { key: "sudah" as const, label: "Sudah Diaudit" },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setStatusFilter(opt.key)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    statusFilter === opt.key
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
