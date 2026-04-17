@@ -46,7 +46,11 @@ const App = () => (
               <Route path="assets/new" element={<DashboardAssetsNew />} />
               <Route path="assets/:id/edit" element={<DashboardAssetEdit />} />
               <Route path="reports" element={<DashboardReports />} />
-              <Route path="settings" element={<DashboardSettings />} />
+              <Route path="settings" element={
+                <ProtectedRoute allowedRoles={['super_admin']}>
+                  <DashboardSettings />
+                </ProtectedRoute>
+              } />
               <Route index element={<Navigate to="overview" replace />} />
             </Route>
             <Route path="/scan/:id" element={<ScanAsset />} />

@@ -154,15 +154,55 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles: {
+        Row: {
+          id: string
+          company_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          full_name: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          company_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          full_name?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          full_name?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       is_company_owner: { Args: { _company_id: string }; Returns: boolean }
+      get_auth_company_id: { Args: Record<string, never>; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "operator" | "auditor"
     }
     CompositeTypes: {
       [_ in never]: never

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import type { AppRole } from "@/types/supabase";
 
 interface AuthContextType {
   user: User | null;
@@ -8,7 +9,11 @@ interface AuthContextType {
   loading: boolean;
   companyId: string | null;
   companyName: string | null;
+  role: AppRole | null;
+  fullName: string | null;
   signOut: () => Promise<void>;
+  /** Check if user has one of the given roles */
+  hasRole: (...roles: AppRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,8 +24,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
+  const [role, setRole] = useState<AppRole | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
 
-  const fetchCompany = async (userId: string) => {
+  /**
+   * Fetch profile from user_profiles, then JOIN companies to get company name.
+   * This replaces the old single-owner fetchCompany pattern.
+   */
+  const fetchProfile = async (userId: string) => {
+    try {
+      // Step 1: Fetch user_profiles row (RLS: user can read own profile)
+      const { data: profile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("company_id, role, full_name")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        // Fallback: try legacy companies.user_id lookup for backward compat
+        await fetchCompanyLegacy(userId);
+        return;
+      }
+
+      if (!profile) {
+        // Profile doesn't exist yet (edge case: trigger might not have fired)
+        console.warn("No user_profiles row found, falling back to legacy lookup");
+        await fetchCompanyLegacy(userId);
+        return;
+      }
+
+      setRole((profile.role as AppRole) || "operator");
+      setFullName(profile.full_name || null);
+      setCompanyId(profile.company_id || null);
+
+      // Step 2: Fetch company name if company_id exists
+      if (profile.company_id) {
+        const { data: company } = await supabase
+          .from("companies")
+          .select("name")
+          .eq("id", profile.company_id)
+          .maybeSingle();
+        setCompanyName(company?.name ?? null);
+      } else {
+        setCompanyName(null);
+      }
+    } catch (err) {
+      console.error("Error in fetchProfile:", err);
+      resetProfileState();
+    }
+  };
+
+  /**
+   * Legacy fallback: for users who haven't been migrated to user_profiles yet.
+   * Reads from the old companies.user_id pattern.
+   */
+  const fetchCompanyLegacy = async (userId: string) => {
     try {
       const { data } = await supabase
         .from("companies")
@@ -29,11 +88,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
       setCompanyId(data?.id ?? null);
       setCompanyName(data?.name ?? null);
+      // Assume super_admin for legacy owner accounts
+      setRole("super_admin");
+      setFullName(null);
     } catch (err) {
-      console.error("Error fetching company:", err);
-      setCompanyId(null);
-      setCompanyName(null);
+      console.error("Error in legacy company fetch:", err);
+      resetProfileState();
     }
+  };
+
+  const resetProfileState = () => {
+    setCompanyId(null);
+    setCompanyName(null);
+    setRole(null);
+    setFullName(null);
   };
 
   useEffect(() => {
@@ -46,11 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           // Use setTimeout to avoid blocking the auth state change callback
           setTimeout(() => {
-            fetchCompany(session.user.id);
+            fetchProfile(session.user.id);
           }, 0);
         } else {
-          setCompanyId(null);
-          setCompanyName(null);
+          resetProfileState();
         }
         setLoading(false);
       }
@@ -63,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await fetchCompany(session.user.id);
+          await fetchProfile(session.user.id);
         }
       } catch (error) {
         console.error("Error getting session:", error);
@@ -84,8 +151,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/auth";
   };
 
+  const hasRole = (...roles: AppRole[]) => {
+    if (!role) return false;
+    return roles.includes(role);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, companyId, companyName, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, session, loading, 
+      companyId, companyName, 
+      role, fullName, 
+      signOut, hasRole 
+    }}>
       {children}
     </AuthContext.Provider>
   );

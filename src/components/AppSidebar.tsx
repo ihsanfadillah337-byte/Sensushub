@@ -1,7 +1,8 @@
-import { LayoutDashboard, Package, Settings, LogOut, AlertCircle } from "lucide-react";
+import { LayoutDashboard, Package, Settings, LogOut, AlertCircle, ClipboardCheck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import type { AppRole } from "@/types/supabase";
 import {
   Sidebar,
   SidebarContent,
@@ -16,18 +17,32 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const menuItems = [
-  { title: "Dashboard", url: "/dashboard/overview", icon: LayoutDashboard },
-  { title: "Daftar Aset", url: "/dashboard/assets", icon: Package },
-  { title: "Laporan Kendala", url: "/dashboard/reports", icon: AlertCircle },
-  { title: "Pengaturan", url: "/dashboard/settings", icon: Settings },
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  /** Which roles can see this menu item */
+  roles: AppRole[];
+}
+
+const menuItems: MenuItem[] = [
+  { title: "Dashboard", url: "/dashboard/overview", icon: LayoutDashboard, roles: ["super_admin", "operator"] },
+  { title: "Daftar Aset", url: "/dashboard/assets", icon: Package, roles: ["super_admin", "operator"] },
+  { title: "Laporan Kendala", url: "/dashboard/reports", icon: AlertCircle, roles: ["super_admin", "operator"] },
+  { title: "Pengaturan", url: "/dashboard/settings", icon: Settings, roles: ["super_admin"] },
+  { title: "Sensus Lapangan", url: "/dashboard/census", icon: ClipboardCheck, roles: ["super_admin", "auditor"] },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { signOut, user } = useAuth();
+  const { signOut, user, role } = useAuth();
+
+  // Filter menu items based on user's role
+  const visibleMenuItems = menuItems.filter(
+    (item) => role && item.roles.includes(role)
+  );
 
   return (
     <Sidebar collapsible="icon">
@@ -55,7 +70,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {visibleMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink

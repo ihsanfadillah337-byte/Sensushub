@@ -1,6 +1,17 @@
 // TypeScript interfaces untuk struktur database Inventarisasi Manajemen Aset
 // Digunakan sebagai referensi tipe di seluruh frontend
 
+// === RBAC Types ===
+export type AppRole = 'super_admin' | 'operator' | 'auditor';
+
+export interface UserProfile {
+  id: string;
+  company_id: string | null;
+  role: AppRole;
+  full_name: string | null;
+  created_at: string;
+}
+
 export interface Company {
   id: string;
   name: string;
