@@ -70,3 +70,17 @@ export interface AssetUpdate {
 export interface AssetWithCompany extends Asset {
   companies: Company;
 }
+
+// Audit history record
+export interface AssetAudit {
+  id: string;
+  asset_id: string;
+  auditor_id: string | null;
+  kondisi: string;
+  tindak_lanjut: string;
+  catatan: string | null;
+  foto_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+}

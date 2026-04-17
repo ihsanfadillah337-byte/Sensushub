@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,13 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import {
-  ClipboardCheck, ArrowLeft, MapPin, Tag, Building2, Camera, Upload,
-  Loader2, PackageX, CheckCircle2, ImageIcon
+  ClipboardCheck, ArrowLeft, MapPin, Tag, Building2, Camera,
+  Loader2, PackageX, CheckCircle2, MapPinned, X, Video
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,21 +19,31 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
 
 export default function CensusAuditForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, companyId } = useAuth();
+  const { user } = useAuth();
 
+  // Form state
   const [kondisi, setKondisi] = useState("");
   const [tindakLanjut, setTindakLanjut] = useState("");
   const [catatan, setCatatan] = useState("");
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [photoPreview, setPhotoPreview] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Live camera state
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // GPS state
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
 
   // Fetch asset data
   const { data: asset, isLoading, error } = useQuery({
@@ -51,30 +60,87 @@ export default function CensusAuditForm() {
     enabled: !!id,
   });
 
-  // Handle photo selection
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  // Auto-request GPS on mount
+  useEffect(() => {
+    requestGPS();
+    return () => stopCamera();
+  }, []);
 
-    const newFiles = Array.from(files).slice(0, 3 - photos.length); // Max 3 photos
-    setPhotos((prev) => [...prev, ...newFiles]);
-
-    // Generate previews
-    newFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setPhotoPreview((prev) => [...prev, ev.target?.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+  const requestGPS = () => {
+    if (!navigator.geolocation) {
+      setGpsError("Geolocation tidak didukung browser ini.");
+      return;
+    }
+    setGpsLoading(true);
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGpsLoading(false);
+      },
+      (err) => {
+        setGpsError(err.message === "User denied Geolocation" ? "Izin lokasi ditolak." : "Gagal mendapatkan lokasi.");
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
+
+  // Camera controls
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setCameraActive(true);
+    } catch {
+      toast.error("Tidak dapat mengakses kamera. Pastikan izin kamera diaktifkan.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setCameraActive(false);
+  };
+
+  const capturePhoto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+    if (capturedPhotos.length >= 3) {
+      toast.error("Maksimal 3 foto.");
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+
+    // Compress to JPEG 0.7 quality
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+    setCapturedPhotos((prev) => [...prev, dataUrl]);
+    toast.success(`Foto ${capturedPhotos.length + 1} berhasil diambil!`);
+
+    if (capturedPhotos.length + 1 >= 3) {
+      stopCamera();
+    }
+  }, [capturedPhotos]);
 
   const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
-    setPhotoPreview((prev) => prev.filter((_, i) => i !== index));
+    setCapturedPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Submit audit
+  // Submit audit to asset_audits table
   const handleSubmit = async () => {
     if (!kondisi) {
       toast.error("Pilih kondisi aset terlebih dahulu.");
@@ -86,22 +152,22 @@ export default function CensusAuditForm() {
     }
 
     setSubmitting(true);
+    stopCamera();
+
     try {
-      // Update asset's custom_data with audit info
-      const currentCd = (typeof asset!.custom_data === "object" && asset!.custom_data && !Array.isArray(asset!.custom_data))
-        ? { ...(asset!.custom_data as Record<string, Json>) }
-        : {};
+      // Insert into asset_audits (history table)
+      const { error: insertError } = await supabase.from("asset_audits").insert({
+        asset_id: asset!.id,
+        auditor_id: user?.id || null,
+        kondisi,
+        tindak_lanjut: tindakLanjut,
+        catatan: catatan || null,
+        foto_url: capturedPhotos.length > 0 ? capturedPhotos[0] : null,
+        latitude: gpsCoords?.lat || null,
+        longitude: gpsCoords?.lng || null,
+      });
 
-      currentCd["Kondisi"] = kondisi;
-      currentCd["Tindak Lanjut Sensus"] = tindakLanjut;
-      currentCd["Catatan Auditor"] = catatan || null;
-      currentCd["Terakhir Diaudit"] = new Date().toISOString().split("T")[0];
-      currentCd["Auditor"] = user?.email || "Unknown";
-
-      await supabase
-        .from("assets")
-        .update({ custom_data: currentCd })
-        .eq("id", asset!.id);
+      if (insertError) throw insertError;
 
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ["census-assets"] });
@@ -109,10 +175,10 @@ export default function CensusAuditForm() {
       queryClient.invalidateQueries({ queryKey: ["assets"] });
 
       setSubmitted(true);
-      toast.success("Audit berhasil disimpan!");
+      toast.success("Audit berhasil disimpan ke histori!");
     } catch (err: any) {
       console.error(err);
-      toast.error("Gagal menyimpan hasil audit.");
+      toast.error(err.message || "Gagal menyimpan hasil audit.");
     } finally {
       setSubmitting(false);
     }
@@ -153,8 +219,13 @@ export default function CensusAuditForm() {
         </div>
         <h2 className="text-xl font-bold text-foreground">Audit Berhasil Disimpan</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Kondisi aset <strong>{asset.nama_aset}</strong> telah diperbarui menjadi <Badge className="ml-1">{kondisi}</Badge>
+          Kondisi aset <strong>{asset.nama_aset}</strong> tercatat sebagai <Badge className="ml-1">{kondisi}</Badge>
         </p>
+        {gpsCoords && (
+          <p className="text-xs text-muted-foreground mt-2">
+            📍 Lokasi: {gpsCoords.lat.toFixed(6)}, {gpsCoords.lng.toFixed(6)}
+          </p>
+        )}
         <div className="flex gap-3 mt-6">
           <Button variant="outline" className="gap-1.5" onClick={() => navigate("/dashboard/census")}>
             <ArrowLeft className="h-4 w-4" />
@@ -165,8 +236,9 @@ export default function CensusAuditForm() {
             setKondisi("");
             setTindakLanjut("");
             setCatatan("");
-            setPhotos([]);
-            setPhotoPreview([]);
+            setCapturedPhotos([]);
+            setGpsCoords(null);
+            requestGPS();
           }}>
             Audit Aset Lain
           </Button>
@@ -184,9 +256,12 @@ export default function CensusAuditForm() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Hidden canvas for photo capture */}
+      <canvas ref={canvasRef} className="hidden" />
+
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard/census")}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { stopCamera(); navigate("/dashboard/census"); }}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -213,7 +288,6 @@ export default function CensusAuditForm() {
               {currentKondisiStyle.label}
             </Badge>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="flex items-center gap-2 text-sm">
               <Tag className="h-4 w-4 text-primary shrink-0" />
@@ -234,21 +308,41 @@ export default function CensusAuditForm() {
         </CardContent>
       </Card>
 
+      {/* GPS Status */}
+      <Card className="border-border/60">
+        <CardContent className="p-4 flex items-center gap-3">
+          <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${gpsCoords ? 'bg-chart-3/10' : gpsError ? 'bg-destructive/10' : 'bg-warning/10'}`}>
+            <MapPinned className={`h-4.5 w-4.5 ${gpsCoords ? 'text-chart-3' : gpsError ? 'text-destructive' : 'text-warning'}`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            {gpsLoading && <p className="text-sm text-muted-foreground">Meminta akses lokasi GPS…</p>}
+            {gpsCoords && (
+              <p className="text-sm text-foreground font-medium truncate">
+                📍 {gpsCoords.lat.toFixed(6)}, {gpsCoords.lng.toFixed(6)}
+              </p>
+            )}
+            {gpsError && <p className="text-sm text-destructive">{gpsError}</p>}
+            {!gpsLoading && !gpsCoords && !gpsError && <p className="text-sm text-muted-foreground">GPS belum aktif</p>}
+          </div>
+          {(gpsError || (!gpsLoading && !gpsCoords)) && (
+            <Button size="sm" variant="outline" onClick={requestGPS}>Coba Lagi</Button>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Audit Form */}
       <Card className="border-border/60">
         <div className="bg-primary/5 border-b border-primary/10 px-5 py-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">Data Audit Lapangan</p>
         </div>
         <CardContent className="p-5 space-y-5">
-          {/* Kondisi Terkini */}
+          {/* Kondisi */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
               Kondisi Terkini <span className="text-destructive">*</span>
             </Label>
             <Select value={kondisi} onValueChange={setKondisi}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih kondisi aset…" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Pilih kondisi aset…" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Baik">✅ Baik</SelectItem>
                 <SelectItem value="Rusak Ringan">⚠️ Rusak Ringan</SelectItem>
@@ -264,9 +358,7 @@ export default function CensusAuditForm() {
               Tindak Lanjut <span className="text-destructive">*</span>
             </Label>
             <Select value={tindakLanjut} onValueChange={setTindakLanjut}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih rekomendasi tindak lanjut…" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Pilih rekomendasi…" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Pertahankan">Pertahankan (Layak Pakai)</SelectItem>
                 <SelectItem value="Perbaikan">Perlu Perbaikan</SelectItem>
@@ -276,7 +368,7 @@ export default function CensusAuditForm() {
             </Select>
           </div>
 
-          {/* Catatan Auditor */}
+          {/* Catatan */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Catatan Auditor</Label>
             <Textarea
@@ -287,11 +379,29 @@ export default function CensusAuditForm() {
             />
           </div>
 
-          {/* Photo Upload Area */}
+          {/* Live Camera Area */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Foto Bukti Audit (maks. 3)</Label>
+            <Label className="text-sm font-medium">Foto Bukti (Live Camera — maks. 3)</Label>
+
+            {/* Camera Viewfinder */}
+            {cameraActive && (
+              <div className="relative rounded-xl overflow-hidden border-2 border-primary/30 bg-black aspect-video">
+                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <div className="absolute bottom-3 inset-x-0 flex justify-center gap-3">
+                  <Button size="lg" className="gap-2 rounded-full shadow-xl" onClick={capturePhoto}>
+                    <Camera className="h-5 w-5" />
+                    Ambil Foto
+                  </Button>
+                  <Button size="lg" variant="destructive" className="rounded-full shadow-xl" onClick={stopCamera}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Captured previews */}
             <div className="grid grid-cols-3 gap-3">
-              {photoPreview.map((src, idx) => (
+              {capturedPhotos.map((src, idx) => (
                 <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted group">
                   <img src={src} alt={`Foto ${idx + 1}`} className="object-cover w-full h-full" />
                   <button
@@ -301,21 +411,22 @@ export default function CensusAuditForm() {
                   >
                     ✕
                   </button>
+                  <span className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
+                    #{idx + 1}
+                  </span>
                 </div>
               ))}
 
-              {photos.length < 3 && (
-                <label className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 bg-muted/30 hover:bg-muted/60 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                  <Camera className="h-6 w-6 text-muted-foreground mb-1" />
-                  <span className="text-[10px] text-muted-foreground">Tambah Foto</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handlePhotoChange}
-                  />
-                </label>
+              {/* Open camera button */}
+              {!cameraActive && capturedPhotos.length < 3 && (
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 bg-muted/30 hover:bg-muted/60 flex flex-col items-center justify-center cursor-pointer transition-colors"
+                >
+                  <Video className="h-6 w-6 text-muted-foreground mb-1" />
+                  <span className="text-[10px] text-muted-foreground">Buka Kamera</span>
+                </button>
               )}
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import {
   ClipboardCheck, CheckCircle2, AlertTriangle, XCircle, BarChart3,
-  Search, ArrowRight, Package, Clock, Loader2, ScanLine
+  Search, ArrowRight, Package, Clock, Loader2, ScanLine, X, Camera
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +20,18 @@ import {
 import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function DashboardCensus() {
   const navigate = useNavigate();
   const { companyId } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const scannerRef = useRef<any>(null);
+  const scannerContainerId = "qr-reader-census";
 
   // Fetch all assets for this company
   const { data: assets = [], isLoading } = useQuery({
@@ -40,6 +47,61 @@ export default function DashboardCensus() {
     },
     enabled: !!companyId,
   });
+
+  // QR Scanner logic
+  const startScanner = useCallback(async () => {
+    try {
+      const { Html5Qrcode } = await import("html5-qrcode");
+      // Small delay to ensure DOM element is ready
+      await new Promise((r) => setTimeout(r, 300));
+
+      const scanner = new Html5Qrcode(scannerContainerId);
+      scannerRef.current = scanner;
+
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          // Parse the URL to extract asset ID
+          // Expected formats:
+          //   https://domain.com/scan/UUID
+          //   /scan/UUID
+          const match = decodedText.match(/\/scan\/([0-9a-f-]{36})/i);
+          if (match) {
+            const assetId = match[1];
+            stopScanner();
+            setScannerOpen(false);
+            toast.success("QR Code terbaca! Mengarahkan ke formulir audit…");
+            navigate(`/dashboard/census/audit/${assetId}`);
+          } else {
+            toast.error("QR Code tidak dikenali sebagai aset SensusHub.");
+          }
+        },
+        () => { /* ignore scan failures */ }
+      );
+    } catch (err: any) {
+      console.error("Scanner error:", err);
+      toast.error("Gagal membuka kamera scanner.");
+    }
+  }, [navigate]);
+
+  const stopScanner = useCallback(() => {
+    if (scannerRef.current) {
+      scannerRef.current.stop().catch(() => {});
+      scannerRef.current.clear().catch(() => {});
+      scannerRef.current = null;
+    }
+  }, []);
+
+  // Start scanner when dialog opens
+  useEffect(() => {
+    if (scannerOpen) {
+      startScanner();
+    } else {
+      stopScanner();
+    }
+    return () => stopScanner();
+  }, [scannerOpen, startScanner, stopScanner]);
 
   // Compute census statistics from asset data
   const stats = useMemo(() => {
@@ -57,7 +119,6 @@ export default function DashboardCensus() {
       else belumDicek++;
     });
 
-    // Census progress: assets that have a kondisi set (not "Belum Dicek")
     const audited = total - belumDicek;
     const progress = total > 0 ? Math.round((audited / total) * 100) : 0;
 
@@ -73,14 +134,12 @@ export default function DashboardCensus() {
     });
   }, [assets, searchQuery]);
 
-  // Helper to get asset location
   function assetLocation(a: typeof assets[0]) {
     const cd = typeof a.custom_data === "object" && a.custom_data && !Array.isArray(a.custom_data)
       ? (a.custom_data as Record<string, unknown>) : null;
     return getSmartLocation(cd, a.kode_divisi);
   }
 
-  // Helper to get kondisi info
   function assetKondisi(a: typeof assets[0]) {
     const cd = typeof a.custom_data === "object" && a.custom_data && !Array.isArray(a.custom_data)
       ? (a.custom_data as Record<string, unknown>) : null;
@@ -89,34 +148,10 @@ export default function DashboardCensus() {
   }
 
   const metricCards = [
-    {
-      title: "Total Aset",
-      value: stats.total,
-      icon: Package,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-    },
-    {
-      title: "Sudah Diaudit",
-      value: stats.audited,
-      icon: CheckCircle2,
-      color: "text-chart-3",
-      bgColor: "bg-chart-3/10",
-    },
-    {
-      title: "Belum Dicek",
-      value: stats.belumDicek,
-      icon: Clock,
-      color: "text-warning",
-      bgColor: "bg-warning/10",
-    },
-    {
-      title: "Rusak Berat",
-      value: stats.rusakBerat,
-      icon: XCircle,
-      color: "text-destructive",
-      bgColor: "bg-destructive/10",
-    },
+    { title: "Total Aset", value: stats.total, icon: Package, color: "text-primary", bgColor: "bg-primary/10" },
+    { title: "Sudah Diaudit", value: stats.audited, icon: CheckCircle2, color: "text-chart-3", bgColor: "bg-chart-3/10" },
+    { title: "Belum Dicek", value: stats.belumDicek, icon: Clock, color: "text-warning", bgColor: "bg-warning/10" },
+    { title: "Rusak Berat", value: stats.rusakBerat, icon: XCircle, color: "text-destructive", bgColor: "bg-destructive/10" },
   ];
 
   return (
@@ -131,7 +166,29 @@ export default function DashboardCensus() {
             Modul audit & sensus 5 tahunan — pantau progres pencatatan kondisi aset di lapangan.
           </p>
         </div>
+        <Button className="gap-2 self-start" size="lg" onClick={() => setScannerOpen(true)}>
+          <Camera className="h-5 w-5" />
+          Scan QR Code
+        </Button>
       </div>
+
+      {/* QR Scanner Dialog */}
+      <Dialog open={scannerOpen} onOpenChange={(open) => { if (!open) { stopScanner(); setScannerOpen(false); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ScanLine className="h-5 w-5 text-primary" />
+              Scanner QR Aset
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div id={scannerContainerId} className="w-full rounded-lg overflow-hidden" />
+            <p className="text-xs text-muted-foreground text-center">
+              Arahkan kamera ke QR Code pada label aset. ID aset akan terdeteksi otomatis.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
@@ -188,8 +245,6 @@ export default function DashboardCensus() {
                       style={{ width: `${stats.progress}%` }}
                     />
                   </div>
-
-                  {/* Breakdown */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
                     <div className="flex items-center gap-2">
                       <div className="h-3 w-3 rounded-full bg-chart-3" />
@@ -220,9 +275,13 @@ export default function DashboardCensus() {
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-foreground">Mulai Audit Lapangan</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Scan QR Code pada aset fisik untuk langsung masuk ke formulir audit. Atau pilih aset dari tabel di tab "Daftar Aset".
+                      Tekan tombol "Scan QR Code" di atas, atau pilih aset dari tab "Daftar Aset" untuk mulai mengaudit.
                     </p>
                   </div>
+                  <Button className="gap-1.5 shrink-0" onClick={() => setScannerOpen(true)}>
+                    <Camera className="h-4 w-4" />
+                    Scan Sekarang
+                  </Button>
                 </CardContent>
               </Card>
             </>

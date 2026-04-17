@@ -68,6 +68,53 @@ export type Database = {
           },
         ]
       }
+      asset_audits: {
+        Row: {
+          id: string
+          asset_id: string
+          auditor_id: string | null
+          kondisi: string
+          tindak_lanjut: string
+          catatan: string | null
+          foto_url: string | null
+          latitude: number | null
+          longitude: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          asset_id: string
+          auditor_id?: string | null
+          kondisi: string
+          tindak_lanjut: string
+          catatan?: string | null
+          foto_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          asset_id?: string
+          auditor_id?: string | null
+          kondisi?: string
+          tindak_lanjut?: string
+          catatan?: string | null
+          foto_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_audits_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assets: {
         Row: {
           company_id: string
