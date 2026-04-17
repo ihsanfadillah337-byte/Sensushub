@@ -49,11 +49,34 @@ export default function DashboardCensus() {
   });
 
   // QR Scanner logic
+  const scannedRef = useRef(false); // Prevent double-fire
+
+  const stopScanner = useCallback(async () => {
+    try {
+      if (scannerRef.current) {
+        const s = scannerRef.current;
+        scannerRef.current = null;
+        const state = await s.getState?.();
+        // Only stop if scanner is actively scanning
+        if (state === 2 /* SCANNING */ || !s.getState) {
+          await s.stop().catch(() => {});
+        }
+        s.clear();
+      }
+    } catch {
+      // Silent — scanner may already be stopped
+    }
+  }, []);
+
   const startScanner = useCallback(async () => {
+    scannedRef.current = false;
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
-      // Small delay to ensure DOM element is ready
-      await new Promise((r) => setTimeout(r, 300));
+      // Ensure DOM element is rendered
+      await new Promise((r) => setTimeout(r, 400));
+
+      const el = document.getElementById(scannerContainerId);
+      if (!el) return;
 
       const scanner = new Html5Qrcode(scannerContainerId);
       scannerRef.current = scanner;
@@ -61,46 +84,53 @@ export default function DashboardCensus() {
       await scanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          // Parse the URL to extract asset ID
-          // Expected formats:
-          //   https://domain.com/scan/UUID
-          //   /scan/UUID
-          const match = decodedText.match(/\/scan\/([0-9a-f-]{36})/i);
-          if (match) {
-            const assetId = match[1];
-            stopScanner();
+        async (decodedText) => {
+          // Guard: only process the first successful scan
+          if (scannedRef.current) return;
+          scannedRef.current = true;
+
+          // Flexible regex: match /scan/ followed by a UUID-like string
+          const match = decodedText.match(/\/scan\/([a-zA-Z0-9-]+)/);
+
+          // Stop scanner FIRST, then update React state after DOM is released
+          try {
+            if (scannerRef.current) {
+              const s = scannerRef.current;
+              scannerRef.current = null;
+              await s.stop().catch(() => {});
+              s.clear();
+            }
+          } catch { /* silent */ }
+
+          // Defer React state changes so they don't collide with html5-qrcode cleanup
+          setTimeout(() => {
             setScannerOpen(false);
-            toast.success("QR Code terbaca! Mengarahkan ke formulir audit…");
-            navigate(`/dashboard/census/audit/${assetId}`);
-          } else {
-            toast.error("QR Code tidak dikenali sebagai aset SensusHub.");
-          }
+            if (match && match[1]) {
+              const assetId = match[1];
+              toast.success("QR Code terbaca! Mengarahkan ke formulir audit…");
+              navigate(`/dashboard/census/audit/${assetId}`);
+            } else {
+              toast.error("Format QR Code tidak valid untuk SensusHub.");
+            }
+          }, 100);
         },
-        () => { /* ignore scan failures */ }
+        () => { /* ignore per-frame scan misses */ }
       );
     } catch (err: any) {
       console.error("Scanner error:", err);
       toast.error("Gagal membuka kamera scanner.");
+      setScannerOpen(false);
     }
   }, [navigate]);
 
-  const stopScanner = useCallback(() => {
-    if (scannerRef.current) {
-      scannerRef.current.stop().catch(() => {});
-      scannerRef.current.clear().catch(() => {});
-      scannerRef.current = null;
-    }
-  }, []);
-
-  // Start scanner when dialog opens
+  // Start/stop scanner when dialog opens/closes
   useEffect(() => {
     if (scannerOpen) {
       startScanner();
-    } else {
-      stopScanner();
     }
-    return () => stopScanner();
+    return () => {
+      stopScanner();
+    };
   }, [scannerOpen, startScanner, stopScanner]);
 
   // Compute census statistics from asset data
