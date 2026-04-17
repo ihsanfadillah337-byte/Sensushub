@@ -1,13 +1,14 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import {
-  ClipboardCheck, CheckCircle2, AlertTriangle, XCircle, BarChart3,
-  Search, ArrowRight, Package, Clock, Loader2, ScanLine, X, Camera
+  ClipboardCheck, CheckCircle2, XCircle, BarChart3,
+  Search, Package, Clock, ScanLine, Camera, FileText,
+  RotateCcw, AlertTriangle, CalendarDays
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,19 +22,48 @@ import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
+// ─── Helpers ────────────────────────────────────────────
+function getCd(asset: any): Record<string, unknown> | null {
+  return typeof asset.custom_data === "object" && asset.custom_data && !Array.isArray(asset.custom_data)
+    ? (asset.custom_data as Record<string, unknown>) : null;
+}
+
+function getTerakhirDiaudit(cd: Record<string, unknown> | null): string | null {
+  if (!cd) return null;
+  const v = cd["Terakhir Diaudit"];
+  return typeof v === "string" && v.length >= 8 ? v : null;
+}
+
+function formatTanggal(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+  } catch { return iso; }
+}
+
+// ─── Component ──────────────────────────────────────────
 export default function DashboardCensus() {
   const navigate = useNavigate();
   const { companyId } = useAuth();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const scannerRef = useRef<any>(null);
+  const scannedRef = useRef(false);
   const scannerContainerId = "qr-reader-census";
 
-  // Fetch all assets for this company
+  // ─── Data fetching ────────────────────────────────────
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ["census-assets", companyId],
     queryFn: async () => {
@@ -48,33 +78,23 @@ export default function DashboardCensus() {
     enabled: !!companyId,
   });
 
-  // QR Scanner logic
-  const scannedRef = useRef(false); // Prevent double-fire
-
+  // ─── QR Scanner ───────────────────────────────────────
   const stopScanner = useCallback(async () => {
     try {
       if (scannerRef.current) {
         const s = scannerRef.current;
         scannerRef.current = null;
-        const state = await s.getState?.();
-        // Only stop if scanner is actively scanning
-        if (state === 2 /* SCANNING */ || !s.getState) {
-          await s.stop().catch(() => {});
-        }
+        await s.stop().catch(() => {});
         s.clear();
       }
-    } catch {
-      // Silent — scanner may already be stopped
-    }
+    } catch { /* silent */ }
   }, []);
 
   const startScanner = useCallback(async () => {
     scannedRef.current = false;
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
-      // Ensure DOM element is rendered
       await new Promise((r) => setTimeout(r, 400));
-
       const el = document.getElementById(scannerContainerId);
       if (!el) return;
 
@@ -85,64 +105,53 @@ export default function DashboardCensus() {
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         async (decodedText) => {
-          // Guard: only process the first successful scan
           if (scannedRef.current) return;
           scannedRef.current = true;
-
-          // Flexible regex: match /scan/ followed by a UUID-like string
           const match = decodedText.match(/\/scan\/([a-zA-Z0-9-]+)/);
-
-          // Stop scanner FIRST, then update React state after DOM is released
           try {
-            if (scannerRef.current) {
-              const s = scannerRef.current;
-              scannerRef.current = null;
-              await s.stop().catch(() => {});
-              s.clear();
-            }
+            if (scannerRef.current) { const s = scannerRef.current; scannerRef.current = null; await s.stop().catch(() => {}); s.clear(); }
           } catch { /* silent */ }
-
-          // Defer React state changes so they don't collide with html5-qrcode cleanup
           setTimeout(() => {
             setScannerOpen(false);
-            if (match && match[1]) {
-              const assetId = match[1];
-              toast.success("QR Code terbaca! Mengarahkan ke formulir audit…");
-              navigate(`/dashboard/census/audit/${assetId}`);
+            if (match?.[1]) {
+              toast.success("QR Code terbaca!");
+              navigate(`/dashboard/census/audit/${match[1]}`);
             } else {
-              toast.error("Format QR Code tidak valid untuk SensusHub.");
+              toast.error("Format QR tidak valid untuk SensusHub.");
             }
           }, 100);
         },
-        () => { /* ignore per-frame scan misses */ }
+        () => {}
       );
-    } catch (err: any) {
-      console.error("Scanner error:", err);
+    } catch {
       toast.error("Gagal membuka kamera scanner.");
       setScannerOpen(false);
     }
   }, [navigate]);
 
-  // Start/stop scanner when dialog opens/closes
   useEffect(() => {
-    if (scannerOpen) {
-      startScanner();
-    }
-    return () => {
-      stopScanner();
-    };
+    if (scannerOpen) startScanner();
+    return () => { stopScanner(); };
   }, [scannerOpen, startScanner, stopScanner]);
 
-  // Compute census statistics from asset data
+  // ─── Census statistics (based on Terakhir Diaudit) ───
   const stats = useMemo(() => {
     const total = assets.length;
     let baik = 0, rusakRingan = 0, rusakBerat = 0, belumDicek = 0;
+    const auditDates: string[] = [];
 
     assets.forEach((asset) => {
-      const cd = typeof asset.custom_data === "object" && asset.custom_data && !Array.isArray(asset.custom_data)
-        ? (asset.custom_data as Record<string, unknown>) : null;
-      const kondisi = getKondisi(cd);
+      const cd = getCd(asset);
+      const tglAudit = getTerakhirDiaudit(cd);
 
+      if (!tglAudit) {
+        // No audit date → belum dicek regardless of kondisi bawaan
+        belumDicek++;
+        return;
+      }
+
+      auditDates.push(tglAudit);
+      const kondisi = getKondisi(cd);
       if (kondisi === "Baik") baik++;
       else if (kondisi === "Rusak Ringan") rusakRingan++;
       else if (kondisi === "Rusak Berat" || kondisi === "Dalam Perbaikan") rusakBerat++;
@@ -152,10 +161,15 @@ export default function DashboardCensus() {
     const audited = total - belumDicek;
     const progress = total > 0 ? Math.round((audited / total) * 100) : 0;
 
-    return { total, baik, rusakRingan, rusakBerat, belumDicek, audited, progress };
+    // Periode: earliest and latest audit dates
+    auditDates.sort();
+    const periodeAwal = auditDates.length > 0 ? auditDates[0] : null;
+    const periodeAkhir = auditDates.length > 0 ? auditDates[auditDates.length - 1] : null;
+
+    return { total, baik, rusakRingan, rusakBerat, belumDicek, audited, progress, periodeAwal, periodeAkhir };
   }, [assets]);
 
-  // Filter assets for the table
+  // ─── Filtered list ────────────────────────────────────
   const filteredAssets = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return assets.filter((a) => {
@@ -164,17 +178,138 @@ export default function DashboardCensus() {
     });
   }, [assets, searchQuery]);
 
+  // ─── Reset Sensus ─────────────────────────────────────
+  const handleResetSensus = async () => {
+    if (!companyId) return;
+    setResetting(true);
+    try {
+      // Fetch all assets for this company
+      const { data: allAssets, error: fetchErr } = await supabase
+        .from("assets")
+        .select("id, custom_data")
+        .eq("company_id", companyId);
+      if (fetchErr) throw fetchErr;
+
+      // Mass-update: clear audit fields from custom_data
+      const updates = (allAssets || []).map((a) => {
+        const cd = (typeof a.custom_data === "object" && a.custom_data && !Array.isArray(a.custom_data))
+          ? { ...(a.custom_data as Record<string, Json>) }
+          : {};
+        delete cd["Terakhir Diaudit"];
+        delete cd["Tindak Lanjut Sensus"];
+        delete cd["Auditor"];
+        // Keep Kondisi bawaan as-is but it won't count towards progress without Terakhir Diaudit
+
+        return supabase.from("assets").update({ custom_data: cd }).eq("id", a.id);
+      });
+
+      await Promise.all(updates);
+      queryClient.invalidateQueries({ queryKey: ["census-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["assets"] });
+      toast.success("Siklus sensus direset. Progres kembali ke 0%.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Gagal mereset sensus.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  // ─── Cetak Berita Acara PDF ───────────────────────────
+  const handleCetakPDF = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    await import("jspdf-autotable");
+
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageW = doc.internal.pageSize.getWidth();
+
+    // Title
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("BERITA ACARA", pageW / 2, 20, { align: "center" });
+    doc.text("SENSUS BARANG MILIK DAERAH / PERUSAHAAN", pageW / 2, 27, { align: "center" });
+
+    // Periode
+    const periodeText = stats.periodeAwal
+      ? `Periode Sensus: ${formatTanggal(stats.periodeAwal)} s/d ${formatTanggal(stats.periodeAkhir)}`
+      : "Periode Sensus: Belum dimulai";
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(periodeText, pageW / 2, 35, { align: "center" });
+
+    // Summary line
+    doc.setFontSize(9);
+    doc.text(`Total Aset: ${stats.total}  |  Sudah Diaudit: ${stats.audited}  |  Belum Dicek: ${stats.belumDicek}`, pageW / 2, 42, { align: "center" });
+
+    // Table — only audited assets
+    const auditedAssets = assets.filter((a) => {
+      const cd = getCd(a);
+      return !!getTerakhirDiaudit(cd);
+    });
+
+    const tableBody = auditedAssets.map((a, idx) => {
+      const cd = getCd(a);
+      const kondisi = getKondisi(cd);
+      const tglAudit = getTerakhirDiaudit(cd);
+      const tindakLanjut = cd?.["Tindak Lanjut Sensus"] as string || "—";
+      return [
+        (idx + 1).toString(),
+        a.kode_aset,
+        a.nama_aset,
+        kondisi,
+        formatTanggal(tglAudit),
+        tindakLanjut,
+      ];
+    });
+
+    (doc as any).autoTable({
+      startY: 48,
+      head: [["No", "Kode Aset", "Nama Aset", "Kondisi", "Tgl Audit", "Tindak Lanjut"]],
+      body: tableBody,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 10 },
+        1: { cellWidth: 30 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 28 },
+      },
+    });
+
+    // Signature area
+    const finalY = (doc as any).lastAutoTable?.finalY || 200;
+    const sigY = finalY + 20;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    // Left signature
+    doc.text("Mengetahui,", 30, sigY, { align: "center" });
+    doc.text("Pimpinan", 30, sigY + 5, { align: "center" });
+    doc.text("(________________________)", 30, sigY + 30, { align: "center" });
+
+    // Right signature
+    doc.text("Auditor Lapangan,", pageW - 30, sigY, { align: "center" });
+    doc.text("", pageW - 30, sigY + 5, { align: "center" });
+    doc.text("(________________________)", pageW - 30, sigY + 30, { align: "center" });
+
+    doc.save("Berita_Acara_Sensus.pdf");
+    toast.success("PDF Berita Acara berhasil di-download!");
+  };
+
+  // ─── Helpers ──────────────────────────────────────────
   function assetLocation(a: typeof assets[0]) {
-    const cd = typeof a.custom_data === "object" && a.custom_data && !Array.isArray(a.custom_data)
-      ? (a.custom_data as Record<string, unknown>) : null;
-    return getSmartLocation(cd, a.kode_divisi);
+    return getSmartLocation(getCd(a), a.kode_divisi);
   }
 
   function assetKondisi(a: typeof assets[0]) {
-    const cd = typeof a.custom_data === "object" && a.custom_data && !Array.isArray(a.custom_data)
-      ? (a.custom_data as Record<string, unknown>) : null;
-    const kondisi = getKondisi(cd);
-    return getKondisiStyle(kondisi);
+    return getKondisiStyle(getKondisi(getCd(a)));
+  }
+
+  function assetTerakhirDiaudit(a: typeof assets[0]): string {
+    return formatTanggal(getTerakhirDiaudit(getCd(a)));
   }
 
   const metricCards = [
@@ -184,22 +319,62 @@ export default function DashboardCensus() {
     { title: "Rusak Berat", value: stats.rusakBerat, icon: XCircle, color: "text-destructive", bgColor: "bg-destructive/10" },
   ];
 
+  // ─── Render ───────────────────────────────────────────
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
             <ClipboardCheck className="h-6 w-6 text-primary" />
             Sensus Aset
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Modul audit & sensus 5 tahunan — pantau progres pencatatan kondisi aset di lapangan.
-          </p>
+          {/* Periode Sensus */}
+          <div className="flex items-center gap-1.5 mt-1">
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {stats.periodeAwal
+                ? `Periode: ${formatTanggal(stats.periodeAwal)} s/d ${formatTanggal(stats.periodeAkhir)}`
+                : "Periode Sensus: Belum dimulai"}
+            </p>
+          </div>
         </div>
-        <Button className="gap-2 self-start" size="lg" onClick={() => setScannerOpen(true)}>
-          <Camera className="h-5 w-5" />
-          Scan QR Code
-        </Button>
+        <div className="flex flex-wrap gap-2 self-start">
+          <Button className="gap-2" size="sm" onClick={() => setScannerOpen(true)}>
+            <Camera className="h-4 w-4" />
+            Scan QR
+          </Button>
+          <Button className="gap-2" size="sm" variant="outline" onClick={handleCetakPDF} disabled={stats.audited === 0}>
+            <FileText className="h-4 w-4" />
+            Cetak Berita Acara
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button className="gap-2" size="sm" variant="destructive" disabled={resetting}>
+                <RotateCcw className="h-4 w-4" />
+                Mulai Sensus Baru
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  Reset Siklus Sensus?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Semua data "Terakhir Diaudit" dan "Tindak Lanjut Sensus" akan dihapus dari seluruh aset.
+                  Progres sensus akan kembali ke <strong>0%</strong>. Data histori di tabel <code>asset_audits</code> tetap aman.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetSensus} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Ya, Reset Sensus
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* QR Scanner Dialog */}
@@ -214,17 +389,18 @@ export default function DashboardCensus() {
           <div className="space-y-3">
             <div id={scannerContainerId} className="w-full rounded-lg overflow-hidden" />
             <p className="text-xs text-muted-foreground text-center">
-              Arahkan kamera ke QR Code pada label aset. ID aset akan terdeteksi otomatis.
+              Arahkan kamera ke QR Code pada label aset.
             </p>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="overview" className="gap-1.5">
             <BarChart3 className="h-4 w-4" />
-            Overview Sensus
+            Overview
           </TabsTrigger>
           <TabsTrigger value="list" className="gap-1.5">
             <ScanLine className="h-4 w-4" />
@@ -265,7 +441,7 @@ export default function DashboardCensus() {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
-                      {stats.audited} dari {stats.total} aset sudah dicatat kondisinya
+                      {stats.audited} dari {stats.total} aset sudah punya catatan audit
                     </span>
                     <span className="font-bold text-foreground">{stats.progress}%</span>
                   </div>
@@ -305,7 +481,7 @@ export default function DashboardCensus() {
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-foreground">Mulai Audit Lapangan</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Tekan tombol "Scan QR Code" di atas, atau pilih aset dari tab "Daftar Aset" untuk mulai mengaudit.
+                      Tekan "Scan QR" atau pilih aset dari tab "Daftar Aset" untuk mulai mengaudit.
                     </p>
                   </div>
                   <Button className="gap-1.5 shrink-0" onClick={() => setScannerOpen(true)}>
@@ -320,7 +496,6 @@ export default function DashboardCensus() {
 
         {/* ========== TAB 2: DAFTAR ASET ========== */}
         <TabsContent value="list" className="mt-6 space-y-4">
-          {/* Search */}
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -331,7 +506,6 @@ export default function DashboardCensus() {
             />
           </div>
 
-          {/* Table */}
           <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
             {isLoading ? (
               <div className="p-6 space-y-3">
@@ -349,24 +523,27 @@ export default function DashboardCensus() {
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kode Aset</TableHead>
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nama Aset</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Lokasi</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Lokasi</TableHead>
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kondisi</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Terakhir Cek</TableHead>
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredAssets.map((asset) => {
                       const kondisiStyle = assetKondisi(asset);
+                      const tglCek = assetTerakhirDiaudit(asset);
                       return (
                         <TableRow key={asset.id}>
                           <TableCell className="font-mono text-sm font-medium text-foreground">{asset.kode_aset}</TableCell>
                           <TableCell className="text-sm text-foreground">{asset.nama_aset}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{assetLocation(asset)}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{assetLocation(asset)}</TableCell>
                           <TableCell>
                             <Badge className={`${kondisiStyle.bg} ${kondisiStyle.color} ${kondisiStyle.border} text-xs`}>
                               {kondisiStyle.label}
                             </Badge>
                           </TableCell>
+                          <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{tglCek}</TableCell>
                           <TableCell className="text-right">
                             <Button
                               size="sm"
