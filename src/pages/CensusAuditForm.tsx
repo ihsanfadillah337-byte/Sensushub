@@ -95,7 +95,12 @@ export default function CensusAuditForm() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        // Wait for video metadata to load (critical for mobile — ensures videoWidth/Height are ready)
+        await new Promise<void>((resolve) => {
+          const v = videoRef.current!;
+          if (v.readyState >= 2) { resolve(); return; }
+          v.onloadedmetadata = () => { v.play().then(resolve).catch(resolve); };
+        });
       }
       setCameraActive(true);
     } catch {
@@ -120,11 +125,20 @@ export default function CensusAuditForm() {
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+
+    // Guard: if video dimensions aren't ready yet, abort
+    if (!vw || !vh) {
+      toast.error("Kamera belum siap. Tunggu sebentar lalu coba lagi.");
+      return;
+    }
+
+    canvas.width = vw;
+    canvas.height = vh;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, vw, vh);
 
     // Compress to JPEG 0.7 quality
     const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
@@ -155,7 +169,7 @@ export default function CensusAuditForm() {
     stopCamera();
 
     try {
-      // Insert into asset_audits (history table)
+      // 1. Insert into asset_audits (history table)
       const { error: insertError } = await supabase.from("asset_audits").insert({
         asset_id: asset!.id,
         auditor_id: user?.id || null,
@@ -169,13 +183,27 @@ export default function CensusAuditForm() {
 
       if (insertError) throw insertError;
 
-      // Invalidate related queries
+      // 2. Sync master asset status — update Kondisi in assets.custom_data
+      const currentCd = (typeof asset!.custom_data === "object" && asset!.custom_data && !Array.isArray(asset!.custom_data))
+        ? { ...(asset!.custom_data as Record<string, unknown>) }
+        : {};
+      currentCd["Kondisi"] = kondisi;
+      currentCd["Tindak Lanjut Sensus"] = tindakLanjut;
+      currentCd["Terakhir Diaudit"] = new Date().toISOString().split("T")[0];
+      currentCd["Auditor"] = user?.email || "Unknown";
+
+      await supabase
+        .from("assets")
+        .update({ custom_data: currentCd as any })
+        .eq("id", asset!.id);
+
+      // 3. Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ["census-assets"] });
       queryClient.invalidateQueries({ queryKey: ["census-audit-asset", id] });
       queryClient.invalidateQueries({ queryKey: ["assets"] });
 
       setSubmitted(true);
-      toast.success("Audit berhasil disimpan ke histori!");
+      toast.success("Audit berhasil disimpan!");
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Gagal menyimpan hasil audit.");
