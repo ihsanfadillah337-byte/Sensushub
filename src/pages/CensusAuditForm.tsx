@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import {
   ClipboardCheck, ArrowLeft, MapPin, Tag, Building2, Camera,
-  Loader2, PackageX, CheckCircle2, MapPinned, X, Video
+  Loader2, PackageX, CheckCircle2, MapPinned
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,30 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+
+/** Compress an image File to a JPEG data-URL with max dimension and quality */
+function compressImage(file: File, maxDim = 1280, quality = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas not supported")); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 export default function CensusAuditForm() {
   const { id } = useParams<{ id: string }>();
@@ -33,12 +57,9 @@ export default function CensusAuditForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Live camera state
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [cameraActive, setCameraActive] = useState(false);
+  // Photo state (native camera capture)
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // GPS state
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -63,7 +84,6 @@ export default function CensusAuditForm() {
   // Auto-request GPS on mount
   useEffect(() => {
     requestGPS();
-    return () => stopCamera();
   }, []);
 
   const requestGPS = () => {
@@ -86,75 +106,33 @@ export default function CensusAuditForm() {
     );
   };
 
-  // Camera controls
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        // Wait for video metadata to load (critical for mobile — ensures videoWidth/Height are ready)
-        await new Promise<void>((resolve) => {
-          const v = videoRef.current!;
-          if (v.readyState >= 2) { resolve(); return; }
-          v.onloadedmetadata = () => { v.play().then(resolve).catch(resolve); };
-        });
-      }
-      setCameraActive(true);
-    } catch {
-      toast.error("Tidak dapat mengakses kamera. Pastikan izin kamera diaktifkan.");
-    }
-  };
+  // Native camera capture handler
+  const handleNativeCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    setCameraActive(false);
-  };
+    // Reset input value so same file can be re-selected
+    e.target.value = "";
 
-  const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
     if (capturedPhotos.length >= 3) {
       toast.error("Maksimal 3 foto.");
       return;
     }
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
-
-    // Guard: if video dimensions aren't ready yet, abort
-    if (!vw || !vh) {
-      toast.error("Kamera belum siap. Tunggu sebentar lalu coba lagi.");
-      return;
+    try {
+      const compressed = await compressImage(file, 1280, 0.7);
+      setCapturedPhotos((prev) => [...prev, compressed]);
+      toast.success(`Foto ${capturedPhotos.length + 1} berhasil ditambahkan!`);
+    } catch {
+      toast.error("Gagal memproses foto. Coba lagi.");
     }
-
-    canvas.width = vw;
-    canvas.height = vh;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, vw, vh);
-
-    // Compress to JPEG 0.7 quality
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-    setCapturedPhotos((prev) => [...prev, dataUrl]);
-    toast.success(`Foto ${capturedPhotos.length + 1} berhasil diambil!`);
-
-    if (capturedPhotos.length + 1 >= 3) {
-      stopCamera();
-    }
-  }, [capturedPhotos]);
+  };
 
   const removePhoto = (index: number) => {
     setCapturedPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Submit audit to asset_audits table
+  // Submit audit to asset_audits table + sync master
   const handleSubmit = async () => {
     if (!kondisi) {
       toast.error("Pilih kondisi aset terlebih dahulu.");
@@ -166,7 +144,6 @@ export default function CensusAuditForm() {
     }
 
     setSubmitting(true);
-    stopCamera();
 
     try {
       // 1. Insert into asset_audits (history table)
@@ -284,12 +261,19 @@ export default function CensusAuditForm() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Hidden canvas for photo capture */}
-      <canvas ref={canvasRef} className="hidden" />
+      {/* Hidden native camera input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleNativeCameraCapture}
+      />
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { stopCamera(); navigate("/dashboard/census"); }}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard/census")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -407,27 +391,9 @@ export default function CensusAuditForm() {
             />
           </div>
 
-          {/* Live Camera Area */}
+          {/* Photo Capture Area — Native Camera */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Foto Bukti (Live Camera — maks. 3)</Label>
-
-            {/* Camera Viewfinder */}
-            {cameraActive && (
-              <div className="relative rounded-xl overflow-hidden border-2 border-primary/30 bg-black aspect-video">
-                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                <div className="absolute bottom-3 inset-x-0 flex justify-center gap-3">
-                  <Button size="lg" className="gap-2 rounded-full shadow-xl" onClick={capturePhoto}>
-                    <Camera className="h-5 w-5" />
-                    Ambil Foto
-                  </Button>
-                  <Button size="lg" variant="destructive" className="rounded-full shadow-xl" onClick={stopCamera}>
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Captured previews */}
+            <Label className="text-sm font-medium">Foto Bukti Audit (maks. 3)</Label>
             <div className="grid grid-cols-3 gap-3">
               {capturedPhotos.map((src, idx) => (
                 <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted group">
@@ -445,15 +411,15 @@ export default function CensusAuditForm() {
                 </div>
               ))}
 
-              {/* Open camera button */}
-              {!cameraActive && capturedPhotos.length < 3 && (
+              {/* Native camera trigger button */}
+              {capturedPhotos.length < 3 && (
                 <button
                   type="button"
-                  onClick={startCamera}
-                  className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 bg-muted/30 hover:bg-muted/60 flex flex-col items-center justify-center cursor-pointer transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 bg-muted/30 hover:bg-muted/60 flex flex-col items-center justify-center cursor-pointer transition-colors active:scale-95"
                 >
-                  <Video className="h-6 w-6 text-muted-foreground mb-1" />
-                  <span className="text-[10px] text-muted-foreground">Buka Kamera</span>
+                  <Camera className="h-6 w-6 text-muted-foreground mb-1" />
+                  <span className="text-[10px] text-muted-foreground font-medium">Buka Kamera</span>
                 </button>
               )}
             </div>
