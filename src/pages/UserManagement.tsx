@@ -110,13 +110,12 @@ export default function UserManagement() {
         throw new Error("Gagal mendapatkan ID user baru.");
       }
 
-      // Insert the profile instead of upsert to avoid UPDATE USING policy violations if a triggering row was empty
-      const { error: profileError } = await supabase.from("user_profiles").insert({
-        id: newUserId,
+      // Update the profile instead of insert to avoid duplicate key violations caused by database auth trigger
+      const { error: profileError } = await supabase.from("user_profiles").update({
         company_id: companyId,
         role: role,
         full_name: fullName,
-      });
+      }).eq("id", newUserId);
 
       if (profileError) throw profileError;
 
