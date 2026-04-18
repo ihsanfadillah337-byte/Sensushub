@@ -225,85 +225,86 @@ export default function DashboardCensus() {
 
   // ─── Cetak Berita Acara PDF ───────────────────────────
   const handleCetakPDF = async () => {
-    try {
-      const { default: jsPDF } = await import("jspdf");
-      const { default: autoTable } = await import("jspdf-autotable");
+    const { default: jsPDF } = await import("jspdf");
+    await import("jspdf-autotable");
 
-      const doc = new jsPDF("p", "mm", "a4");
-      const pageW = doc.internal.pageSize.getWidth();
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageW = doc.internal.pageSize.getWidth();
 
-      // Title
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("BERITA ACARA", pageW / 2, 20, { align: "center" });
-      doc.text("SENSUS BARANG MILIK DAERAH / PERUSAHAAN", pageW / 2, 27, { align: "center" });
+    // Title
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("BERITA ACARA", pageW / 2, 20, { align: "center" });
+    doc.text("SENSUS BARANG MILIK DAERAH / PERUSAHAAN", pageW / 2, 27, { align: "center" });
 
-      // Periode
-      const periodeText = stats.periodeAwal
-        ? `Periode Sensus: ${formatTanggal(stats.periodeAwal)} s/d ${formatTanggal(stats.periodeAkhir)}`
-        : "Periode Sensus: Belum dimulai";
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(periodeText, pageW / 2, 35, { align: "center" });
+    // Periode
+    const periodeText = stats.periodeAwal
+      ? `Periode Sensus: ${formatTanggal(stats.periodeAwal)} s/d ${formatTanggal(stats.periodeAkhir)}`
+      : "Periode Sensus: Belum dimulai";
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(periodeText, pageW / 2, 35, { align: "center" });
 
-      // Summary
-      doc.setFontSize(9);
-      doc.text(
-        `Total Aset: ${stats.total}  |  Sudah Diaudit: ${stats.audited}  |  Belum Dicek: ${stats.belumDicek}`,
-        pageW / 2, 42, { align: "center" }
-      );
+    // Summary line
+    doc.setFontSize(9);
+    doc.text(`Total Aset: ${stats.total}  |  Sudah Diaudit: ${stats.audited}  |  Belum Dicek: ${stats.belumDicek}`, pageW / 2, 42, { align: "center" });
 
-      // Table — only audited assets
-      const auditedAssets = assets.filter((a) => !!getTerakhirDiaudit(getCd(a)));
+    // Table — only audited assets
+    const auditedAssets = assets.filter((a) => {
+      const cd = getCd(a);
+      return !!getTerakhirDiaudit(cd);
+    });
 
-      const tableBody = auditedAssets.map((a, idx) => {
-        const cd = getCd(a);
-        return [
-          String(idx + 1),
-          a.kode_aset || "—",
-          a.nama_aset || "—",
-          getKondisi(cd) || "—",
-          formatTanggal(getTerakhirDiaudit(cd)),
-          (cd?.["Tindak Lanjut Sensus"] as string) || "—",
-        ];
-      });
+    const tableBody = auditedAssets.map((a, idx) => {
+      const cd = getCd(a);
+      const kondisi = getKondisi(cd);
+      const tglAudit = getTerakhirDiaudit(cd);
+      const tindakLanjut = cd?.["Tindak Lanjut Sensus"] as string || "—";
+      return [
+        (idx + 1).toString(),
+        a.kode_aset,
+        a.nama_aset,
+        kondisi,
+        formatTanggal(tglAudit),
+        tindakLanjut,
+      ];
+    });
 
-      // Use functional API (not prototype method)
-      autoTable(doc, {
-        startY: 48,
-        head: [["No", "Kode Aset", "Nama Aset", "Kondisi", "Tgl Audit", "Tindak Lanjut"]],
-        body: tableBody,
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        columnStyles: {
-          0: { halign: "center", cellWidth: 10 },
-          1: { cellWidth: 30 },
-          3: { cellWidth: 25 },
-          4: { cellWidth: 25 },
-          5: { cellWidth: 28 },
-        },
-      });
+    (doc as any).autoTable({
+      startY: 48,
+      head: [["No", "Kode Aset", "Nama Aset", "Kondisi", "Tgl Audit", "Tindak Lanjut"]],
+      body: tableBody,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 10 },
+        1: { cellWidth: 30 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 28 },
+      },
+    });
 
-      // Signature area
-      const finalY = (doc as any).lastAutoTable?.finalY || 200;
-      const sigY = finalY + 20;
+    // Signature area
+    const finalY = (doc as any).lastAutoTable?.finalY || 200;
+    const sigY = finalY + 20;
 
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text("Mengetahui,", 30, sigY, { align: "center" });
-      doc.text("Pimpinan", 30, sigY + 5, { align: "center" });
-      doc.text("(________________________)", 30, sigY + 30, { align: "center" });
-      doc.text("Auditor Lapangan,", pageW - 30, sigY, { align: "center" });
-      doc.text("", pageW - 30, sigY + 5, { align: "center" });
-      doc.text("(________________________)", pageW - 30, sigY + 30, { align: "center" });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
 
-      doc.save("Berita_Acara_Sensus.pdf");
-      toast.success("PDF Berita Acara berhasil di-download!");
-    } catch (error: any) {
-      console.error("PDF export error:", error);
-      toast.error("Gagal cetak PDF: " + (error.message || "Unknown error"));
-    }
+    // Left signature
+    doc.text("Mengetahui,", 30, sigY, { align: "center" });
+    doc.text("Pimpinan", 30, sigY + 5, { align: "center" });
+    doc.text("(________________________)", 30, sigY + 30, { align: "center" });
+
+    // Right signature
+    doc.text("Auditor Lapangan,", pageW - 30, sigY, { align: "center" });
+    doc.text("", pageW - 30, sigY + 5, { align: "center" });
+    doc.text("(________________________)", pageW - 30, sigY + 30, { align: "center" });
+
+    doc.save("Berita_Acara_Sensus.pdf");
+    toast.success("PDF Berita Acara berhasil di-download!");
   };
 
   // ─── Helpers ──────────────────────────────────────────

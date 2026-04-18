@@ -7,7 +7,7 @@ import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import {
   ClipboardCheck, ArrowLeft, MapPin, Tag, Building2, Camera,
-  Loader2, PackageX, CheckCircle2, MapPinned
+  Loader2, PackageX, CheckCircle2, MapPinned, AlertTriangle
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,9 +18,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 /** Compress an image File to a JPEG data-URL with max dimension and quality */
+function formatTanggal(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+  } catch { return iso; }
+}
 function compressImage(file: File, maxDim = 1280, quality = 0.7): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -56,6 +72,7 @@ export default function CensusAuditForm() {
   const [catatan, setCatatan] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [revisionMode, setRevisionMode] = useState(false);
 
   // Photo state (native camera capture)
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
@@ -259,8 +276,33 @@ export default function CensusAuditForm() {
   const currentKondisi = getKondisi(cd);
   const currentKondisiStyle = getKondisiStyle(currentKondisi);
 
+  // Get audit info for revision guard
+  const tglAudit = cd?.["Terakhir Diaudit"] as string | undefined;
+  const hasBeenAudited = !!tglAudit;
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Revision Guard Alert Dialog */}
+      <AlertDialog open={hasBeenAudited && !revisionMode}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Aset Sudah Diaudit
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Aset ini sudah diaudit pada <strong>{formatTanggal(tglAudit || null)}</strong>. Apakah Anda ingin merevisi hasil audit sebelumnya?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => navigate("/dashboard/census")}>Kembali</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setRevisionMode(true)} className="bg-primary text-primary-foreground">
+              Revisi Data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Hidden native camera input */}
       <input
         ref={fileInputRef}
@@ -284,6 +326,17 @@ export default function CensusAuditForm() {
           <p className="text-xs text-muted-foreground mt-0.5">Catat kondisi aktual aset di lapangan</p>
         </div>
       </div>
+
+      {/* Revision Mode Banner */}
+      {revisionMode && (
+        <div className="bg-warning/10 border border-warning/20 text-warning px-4 py-3 rounded-xl flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold">Mode Revisi Aktif</p>
+            <p className="text-xs mt-0.5 text-warning/90">Anda sedang mengubah data audit sebelumnya ({formatTanggal(tglAudit || null)}). Pastikan pembaruan data sudah sesuai.</p>
+          </div>
+        </div>
+      )}
 
       {/* Asset Summary Card */}
       <Card className="border-border/60 overflow-hidden">
