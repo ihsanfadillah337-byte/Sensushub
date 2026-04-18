@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { AlertCircle, Loader2, ExternalLink, FileText, Download, MessageCircle } from "lucide-react";
+import { AlertCircle, Loader2, ExternalLink, FileText, Download, MessageCircle, Users, ClipboardCheck, Camera, MapPin, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -11,6 +11,9 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -146,6 +149,30 @@ export default function DashboardReports() {
     enabled: !!companyId,
   });
 
+  const { data: audits = [], isLoading: isLoadingAudits } = useQuery({
+    queryKey: ["asset_audits_issues", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("asset_audits")
+        .select("*, assets!inner(nama_aset, kode_aset, company_id, custom_data)")
+        .eq("assets.company_id", companyId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      
+      const latestPerAsset = new Map<string, any>();
+      data.forEach((audit: any) => {
+        if (!latestPerAsset.has(audit.asset_id)) {
+           latestPerAsset.set(audit.asset_id, audit);
+        }
+      });
+      
+      return Array.from(latestPerAsset.values()).filter(
+        a => typeof a.kondisi === "string" && !a.kondisi.toLowerCase().includes("baik")
+      );
+    },
+    enabled: !!companyId,
+  });
+
   const filtered = filterStatus === "__all__"
     ? reports
     : reports.filter((r) => r.status === filterStatus);
@@ -246,37 +273,63 @@ export default function DashboardReports() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Laporan Kendala</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Manajemen Masalah & Laporan</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Kelola tiket pemeliharaan dari lapangan.
+              Tangani keluhan publik dan tindak lanjuti temuan sensus lapangan.
             </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {Object.entries(counts).map(([status, count]) => (
-              <Badge key={status} variant="outline" className={statusConfig[status]?.class}>
-                {status}: {count}
-              </Badge>
-            ))}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Semua Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Semua Status</SelectItem>
-              <SelectItem value="Menunggu">Menunggu</SelectItem>
-              <SelectItem value="Diproses">Diproses</SelectItem>
-              <SelectItem value="Selesai">Selesai</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleExportExcel(filtered)} disabled={filtered.length === 0}>
-            <Download className="h-4 w-4" />
-            Export Excel
-          </Button>
-        </div>
+        <Tabs defaultValue="public_reports" className="space-y-6">
+          <TabsList className="bg-muted/50 p-1 inline-flex w-full sm:w-auto h-auto">
+            <TabsTrigger value="public_reports" className="gap-2 px-6 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Users className="h-4 w-4" />
+              Keluhan Publik
+              {counts.Menunggu > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 px-1.5 min-w-[20px] flex items-center justify-center text-[10px] rounded-full">
+                  {counts.Menunggu}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="census_audits" className="gap-2 px-6 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <ClipboardCheck className="h-4 w-4" />
+              Temuan Sensus
+              {audits.length > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 px-1.5 min-w-[20px] flex items-center justify-center text-[10px] rounded-full">
+                  {audits.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* TAB 1: KELUHAN PUBLIK */}
+          <TabsContent value="public_reports" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
+            <div className="flex justify-between items-center bg-card p-3 rounded-lg border border-border/60">
+              <div className="flex items-center gap-2">
+                {Object.entries(counts).map(([status, count]) => (
+                  <Badge key={status} variant="outline" className={statusConfig[status]?.class}>
+                    {status}: {count}
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="Semua Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua Status</SelectItem>
+                    <SelectItem value="Menunggu">Menunggu</SelectItem>
+                    <SelectItem value="Diproses">Diproses</SelectItem>
+                    <SelectItem value="Selesai">Selesai</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => handleExportExcel(filtered)} disabled={filtered.length === 0}>
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+              </div>
+            </div>
 
         <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
           {isLoading ? (
@@ -415,6 +468,123 @@ export default function DashboardReports() {
             </div>
           )}
         </div>
+        </TabsContent>
+
+        {/* TAB 2: TEMUAN SENSUS */}
+        <TabsContent value="census_audits" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
+          <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+            {isLoadingAudits ? (
+              <div className="p-6 space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : audits.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <ClipboardCheck className="h-10 w-10 mb-3 opacity-40" />
+                <p className="text-sm font-medium">Tidak ada temuan aset rusak dari sensus.</p>
+              </div>
+            ) : (
+               <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tgl Sensus</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Auditor</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informasi Aset</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kondisi</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rekomendasi</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Bukti</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {audits.map((audit) => {
+                       const assetData = audit.assets as any;
+                       const customData = assetData?.custom_data as any || {};
+                       const auditorName = customData["Auditor"] || "—";
+                       return (
+                         <TableRow key={audit.id}>
+                           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                             {new Date(audit.created_at).toLocaleDateString("id-ID", {
+                               day: "2-digit", month: "short", year: "numeric",
+                             })}
+                           </TableCell>
+                           <TableCell className="text-sm text-muted-foreground">
+                              {auditorName}
+                           </TableCell>
+                           <TableCell>
+                             <div>
+                               <p className="text-sm font-medium text-foreground">{assetData?.nama_aset || "—"}</p>
+                               <p className="text-xs font-mono text-muted-foreground">{assetData?.kode_aset || ""}</p>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                              <Badge variant="outline" className={audit.kondisi === "Rusak Berat" ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-warning/15 text-warning border-warning/30"}>
+                                {audit.kondisi}
+                              </Badge>
+                           </TableCell>
+                           <TableCell>
+                              <p className="text-sm font-medium">{audit.tindak_lanjut || "—"}</p>
+                              {audit.catatan && <p className="text-xs text-muted-foreground mt-0.5 max-w-[150px] truncate" title={audit.catatan}>"{audit.catatan}"</p>}
+                           </TableCell>
+                           <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                {audit.latitude && audit.longitude ? (
+                                   <Tooltip>
+                                     <TooltipTrigger>
+                                        <MapPin className="h-4 w-4 text-chart-3" />
+                                     </TooltipTrigger>
+                                     <TooltipContent>GPS Terekam</TooltipContent>
+                                   </Tooltip>
+                                ) : (
+                                   <Tooltip>
+                                     <TooltipTrigger>
+                                        <MapPin className="h-4 w-4 text-muted-foreground/30" />
+                                     </TooltipTrigger>
+                                     <TooltipContent>GPS Tidak Ada</TooltipContent>
+                                   </Tooltip>
+                                )}
+                                {audit.foto_url ? (
+                                   <Tooltip>
+                                     <TooltipTrigger asChild>
+                                        <a href={audit.foto_url} target="_blank" rel="noopener noreferrer">
+                                          <Camera className="h-4 w-4 text-primary" />
+                                        </a>
+                                     </TooltipTrigger>
+                                     <TooltipContent>Lihat Foto Bukti</TooltipContent>
+                                   </Tooltip>
+                                ) : (
+                                   <Tooltip>
+                                     <TooltipTrigger>
+                                        <Camera className="h-4 w-4 text-muted-foreground/30" />
+                                     </TooltipTrigger>
+                                     <TooltipContent>Foto Tidak Ada</TooltipContent>
+                                   </Tooltip>
+                                )}
+                              </div>
+                           </TableCell>
+                           <TableCell className="text-right">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 gap-1.5"
+                                onClick={() => toast("Fitur eksekusi SPK & Disposal segera hadir.")}
+                              >
+                                <Wrench className="h-3.5 w-3.5" />
+                                Eksekusi
+                              </Button>
+                           </TableCell>
+                         </TableRow>
+                       )
+                    })}
+                  </TableBody>
+                </Table>
+               </div>
+            )}
+          </div>
+        </TabsContent>
+        </Tabs>
 
         {/* Resolution Modal */}
         <Dialog open={!!resolveReport} onOpenChange={(open) => !open && setResolveReport(null)}>
