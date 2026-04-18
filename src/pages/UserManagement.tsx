@@ -110,14 +110,20 @@ export default function UserManagement() {
         throw new Error("Gagal mendapatkan ID user baru.");
       }
 
-      // Update the profile instead of insert to avoid duplicate key violations caused by database auth trigger
-      const { error: profileError } = await supabase.from("user_profiles").update({
+      // 1. Beri waktu trigger DB menyelesaikan pekerjaannya
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // 2. Lakukan update menggunakan client UTAMA (sebagai Super Admin)
+      const { data: updatedData, error: profileError } = await supabase.from("user_profiles").update({
         company_id: companyId,
         role: role,
         full_name: fullName,
-      }).eq("id", newUserId);
+      }).eq("id", newUserId).select();
 
       if (profileError) throw profileError;
+      if (!updatedData || updatedData.length === 0) {
+        throw new Error("Gagal memperbarui: Profil belum digenerate oleh trigger database.");
+      }
 
       toast.success("Pegawai baru berhasil didaftarkan!");
       setIsDialogOpen(false);
