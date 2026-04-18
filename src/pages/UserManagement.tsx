@@ -87,7 +87,7 @@ export default function UserManagement() {
     try {
       // Create a secondary client without session persistence to avoid logging out the admin
       const supabaseAnonUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
       if (!supabaseAnonUrl || !supabaseAnonKey) {
         throw new Error("Environment Variables Supabase (URL/Key) hilang atau belum dikonfigurasi.");
