@@ -110,9 +110,8 @@ export default function UserManagement() {
         throw new Error("Gagal mendapatkan ID user baru.");
       }
 
-      // Upsert the profile. 
-      // Important: Ensure Supabase RLS policies allow a super_admin to UPSERT/INSERT into user_profiles
-      const { error: profileError } = await supabase.from("user_profiles").upsert({
+      // Insert the profile instead of upsert to avoid UPDATE USING policy violations if a triggering row was empty
+      const { error: profileError } = await supabase.from("user_profiles").insert({
         id: newUserId,
         company_id: companyId,
         role: role,
