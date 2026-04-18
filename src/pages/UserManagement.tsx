@@ -89,6 +89,10 @@ export default function UserManagement() {
       const supabaseAnonUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
+      if (!supabaseAnonUrl || !supabaseAnonKey) {
+        throw new Error("Environment Variables Supabase (URL/Key) hilang atau belum dikonfigurasi.");
+      }
+
       const supabaseSecondary = createClient(supabaseAnonUrl, supabaseAnonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
