@@ -135,6 +135,9 @@ export default function DashboardReports() {
   const [resolusiForm, setResolusiForm] = useState<ResolusiForm>({ aksi: "Diperbaiki", biaya: "", catatan: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Modal for evidence photos
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ["asset_reports", companyId],
     queryFn: async () => {
@@ -532,10 +535,12 @@ export default function DashboardReports() {
                               <div className="flex items-center justify-center gap-2">
                                 {audit.latitude && audit.longitude ? (
                                    <Tooltip>
-                                     <TooltipTrigger>
-                                        <MapPin className="h-4 w-4 text-chart-3" />
+                                     <TooltipTrigger asChild>
+                                        <a href={`https://www.google.com/maps?q=${audit.latitude},${audit.longitude}`} target="_blank" rel="noopener noreferrer">
+                                          <MapPin className="h-4 w-4 text-chart-3" />
+                                        </a>
                                      </TooltipTrigger>
-                                     <TooltipContent>GPS Terekam</TooltipContent>
+                                     <TooltipContent>Lihat di Google Maps</TooltipContent>
                                    </Tooltip>
                                 ) : (
                                    <Tooltip>
@@ -548,9 +553,9 @@ export default function DashboardReports() {
                                 {audit.foto_url ? (
                                    <Tooltip>
                                      <TooltipTrigger asChild>
-                                        <a href={audit.foto_url} target="_blank" rel="noopener noreferrer">
+                                        <button onClick={() => setSelectedPhoto(audit.foto_url)} type="button" className="focus:outline-none">
                                           <Camera className="h-4 w-4 text-primary" />
-                                        </a>
+                                        </button>
                                      </TooltipTrigger>
                                      <TooltipContent>Lihat Foto Bukti</TooltipContent>
                                    </Tooltip>
@@ -637,6 +642,27 @@ export default function DashboardReports() {
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Selesaikan Tiket
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Photo Evidence Modal */}
+        <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
+          <DialogContent className="sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Foto Bukti Temuan Sensus</DialogTitle>
+            </DialogHeader>
+            <div className="p-2 border border-border rounded-lg bg-muted/40">
+              {selectedPhoto && (
+                <img 
+                  src={selectedPhoto} 
+                  alt="Bukti Sensus" 
+                  className="w-full h-auto rounded-md object-contain max-h-[70vh]" 
+                />
+              )}
+            </div>
+            <DialogFooter>
+               <Button variant="outline" onClick={() => setSelectedPhoto(null)}>Tutup</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
