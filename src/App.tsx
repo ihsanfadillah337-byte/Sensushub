@@ -16,6 +16,7 @@ import DashboardSettings from "./pages/DashboardSettings";
 import DashboardReports from "./pages/DashboardReports";
 import DashboardCensus from "./pages/DashboardCensus";
 import CensusAuditForm from "./pages/CensusAuditForm";
+import UserManagement from "./pages/UserManagement";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ScanAsset from "./pages/ScanAsset";
@@ -51,6 +52,11 @@ const App = () => (
               <Route path="settings" element={
                 <ProtectedRoute allowedRoles={['super_admin']}>
                   <DashboardSettings />
+                </ProtectedRoute>
+              } />
+              <Route path="users" element={
+                <ProtectedRoute allowedRoles={['super_admin']}>
+                  <UserManagement />
                 </ProtectedRoute>
               } />
               <Route path="census" element={

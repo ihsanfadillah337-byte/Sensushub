@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Settings, LogOut, AlertCircle, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, Package, Settings, LogOut, AlertCircle, ClipboardCheck, Users } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,8 +29,9 @@ const menuItems: MenuItem[] = [
   { title: "Dashboard", url: "/dashboard/overview", icon: LayoutDashboard, roles: ["super_admin", "operator"] },
   { title: "Daftar Aset", url: "/dashboard/assets", icon: Package, roles: ["super_admin", "operator"] },
   { title: "Laporan Kendala", url: "/dashboard/reports", icon: AlertCircle, roles: ["super_admin", "operator"] },
-  { title: "Pengaturan", url: "/dashboard/settings", icon: Settings, roles: ["super_admin"] },
   { title: "Sensus Lapangan", url: "/dashboard/census", icon: ClipboardCheck, roles: ["super_admin", "auditor"] },
+  { title: "Manajemen Pengguna", url: "/dashboard/users", icon: Users, roles: ["super_admin"] },
+  { title: "Pengaturan", url: "/dashboard/settings", icon: Settings, roles: ["super_admin"] },
 ];
 
 export function AppSidebar() {
