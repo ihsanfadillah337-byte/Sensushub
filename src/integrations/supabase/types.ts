@@ -105,7 +105,6 @@ export type Database = {
           longitude?: number | null
           created_at?: string
         }
-        Relationships: [
           {
             foreignKeyName: "asset_audits_asset_id_fkey"
             columns: ["asset_id"]
@@ -113,6 +112,47 @@ export type Database = {
             referencedRelation: "assets"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      asset_column_configs: {
+        Row: {
+          id: string
+          company_id: string
+          kategori_kib: string
+          column_name: string
+          column_type: string
+          options: Json | null
+          sort_order: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          kategori_kib: string
+          column_name: string
+          column_type: string
+          options?: Json | null
+          sort_order?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          kategori_kib?: string
+          column_name?: string
+          column_type?: string
+          options?: Json | null
+          sort_order?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_column_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          }
         ]
       }
       assets: {

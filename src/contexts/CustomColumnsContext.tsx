@@ -60,6 +60,7 @@ interface CustomColumnsContextType {
   columns: CustomColumn[];
   kibColumns: KibColumnsMap;
   setKibColumns: (update: KibColumnsMap | ((prev: KibColumnsMap) => KibColumnsMap)) => void;
+  refreshColumns: () => Promise<void>;
   getColumnsForKib: (kibLabel: string) => CustomColumn[];
   getCodeConfigForKib: (kibLabel: string) => CodeConfiguration;
   masterDivisi: MasterItem[];
@@ -81,6 +82,60 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
   const [settingsPin, setSettingsPin] = useState("123456");
   const [isLoading, setIsLoading] = useState(true);
 
+  const loadConfigs = async () => {
+    if (!companyId) return;
+    const { data: colData } = await supabase
+      .from("asset_column_configs")
+      .select("*")
+      .eq("company_id", companyId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    const nextKibColumns: KibColumnsMap = {};
+    if (colData) {
+      for (const row of colData) {
+        if (!nextKibColumns[row.kategori_kib]) {
+          nextKibColumns[row.kategori_kib] = [];
+        }
+        const opts = (row.options as any) || {};
+        nextKibColumns[row.kategori_kib].push({
+          id: row.id,
+          name: row.column_name,
+          type: row.column_type as any,
+          options: opts.options,
+          dropdown_levels: opts.dropdown_levels,
+          options_tree: opts.options_tree
+        });
+      }
+    }
+    setKibColumnsState(nextKibColumns);
+  };
+
+  const load = async () => {
+    if (!companyId) return;
+    setIsLoading(true);
+    const { data } = await supabase
+      .from("companies")
+      .select("master_divisi, master_kib, settings_pin")
+      .eq("id", companyId)
+      .maybeSingle();
+
+    if (data?.master_divisi && Array.isArray(data.master_divisi)) {
+      setMasterDivisiState(data.master_divisi as unknown as MasterItem[]);
+    } else {
+      setMasterDivisiState([]);
+    }
+    if (data?.master_kib && Array.isArray(data.master_kib)) {
+      setMasterKibState(data.master_kib as unknown as MasterItem[]);
+    } else {
+      setMasterKibState([]);
+    }
+    setSettingsPin((data?.settings_pin as string) || "123456");
+
+    await loadConfigs();
+    setIsLoading(false);
+  };
+
   useEffect(() => {
     if (!companyId) {
       setKibColumnsState({});
@@ -89,43 +144,6 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return;
     }
-
-    const load = async () => {
-      setIsLoading(true);
-      const { data } = await supabase
-        .from("companies")
-        .select("custom_column_schema, master_divisi, master_kib, settings_pin")
-        .eq("id", companyId)
-        .maybeSingle();
-
-      if (data?.custom_column_schema) {
-        if (Array.isArray(data.custom_column_schema)) {
-          setKibColumnsState({ __global__: data.custom_column_schema as unknown as CustomColumn[] });
-        } else if (typeof data.custom_column_schema === "object") {
-          const schema = data.custom_column_schema as Record<string, unknown>;
-          // Filter out legacy __code_config__ if present (migrated to per-KIB)
-          const { __code_config__, ...kibMap } = schema;
-          setKibColumnsState(kibMap as unknown as KibColumnsMap);
-        } else {
-          setKibColumnsState({});
-        }
-      } else {
-        setKibColumnsState({});
-      }
-
-      if (data?.master_divisi && Array.isArray(data.master_divisi)) {
-        setMasterDivisiState(data.master_divisi as unknown as MasterItem[]);
-      } else {
-        setMasterDivisiState([]);
-      }
-      if (data?.master_kib && Array.isArray(data.master_kib)) {
-        setMasterKibState(data.master_kib as unknown as MasterItem[]);
-      } else {
-        setMasterKibState([]);
-      }
-      setSettingsPin((data?.settings_pin as string) || "123456");
-      setIsLoading(false);
-    };
     load();
   }, [companyId]);
 
@@ -136,11 +154,9 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
   };
 
   const setKibColumns = (update: KibColumnsMap | ((prev: KibColumnsMap) => KibColumnsMap)) => {
-    setKibColumnsState((prev) => {
-      const next = typeof update === "function" ? update(prev) : update;
-      persistField("custom_column_schema", next);
-      return next;
-    });
+    setKibColumnsState(update);
+    // Note: To persist sorting or changes, the component firing this update
+    // should also fire the DB mutation directly.
   };
 
   const getColumnsForKib = (kibLabel: string): CustomColumn[] => {
@@ -202,10 +218,9 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
       }
 
       if (changed && companyId) {
-        // Save both synchronously
+        // Save Master KIB synchronously (columns deleted manually or lazily if needed)
         supabase.from("companies").update({
-          master_kib: next as any,
-          custom_column_schema: nextCols as any
+          master_kib: next as any
         }).eq("id", companyId).then();
         
         // Update local states concurrently
@@ -226,7 +241,7 @@ export function CustomColumnsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CustomColumnsContext.Provider value={{ columns, kibColumns, setKibColumns, getColumnsForKib, getCodeConfigForKib, masterDivisi, setMasterDivisi, masterKib, setMasterKib, settingsPin, setSettingsPin: updateSettingsPin, isLoading }}>
+    <CustomColumnsContext.Provider value={{ columns, kibColumns, setKibColumns, getColumnsForKib, getCodeConfigForKib, masterDivisi, setMasterDivisi, masterKib, setMasterKib, settingsPin, setSettingsPin: updateSettingsPin, isLoading, refreshColumns: loadConfigs }}>
       {children}
     </CustomColumnsContext.Provider>
   );

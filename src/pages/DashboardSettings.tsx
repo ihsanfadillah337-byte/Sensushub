@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useCustomColumns, type CodedOption, type CustomColumn, type TreeNode } from "@/contexts/CustomColumnsContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import MasterDataSection from "@/components/settings/MasterDataSection";
 import CodeBuilder from "@/components/settings/CodeBuilder";
 import TreeBuilder from "@/components/settings/TreeBuilder";
@@ -121,7 +123,9 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
 }
 
 export default function DashboardSettings() {
-  const { kibColumns, setKibColumns, masterDivisi, setMasterDivisi, masterKib, setMasterKib, settingsPin, setSettingsPin } = useCustomColumns();
+  const { kibColumns, setKibColumns, masterDivisi, setMasterDivisi, masterKib, setMasterKib, settingsPin, setSettingsPin, refreshColumns } = useCustomColumns();
+  const { companyId } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [selectedKibKey, setSelectedKibKey] = useState<string>("");
   const [editingColId, setEditingColId] = useState<string | null>(null);
@@ -194,7 +198,8 @@ export default function DashboardSettings() {
     setTreeBuilderNodes([]);
   };
 
-  const handleSaveColumn = () => {
+  const handleSaveColumn = async () => {
+    if (!companyId) { toast.error("Company ID tidak ditemukan."); return; }
     if (!selectedKibKey) { toast.error("Pilih KIB terlebih dahulu."); return; }
     if (!newName.trim()) { toast.error("Nama kolom wajib diisi."); return; }
     if (!newType) { toast.error("Pilih tipe data terlebih dahulu."); return; }
@@ -208,55 +213,112 @@ export default function DashboardSettings() {
       return; 
     }
     
-    let newCol: CustomColumn;
+    let optionsJson: any = null;
+    let newCol: Partial<CustomColumn>;
     if (newType === "coded_dropdown") {
       // Check if tree mode (has levels defined)
       if (treeBuilderLevels.length > 0 && treeBuilderNodes.length > 0) {
-        newCol = {
-          id: crypto.randomUUID(),
-          name: newName.trim(),
-          type: "coded_dropdown",
+        optionsJson = {
           dropdown_levels: treeBuilderLevels.map((l) => l.trim() || `Level`),
           options_tree: treeBuilderNodes,
         };
       } else {
         const valid = codedOptions.filter((o) => o.label.trim() && o.code.trim());
         if (valid.length < 1) { toast.error("Tambahkan minimal 1 opsi."); return; }
-        newCol = { id: crypto.randomUUID(), name: newName.trim(), type: "coded_dropdown", options: valid.map((o) => ({ label: o.label.trim(), code: o.code.trim() })) };
+        optionsJson = { options: valid.map((o) => ({ label: o.label.trim(), code: o.code.trim() })) };
       }
+      newCol = { id: crypto.randomUUID(), name: newName.trim(), type: "coded_dropdown", ...optionsJson };
     } else {
       newCol = { id: editingColId || crypto.randomUUID(), name: newName.trim(), type: newType as "text" | "number" | "date" };
     }
     
-    setKibColumns((prev) => {
-       const cols = prev[selectedKibKey] || [];
-       if (editingColId) {
-         return { ...prev, [selectedKibKey]: cols.map(c => c.id === editingColId ? newCol : c) };
-       } else {
-         return { ...prev, [selectedKibKey]: [...cols, newCol] };
-       }
-    });
-    
-    cancelEdit();
-    toast.success(editingColId ? `Kolom "${newCol.name}" berhasil diperbarui.` : `Kolom "${newCol.name}" berhasil ditambahkan.`);
+    setIsSaving(true);
+    try {
+      if (editingColId) {
+        const { error } = await supabase
+          .from("asset_column_configs")
+          .update({
+            column_name: newCol.name,
+            column_type: newCol.type,
+            options: optionsJson
+          })
+          .eq("id", editingColId);
+          
+        if (error) throw error;
+        toast.success(`Kolom "${newCol.name}" berhasil diperbarui.`);
+      } else {
+        const { error } = await supabase
+          .from("asset_column_configs")
+          .insert({
+            company_id: companyId,
+            kategori_kib: selectedKibKey,
+            column_name: newCol.name!,
+            column_type: newCol.type!,
+            options: optionsJson,
+            sort_order: currentColumns.length
+          });
+          
+        if (error) throw error;
+        toast.success(`Kolom "${newCol.name}" berhasil ditambahkan.`);
+      }
+
+      await refreshColumns();
+      cancelEdit();
+    } catch (e: any) {
+      toast.error("Gagal menyimpan: " + e.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleRemove = (id: string) => {
+  const handleRemove = async (id: string) => {
     if (!selectedKibKey) return;
-    setKibColumns((prev) => ({ ...prev, [selectedKibKey]: (prev[selectedKibKey] || []).filter((c) => c.id !== id) }));
-    toast.info("Kolom berhasil dihapus.");
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from("asset_column_configs").delete().eq("id", id);
+      if (error) throw error;
+      toast.info("Kolom berhasil dihapus.");
+      await refreshColumns();
+    } catch (e: any) {
+      toast.error("Gagal menghapus: " + e.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || !selectedKibKey) return;
-    setKibColumns((prev) => {
-      const cols = prev[selectedKibKey] || [];
-      const oldIndex = cols.findIndex((c) => c.id === active.id);
-      const newIndex = cols.findIndex((c) => c.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return prev;
-      return { ...prev, [selectedKibKey]: arrayMove(cols, oldIndex, newIndex) };
-    });
+    if (!over || active.id === over.id || !selectedKibKey || !companyId) return;
+    
+    const cols = currentColumns;
+    const oldIndex = cols.findIndex((c) => c.id === active.id);
+    const newIndex = cols.findIndex((c) => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    
+    const newOrder = arrayMove(cols, oldIndex, newIndex);
+    // Optimistic UI update
+    setKibColumns((prev) => ({ ...prev, [selectedKibKey]: newOrder }));
+
+    // Bulk update sort_order in database
+    const upsertData = newOrder.map((col, index) => ({
+      id: col.id,
+      company_id: companyId,
+      kategori_kib: selectedKibKey,
+      column_name: col.name,
+      column_type: col.type,
+      sort_order: index
+    }));
+
+    try {
+      const { error } = await supabase.from("asset_column_configs").upsert(upsertData, { onConflict: 'id' });
+      if (error) {
+         toast.error("Gagal menyimpan urutan baru: " + error.message);
+         await refreshColumns(); // Revert back
+      }
+    } catch(e) {
+      console.error(e);
+      await refreshColumns(); // Revert
+    }
   };
 
   return (
@@ -324,15 +386,15 @@ export default function DashboardSettings() {
                 </div>
                 {editingColId ? (
                   <div className="flex items-center gap-2">
-                    <Button size="sm" className="gap-1.5 justify-center flex-1" onClick={handleSaveColumn}>
+                    <Button size="sm" className="gap-1.5 justify-center flex-1" onClick={handleSaveColumn} disabled={isSaving}>
                       <Check className="h-4 w-4" /> Simpan
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5" onClick={cancelEdit}>
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={cancelEdit} disabled={isSaving}>
                       <X className="h-4 w-4" /> Batal
                     </Button>
                   </div>
                 ) : (
-                  <Button size="sm" className="gap-1.5 w-full justify-center" onClick={handleSaveColumn} disabled={isMaxReached}>
+                  <Button size="sm" className="gap-1.5 w-full justify-center" onClick={handleSaveColumn} disabled={isMaxReached || isSaving}>
                     <Plus className="h-4 w-4" /> Tambah
                   </Button>
                 )}
