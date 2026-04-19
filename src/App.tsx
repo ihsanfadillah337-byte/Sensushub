@@ -12,6 +12,7 @@ import DashboardOverview from "./pages/DashboardOverview";
 import DashboardAssets from "./pages/DashboardAssets";
 import DashboardAssetsNew from "./pages/DashboardAssetsNew";
 import DashboardAssetEdit from "./pages/DashboardAssetEdit";
+import AssetImport from "./pages/AssetImport";
 import DashboardSettings from "./pages/DashboardSettings";
 import DashboardReports from "./pages/DashboardReports";
 import DashboardCensus from "./pages/DashboardCensus";
@@ -46,6 +47,7 @@ const App = () => (
             >
               <Route path="overview" element={<DashboardOverview />} />
               <Route path="assets" element={<DashboardAssets />} />
+              <Route path="assets/import" element={<AssetImport />} />
               <Route path="assets/new" element={<DashboardAssetsNew />} />
               <Route path="assets/:id/edit" element={<DashboardAssetEdit />} />
               <Route path="reports" element={<DashboardReports />} />

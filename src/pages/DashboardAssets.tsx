@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
-import { Plus, Eye, Trash2, Pencil, Package, Printer, Loader2, Search, X, FileSpreadsheet, FileText } from "lucide-react";
+import { Plus, Eye, Trash2, Pencil, Package, Printer, Loader2, Search, X, FileSpreadsheet, FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -312,6 +312,10 @@ export default function DashboardAssets() {
           <Button size="sm" variant="outline" className="gap-1.5" disabled={isExportingPDF || assets.length === 0} onClick={handleExportPDF}>
             {isExportingPDF ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
             Export PDF{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/dashboard/assets/import")}>
+            <Download className="h-4 w-4" />
+            Import Data
           </Button>
           <Button size="sm" className="gap-1.5" onClick={() => navigate("/dashboard/assets/new")}>
             <Plus className="h-4 w-4" />
