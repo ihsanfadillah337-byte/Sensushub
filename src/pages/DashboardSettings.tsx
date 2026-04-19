@@ -15,6 +15,7 @@ import { useCustomColumns, type CodedOption, type CustomColumn, type TreeNode } 
 import MasterDataSection from "@/components/settings/MasterDataSection";
 import CodeBuilder from "@/components/settings/CodeBuilder";
 import TreeBuilder from "@/components/settings/TreeBuilder";
+import DatabaseColumnConfigs from "@/components/settings/DatabaseColumnConfigs";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
@@ -269,7 +270,10 @@ export default function DashboardSettings() {
       <MasterDataSection title="Master Divisi / Satuan Kerja" icon={<Building2 className="h-4 w-4 text-primary" />} items={masterDivisi} setItems={setMasterDivisi} labelPlaceholder="cth: Bagian Umum" codePlaceholder="cth: 01" />
       <MasterDataSection title="Master KIB" icon={<FolderOpen className="h-4 w-4 text-primary" />} items={masterKib} setItems={setMasterKib} labelPlaceholder="cth: Peralatan dan Mesin" codePlaceholder="cth: 02" onEditCode={(kibLabel) => setCodeBuilderKib(kibLabel)} />
 
-      {/* Custom Columns per KIB */}
+      {/* NEW Database Custom Columns */}
+      <DatabaseColumnConfigs />
+
+      {/* Legacy Custom Columns per KIB (Local State) */}
       <div className="rounded-lg border border-border bg-card">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
           <Columns3 className="h-4 w-4 text-primary" />
