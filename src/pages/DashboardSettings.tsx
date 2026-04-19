@@ -294,7 +294,7 @@ export default function DashboardSettings() {
             <Select value={selectedKibKey} onValueChange={setSelectedKibKey}>
               <SelectTrigger><SelectValue placeholder="Pilih KIB..." /></SelectTrigger>
               <SelectContent>
-                {masterKib.map((k) => (
+                {masterKib.filter(k => !!k.label).map((k) => (
                   <SelectItem key={k.id} value={k.label}>
                     <span className="font-mono text-muted-foreground mr-2">{k.code}</span>{k.label}
                   </SelectItem>

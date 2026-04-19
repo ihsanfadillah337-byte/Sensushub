@@ -233,7 +233,7 @@ export default function DashboardAssetsNew() {
                 <Select value={selectedDivisi} onValueChange={setSelectedDivisi}>
                   <SelectTrigger><SelectValue placeholder="Pilih Divisi" /></SelectTrigger>
                   <SelectContent>
-                    {masterDivisi.map((d) => (<SelectItem key={d.id} value={d.code}><span className="font-mono text-muted-foreground mr-2">{d.code}</span>{d.label}</SelectItem>))}
+                    {masterDivisi.filter(d => !!d.code).map((d) => (<SelectItem key={d.id} value={d.code}><span className="font-mono text-muted-foreground mr-2">{d.code}</span>{d.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
@@ -244,7 +244,7 @@ export default function DashboardAssetsNew() {
                 <Select value={selectedKib} onValueChange={(v) => { setSelectedKib(v); setCustomData({}); }}>
                   <SelectTrigger><SelectValue placeholder="Pilih KIB" /></SelectTrigger>
                   <SelectContent>
-                    {masterKib.map((k) => (<SelectItem key={k.id} value={k.code}><span className="font-mono text-muted-foreground mr-2">{k.code}</span>{k.label}</SelectItem>))}
+                    {masterKib.filter(k => !!k.code).map((k) => (<SelectItem key={k.id} value={k.code}><span className="font-mono text-muted-foreground mr-2">{k.code}</span>{k.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
@@ -268,7 +268,7 @@ export default function DashboardAssetsNew() {
             <Label className="text-xs font-medium text-muted-foreground">Kondisi <span className="text-destructive">*</span></Label>
             <Select value={kondisi} onValueChange={setKondisi}>
               <SelectTrigger><SelectValue placeholder="Pilih kondisi" /></SelectTrigger>
-              <SelectContent>{KONDISI_OPTIONS.map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
+              <SelectContent>{KONDISI_OPTIONS.filter(Boolean).map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
@@ -305,7 +305,7 @@ export default function DashboardAssetsNew() {
                   <Select value={customData[col.name] || ""} onValueChange={(v) => setCustomData((p) => ({ ...p, [col.name]: v }))}>
                     <SelectTrigger><SelectValue placeholder={`Pilih ${col.name.toLowerCase()}`} /></SelectTrigger>
                     <SelectContent>
-                      {col.options.map((o) => (<SelectItem key={o.code} value={o.code}><span className="font-mono text-muted-foreground mr-2">{o.code}</span>{o.label}</SelectItem>))}
+                      {col.options.filter(o => !!o.code).map((o) => (<SelectItem key={o.code} value={o.code}><span className="font-mono text-muted-foreground mr-2">{o.code}</span>{o.label}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 ) : (
