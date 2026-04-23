@@ -261,7 +261,7 @@ export default function DashboardCensus() {
   const handleCetakPDF = async () => {
     try {
       const { default: jsPDF } = await import("jspdf");
-      await import("jspdf-autotable");
+      const { default: autoTable } = await import("jspdf-autotable");
 
       const doc = new jsPDF("p", "mm", "a4");
       const pageW = doc.internal.pageSize.getWidth();
@@ -305,7 +305,7 @@ export default function DashboardCensus() {
         ];
       });
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: 48,
         head: [["No", "Kode Aset", "Nama Aset", "Kondisi", "Tgl Audit", "Tindak Lanjut"]],
         body: tableBody,
