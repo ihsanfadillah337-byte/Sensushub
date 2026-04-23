@@ -7,7 +7,7 @@ import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import {
   ClipboardCheck, ArrowLeft, MapPin, Tag, Building2, Camera,
-  Loader2, PackageX, CheckCircle2, MapPinned, AlertTriangle
+  Loader2, PackageX, CheckCircle2, MapPinned, AlertTriangle, ShieldAlert
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +96,20 @@ export default function CensusAuditForm() {
       return data;
     },
     enabled: !!id,
+  });
+
+  // Check census active status
+  const { data: sensusActive, isLoading: sensusLoading } = useQuery({
+    queryKey: ["sensus-active-audit", asset?.company_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("sensus_active")
+        .eq("id", asset!.company_id)
+        .maybeSingle();
+      return data?.sensus_active ?? false;
+    },
+    enabled: !!asset?.company_id,
   });
 
   // Auto-request GPS on mount
@@ -228,6 +242,31 @@ export default function CensusAuditForm() {
           <ArrowLeft className="h-4 w-4" />
           Kembali ke Sensus
         </Button>
+      </div>
+    );
+  }
+
+  // Census not active guard
+  if (sensusActive === false && !sensusLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center px-6 max-w-md mx-auto">
+        <div className="h-20 w-20 rounded-2xl bg-warning/10 flex items-center justify-center mb-4">
+          <ShieldAlert className="h-10 w-10 text-warning" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Mode Hanya-Baca</h2>
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+          Periode Sensus sedang <strong>tidak aktif</strong>. Form audit tidak dapat diakses saat ini.
+          Silakan hubungi Super Admin untuk mengaktifkan kembali periode sensus.
+        </p>
+        <div className="flex gap-3 mt-6">
+          <Button variant="outline" className="gap-1.5" onClick={() => navigate("/dashboard/census")}>
+            <ArrowLeft className="h-4 w-4" />
+            Kembali ke Sensus
+          </Button>
+          <Button variant="outline" className="gap-1.5" onClick={() => navigate(`/scan/${asset.id}`)}>
+            Lihat Profil Aset
+          </Button>
+        </div>
       </div>
     );
   }

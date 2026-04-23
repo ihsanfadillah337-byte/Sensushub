@@ -8,7 +8,7 @@ import { getSmartLocation } from "@/lib/smartLocation";
 import {
   ClipboardCheck, CheckCircle2, XCircle, BarChart3,
   Search, Package, Clock, ScanLine, Camera, FileText,
-  RotateCcw, AlertTriangle, CalendarDays
+  RotateCcw, AlertTriangle, CalendarDays, Power, ShieldAlert
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,9 +60,40 @@ export default function DashboardCensus() {
   const [statusFilter, setStatusFilter] = useState<"all" | "belum" | "sudah">("all");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [togglingCensus, setTogglingCensus] = useState(false);
   const scannerRef = useRef<any>(null);
   const scannedRef = useRef(false);
   const scannerContainerId = "qr-reader-census";
+
+  // ─── Sensus Active flag ────────────────────────────────
+  const { data: sensusActive = false } = useQuery({
+    queryKey: ["sensus-active", companyId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("sensus_active")
+        .eq("id", companyId!)
+        .maybeSingle();
+      return data?.sensus_active ?? false;
+    },
+    enabled: !!companyId,
+  });
+
+  const handleToggleCensus = async () => {
+    if (!companyId) return;
+    setTogglingCensus(true);
+    try {
+      const newVal = !sensusActive;
+      const { error } = await supabase.from("companies").update({ sensus_active: newVal }).eq("id", companyId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["sensus-active"] });
+      toast.success(newVal ? "Sensus DIAKTIFKAN. Auditor kini bisa mengisi form audit." : "Sensus DINONAKTIFKAN. Auditor hanya bisa melihat profil aset.");
+    } catch (e: any) {
+      toast.error("Gagal mengubah status sensus: " + e.message);
+    } finally {
+      setTogglingCensus(false);
+    }
+  };
 
   // ─── Data fetching ────────────────────────────────────
   const { data: assets = [], isLoading } = useQuery({
@@ -214,6 +245,9 @@ export default function DashboardCensus() {
       await Promise.all(updates);
       queryClient.invalidateQueries({ queryKey: ["census-assets"] });
       queryClient.invalidateQueries({ queryKey: ["assets"] });
+      // Also deactivate census after reset
+      await supabase.from("companies").update({ sensus_active: false }).eq("id", companyId);
+      queryClient.invalidateQueries({ queryKey: ["sensus-active"] });
       toast.success("Siklus sensus direset. Progres kembali ke 0%.");
     } catch (err: any) {
       console.error(err);
@@ -336,6 +370,9 @@ export default function DashboardCensus() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
             <ClipboardCheck className="h-6 w-6 text-primary" />
             Sensus Aset
+            <Badge className={sensusActive ? "bg-chart-3/15 text-chart-3 border-chart-3/30" : "bg-destructive/10 text-destructive border-destructive/20"}>
+              {sensusActive ? "AKTIF" : "NONAKTIF"}
+            </Badge>
           </h1>
           {/* Periode Sensus */}
           <div className="flex items-center gap-1.5 mt-1">
@@ -348,7 +385,17 @@ export default function DashboardCensus() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 self-start">
-          <Button className="gap-2" size="sm" onClick={() => setScannerOpen(true)}>
+          <Button
+            className={`gap-2 ${sensusActive ? '' : 'animate-pulse'}`}
+            size="sm"
+            variant={sensusActive ? "outline" : "default"}
+            onClick={handleToggleCensus}
+            disabled={togglingCensus}
+          >
+            <Power className="h-4 w-4" />
+            {sensusActive ? "Nonaktifkan Sensus" : "Aktifkan Sensus"}
+          </Button>
+          <Button className="gap-2" size="sm" onClick={() => setScannerOpen(true)} disabled={!sensusActive}>
             <Camera className="h-4 w-4" />
             Scan QR
           </Button>
@@ -481,23 +528,37 @@ export default function DashboardCensus() {
               </Card>
 
               {/* Quick Action */}
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-                    <ScanLine className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-foreground">Mulai Audit Lapangan</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Tekan "Scan QR" atau pilih aset dari tab "Daftar Aset" untuk mulai mengaudit.
-                    </p>
-                  </div>
-                  <Button className="gap-1.5 shrink-0" onClick={() => setScannerOpen(true)}>
-                    <Camera className="h-4 w-4" />
-                    Scan Sekarang
-                  </Button>
-                </CardContent>
-              </Card>
+              {sensusActive ? (
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                      <ScanLine className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-foreground">Mulai Audit Lapangan</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Tekan "Scan QR" atau pilih aset dari tab "Daftar Aset" untuk mulai mengaudit.
+                      </p>
+                    </div>
+                    <Button className="gap-1.5 shrink-0" onClick={() => setScannerOpen(true)}>
+                      <Camera className="h-4 w-4" />
+                      Scan Sekarang
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-warning/30 bg-warning/5">
+                  <CardContent className="p-5 flex items-start gap-3">
+                    <ShieldAlert className="h-5 w-5 text-warning mt-0.5 shrink-0" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Sensus Tidak Aktif</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Tekan tombol "Aktifkan Sensus" di atas untuk membuka akses Form Audit bagi para Auditor lapangan. Selama nonaktif, scan QR hanya menampilkan profil aset tanpa form input.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </TabsContent>
@@ -577,12 +638,13 @@ export default function DashboardCensus() {
                           <TableCell className="text-right">
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant={sensusActive ? "outline" : "ghost"}
                               className="gap-1.5"
+                              disabled={!sensusActive}
                               onClick={() => navigate(`/dashboard/census/audit/${asset.id}`)}
                             >
                               <ClipboardCheck className="h-3.5 w-3.5" />
-                              Audit
+                              {sensusActive ? "Audit" : "Nonaktif"}
                             </Button>
                           </TableCell>
                         </TableRow>

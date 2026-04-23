@@ -176,6 +176,7 @@ export type Database = {
           master_divisi: Json | null
           master_kib: Json | null
           name: string
+          sensus_active: boolean
           settings_pin: string | null
           user_id: string | null
         }
@@ -186,6 +187,7 @@ export type Database = {
           master_divisi?: Json | null
           master_kib?: Json | null
           name: string
+          sensus_active?: boolean
           settings_pin?: string | null
           user_id?: string | null
         }
@@ -196,6 +198,7 @@ export type Database = {
           master_divisi?: Json | null
           master_kib?: Json | null
           name?: string
+          sensus_active?: boolean
           settings_pin?: string | null
           user_id?: string | null
         }

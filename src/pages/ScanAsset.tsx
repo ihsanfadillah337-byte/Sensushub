@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ImageIcon, MapPin, Building2, Tag, AlertTriangle, PackageX, ShieldAlert, ChevronRight,
-  ClipboardCheck
+  ClipboardCheck, Eye
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,6 +35,7 @@ export default function ScanAsset() {
 
   // Dual-Scan: Check if current visitor is an authenticated auditor/admin
   const [auditorRole, setAuditorRole] = useState<AppRole | null>(null);
+  const [auditorCompanyId, setAuditorCompanyId] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
       try {
@@ -42,15 +43,30 @@ export default function ScanAsset() {
         if (!session?.user) return;
         const { data: profile } = await supabase
           .from("user_profiles")
-          .select("role")
+          .select("role, company_id")
           .eq("id", session.user.id)
           .maybeSingle();
         if (profile?.role === "auditor" || profile?.role === "super_admin") {
           setAuditorRole(profile.role as AppRole);
+          setAuditorCompanyId(profile.company_id);
         }
       } catch { /* silent — public page */ }
     })();
   }, []);
+
+  // Check if census is active for the asset's company
+  const { data: sensusActive } = useQuery({
+    queryKey: ["sensus-active-scan", asset?.company_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("sensus_active")
+        .eq("id", asset!.company_id)
+        .maybeSingle();
+      return data?.sensus_active ?? false;
+    },
+    enabled: !!asset?.company_id && !!auditorRole,
+  });
 
   const { data: asset, isLoading, error } = useQuery({
     queryKey: ["asset", id],
@@ -331,7 +347,7 @@ export default function ScanAsset() {
       </div>
 
       {/* Dual-Scan: Auditor Banner */}
-      {auditorRole && (
+      {auditorRole && sensusActive && (
         <div className="fixed bottom-16 inset-x-0 px-4 z-20">
           <div className="mx-auto max-w-md">
             <button
@@ -347,6 +363,23 @@ export default function ScanAsset() {
               </div>
               <ChevronRight className="h-5 w-5 opacity-60" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Dual-Scan: Read-Only mode when census is inactive */}
+      {auditorRole && sensusActive === false && (
+        <div className="fixed bottom-16 inset-x-0 px-4 z-20">
+          <div className="mx-auto max-w-md">
+            <div className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-muted border border-border shadow-lg">
+              <div className="h-10 w-10 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
+                <Eye className="h-5 w-5 text-warning" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-sm font-semibold text-foreground">Mode Hanya-Baca</p>
+                <p className="text-xs text-muted-foreground">Periode Sensus sedang tidak aktif.</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
