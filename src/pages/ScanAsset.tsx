@@ -54,20 +54,6 @@ export default function ScanAsset() {
     })();
   }, []);
 
-  // Check if census is active for the asset's company
-  const { data: sensusActive } = useQuery({
-    queryKey: ["sensus-active-scan", asset?.company_id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("sensus_active")
-        .eq("id", asset!.company_id)
-        .maybeSingle();
-      return data?.sensus_active ?? false;
-    },
-    enabled: !!asset?.company_id && !!auditorRole,
-  });
-
   const { data: asset, isLoading, error } = useQuery({
     queryKey: ["asset", id],
     queryFn: async () => {
@@ -80,6 +66,20 @@ export default function ScanAsset() {
       return data;
     },
     enabled: !!id,
+  });
+
+  // Check if census is active for the asset's company (must be after asset query)
+  const { data: sensusActive } = useQuery({
+    queryKey: ["sensus-active-scan", asset?.company_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("sensus_active")
+        .eq("id", asset!.company_id)
+        .maybeSingle();
+      return data?.sensus_active ?? false;
+    },
+    enabled: !!asset?.company_id && !!auditorRole,
   });
 
   // Check if there are open tickets for this asset
