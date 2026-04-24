@@ -403,6 +403,18 @@ export default function DashboardAssetEdit() {
                       ))}
                     </SelectContent>
                   </Select>
+                ) : col.type === "dropdown" && col.simple_options ? (
+                  <Select
+                    value={customData[col.name] || ""}
+                    onValueChange={(v) => setCustomData((p) => ({ ...p, [col.name]: v }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder={`Pilih ${col.name.toLowerCase()}`} /></SelectTrigger>
+                    <SelectContent>
+                      {col.simple_options.filter(Boolean).map((opt) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <Input
                     type={col.type === "number" ? "number" : col.type === "date" ? "date" : "text"}

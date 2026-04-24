@@ -16,8 +16,9 @@ export interface TreeNode {
 export interface CustomColumn {
   id: string;
   name: string;
-  type: "text" | "number" | "date" | "coded_dropdown";
+  type: "text" | "number" | "date" | "coded_dropdown" | "dropdown";
   options?: CodedOption[];
+  simple_options?: string[];
   dropdown_levels?: string[];
   options_tree?: TreeNode[];
 }

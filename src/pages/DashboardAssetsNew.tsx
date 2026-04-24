@@ -308,6 +308,13 @@ export default function DashboardAssetsNew() {
                       {col.options.filter(o => !!o.code).map((o) => (<SelectItem key={o.code} value={o.code}><span className="font-mono text-muted-foreground mr-2">{o.code}</span>{o.label}</SelectItem>))}
                     </SelectContent>
                   </Select>
+                ) : col.type === "dropdown" && col.simple_options ? (
+                  <Select value={customData[col.name] || ""} onValueChange={(v) => setCustomData((p) => ({ ...p, [col.name]: v }))}>
+                    <SelectTrigger><SelectValue placeholder={`Pilih ${col.name.toLowerCase()}`} /></SelectTrigger>
+                    <SelectContent>
+                      {col.simple_options.filter(Boolean).map((opt) => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <Input type={col.type === "number" ? "number" : col.type === "date" ? "date" : "text"} placeholder={col.type === "number" ? "0" : `Masukkan ${col.name.toLowerCase()}`} value={customData[col.name] || ""} onChange={(e) => setCustomData((p) => ({ ...p, [col.name]: e.target.value }))} onWheel={(e) => col.type === "number" && (e.target as HTMLInputElement).blur()} />
                 )}

@@ -39,11 +39,11 @@ function countTreeNodes(nodes: TreeNode[]): number {
 }
 
 const typeLabels: Record<string, string> = {
-  text: "Text", number: "Number", date: "Date", coded_dropdown: "Dropdown Berkode",
+  text: "Text", number: "Number", date: "Date", dropdown: "Dropdown", coded_dropdown: "Dropdown Berkode",
 };
 const typeBadgeClass: Record<string, string> = {
   text: "bg-accent text-accent-foreground", number: "bg-secondary text-secondary-foreground",
-  date: "bg-muted text-muted-foreground", coded_dropdown: "bg-primary/10 text-primary",
+  date: "bg-muted text-muted-foreground", dropdown: "bg-chart-3/10 text-chart-3", coded_dropdown: "bg-primary/10 text-primary",
 };
 
 function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol, onRemove, onEdit }: {
@@ -58,7 +58,7 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
   return (
     <li ref={setNodeRef} style={style} className="group">
       <div className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 transition-colors cursor-pointer"
-        onClick={() => col.type === "coded_dropdown" && setExpandedCol(expandedCol === col.id ? null : col.id)}>
+        onClick={() => (col.type === "coded_dropdown" || col.type === "dropdown") && setExpandedCol(expandedCol === col.id ? null : col.id)}>
         <div className="flex items-center gap-2">
           {!isLocked && (
             <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5 -ml-1">
@@ -74,9 +74,12 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
           {col.type === "coded_dropdown" && col.options_tree && (
             <span className="text-[10px] text-muted-foreground">({col.dropdown_levels?.length || 1} level)</span>
           )}
+          {col.type === "dropdown" && col.simple_options && (
+            <span className="text-[10px] text-muted-foreground">({col.simple_options.filter(Boolean).length} opsi)</span>
+          )}
         </div>
         <div className="flex items-center gap-1">
-          {col.type === "coded_dropdown" && (expandedCol === col.id ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />)}
+          {(col.type === "coded_dropdown" || col.type === "dropdown") && (expandedCol === col.id ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />)}
           {!isLocked && (
             <div className="flex items-center gap-1">
                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary transition-colors"
@@ -104,6 +107,17 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
           </div>
         </div>
       )}
+      {col.type === "dropdown" && expandedCol === col.id && col.simple_options && col.simple_options.length > 0 && (
+        <div className="px-5 pb-3 pl-14">
+          <div className="rounded border border-border bg-muted/20 divide-y divide-border">
+            {col.simple_options.filter(Boolean).map((opt, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-1.5 text-xs">
+                <span className="text-foreground">{opt}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {col.type === "coded_dropdown" && expandedCol === col.id && col.options && !col.options_tree && (
         <div className="px-5 pb-3 pl-14">
           <div className="rounded border border-border bg-muted/20 divide-y divide-border">
@@ -128,6 +142,7 @@ export default function DashboardSettings() {
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<string>("");
   const [codedOptions, setCodedOptions] = useState<CodedOption[]>([]);
+  const [simpleOptions, setSimpleOptions] = useState<string[]>([]);
   const [treeBuilderLevels, setTreeBuilderLevels] = useState<string[]>(["Level 1"]);
   const [treeBuilderNodes, setTreeBuilderNodes] = useState<TreeNode[]>([]);
   const [expandedCol, setExpandedCol] = useState<string | null>(null);
@@ -176,8 +191,15 @@ export default function DashboardSettings() {
       setCodedOptions(col.options || []);
       setTreeBuilderLevels(col.dropdown_levels || ["Level 1"]);
       setTreeBuilderNodes(col.options_tree || []);
+      setSimpleOptions([]);
+    } else if (col.type === "dropdown") {
+      setSimpleOptions(col.simple_options || []);
+      setCodedOptions([]);
+      setTreeBuilderLevels(["Level 1"]);
+      setTreeBuilderNodes([]);
     } else {
       setCodedOptions([]);
+      setSimpleOptions([]);
       setTreeBuilderLevels(["Level 1"]);
       setTreeBuilderNodes([]);
     }
@@ -190,6 +212,7 @@ export default function DashboardSettings() {
     setNewName("");
     setNewType("");
     setCodedOptions([]);
+    setSimpleOptions([]);
     setTreeBuilderLevels(["Level 1"]);
     setTreeBuilderNodes([]);
   };
@@ -209,7 +232,11 @@ export default function DashboardSettings() {
     }
     
     let newCol: CustomColumn;
-    if (newType === "coded_dropdown") {
+    if (newType === "dropdown") {
+      const valid = simpleOptions.map(o => o.trim()).filter(Boolean);
+      if (valid.length < 1) { toast.error("Tambahkan minimal 1 opsi."); return; }
+      newCol = { id: editingColId || crypto.randomUUID(), name: newName.trim(), type: "dropdown", simple_options: valid };
+    } else if (newType === "coded_dropdown") {
       // Check if tree mode (has levels defined)
       if (treeBuilderLevels.length > 0 && treeBuilderNodes.length > 0) {
         newCol = {
@@ -312,12 +339,13 @@ export default function DashboardSettings() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="col-type" className="text-xs font-medium text-muted-foreground">Tipe Data</Label>
-                  <Select value={newType} onValueChange={(v) => { setNewType(v); if (v !== "coded_dropdown") setCodedOptions([]); }} disabled={isMaxReached}>
+                  <Select value={newType} onValueChange={(v) => { setNewType(v); if (v !== "coded_dropdown") setCodedOptions([]); if (v !== "dropdown") setSimpleOptions([]); }} disabled={isMaxReached}>
                     <SelectTrigger id="col-type"><SelectValue placeholder="Pilih tipe" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="text">Text</SelectItem>
                       <SelectItem value="number">Number</SelectItem>
                       <SelectItem value="date">Date</SelectItem>
+                      <SelectItem value="dropdown">Dropdown</SelectItem>
                       <SelectItem value="coded_dropdown">Dropdown Berkode</SelectItem>
                     </SelectContent>
                   </Select>
@@ -337,6 +365,28 @@ export default function DashboardSettings() {
                   </Button>
                 )}
               </div>
+
+              {newType === "dropdown" && (
+                <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-4">
+                  <Label className="text-xs font-medium text-muted-foreground">Kelola Opsi Dropdown</Label>
+                  {simpleOptions.map((opt, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <Input
+                        placeholder={`Opsi ${idx + 1}`}
+                        value={opt}
+                        onChange={(e) => setSimpleOptions(prev => prev.map((o, i) => i === idx ? e.target.value : o))}
+                        className="flex-1"
+                      />
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setSimpleOptions(prev => prev.filter((_, i) => i !== idx))}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => setSimpleOptions(prev => [...prev, ""])}>
+                    <Plus className="h-3.5 w-3.5" /> Tambah Opsi
+                  </Button>
+                </div>
+              )}
 
               {newType === "coded_dropdown" && (
                 <TreeBuilder
