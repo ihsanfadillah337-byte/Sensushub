@@ -372,8 +372,8 @@ export default function DashboardCensus() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <ClipboardCheck className="h-6 w-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2 flex-wrap">
+            <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             Sensus Aset
             <Badge className={sensusActive ? "bg-chart-3/15 text-chart-3 border-chart-3/30" : "bg-destructive/10 text-destructive border-destructive/20"}>
               {sensusActive ? "AKTIF" : "NONAKTIF"}
@@ -381,8 +381,8 @@ export default function DashboardCensus() {
           </h1>
           {/* Periode Sensus */}
           <div className="flex items-center gap-1.5 mt-1">
-            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">
               {stats.periodeAwal
                 ? `Periode: ${formatTanggal(stats.periodeAwal)} s/d ${formatTanggal(stats.periodeAkhir)}`
                 : "Periode Sensus: Belum dimulai"}
@@ -402,11 +402,11 @@ export default function DashboardCensus() {
           </Button>
           <Button className="gap-2" size="sm" onClick={() => setScannerOpen(true)} disabled={!sensusActive}>
             <Camera className="h-4 w-4" />
-            Scan QR
+            <span className="hidden sm:inline">Scan</span> QR
           </Button>
           <Button className="gap-2" size="sm" variant="outline" onClick={handleCetakPDF} disabled={stats.audited === 0}>
             <FileText className="h-4 w-4" />
-            Cetak Berita Acara
+            <span className="hidden sm:inline">Cetak</span> Berita Acara
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -631,9 +631,9 @@ export default function DashboardCensus() {
                       const tglCek = assetTerakhirDiaudit(asset);
                       return (
                         <TableRow key={asset.id}>
-                          <TableCell className="font-mono text-sm font-medium text-foreground">{asset.kode_aset}</TableCell>
-                          <TableCell className="text-sm text-foreground">{asset.nama_aset}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{assetLocation(asset)}</TableCell>
+                          <TableCell className="font-mono text-xs sm:text-sm font-medium text-foreground max-w-[90px] sm:max-w-none truncate">{asset.kode_aset}</TableCell>
+                          <TableCell className="text-sm text-foreground max-w-[120px] sm:max-w-none truncate">{asset.nama_aset}</TableCell>
+                          <TableCell className="text-xs sm:text-sm text-muted-foreground hidden md:table-cell truncate max-w-[140px]">{assetLocation(asset)}</TableCell>
                           <TableCell>
                             <Badge className={`${kondisiStyle.bg} ${kondisiStyle.color} ${kondisiStyle.border} text-xs`}>
                               {kondisiStyle.label}

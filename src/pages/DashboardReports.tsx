@@ -276,8 +276,8 @@ export default function DashboardReports() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Manajemen Masalah & Laporan</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Manajemen Masalah & Laporan</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               Tangani keluhan publik dan tindak lanjuti temuan sensus lapangan.
             </p>
           </div>
@@ -355,7 +355,7 @@ export default function DashboardReports() {
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Aset</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pelapor</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Pelapor</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Judul</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Deskripsi</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
@@ -369,24 +369,24 @@ export default function DashboardReports() {
                     const resolusi = (report as any).resolusi as Record<string, any> | null;
                     return (
                       <TableRow key={report.id}>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        <TableCell className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                           {new Date(report.created_at).toLocaleDateString("id-ID", {
                             day: "2-digit", month: "short", year: "numeric",
                           })}
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{assetData?.nama_aset ?? "—"}</p>
-                            <p className="text-xs font-mono text-muted-foreground">{assetData?.kode_aset ?? ""}</p>
+                          <div className="max-w-[120px] sm:max-w-[150px]">
+                            <p className="text-sm font-medium text-foreground truncate">{assetData?.nama_aset ?? "—"}</p>
+                            <p className="text-xs font-mono text-muted-foreground truncate">{assetData?.kode_aset ?? ""}</p>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{report.nama_pelapor || "—"}</p>
-                            <p className="text-xs text-muted-foreground">{report.kontak_pelapor || ""}</p>
+                        <TableCell className="hidden sm:table-cell">
+                          <div className="max-w-[120px]">
+                            <p className="text-sm font-medium text-foreground truncate">{report.nama_pelapor || "—"}</p>
+                            <p className="text-xs text-muted-foreground truncate">{report.kontak_pelapor || ""}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm font-medium text-foreground max-w-[200px] truncate">
+                        <TableCell className="text-sm font-medium text-foreground max-w-[150px] sm:max-w-[200px] truncate">
                           {report.judul}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground hidden md:table-cell max-w-[250px]">
@@ -493,10 +493,10 @@ export default function DashboardReports() {
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tgl Sensus</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Auditor</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Auditor</TableHead>
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informasi Aset</TableHead>
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kondisi</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rekomendasi</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Rekomendasi</TableHead>
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Bukti</TableHead>
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
                     </TableRow>
@@ -508,18 +508,18 @@ export default function DashboardReports() {
                        const auditorName = customData["Auditor"] || "—";
                        return (
                          <TableRow key={audit.id}>
-                           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                           <TableCell className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                              {new Date(audit.created_at).toLocaleDateString("id-ID", {
                                day: "2-digit", month: "short", year: "numeric",
                              })}
                            </TableCell>
-                           <TableCell className="text-sm text-muted-foreground">
+                           <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                               {auditorName}
                            </TableCell>
                            <TableCell>
-                             <div>
-                               <p className="text-sm font-medium text-foreground">{assetData?.nama_aset || "—"}</p>
-                               <p className="text-xs font-mono text-muted-foreground">{assetData?.kode_aset || ""}</p>
+                             <div className="max-w-[120px] sm:max-w-[180px]">
+                               <p className="text-sm font-medium text-foreground truncate">{assetData?.nama_aset || "—"}</p>
+                               <p className="text-xs font-mono text-muted-foreground truncate">{assetData?.kode_aset || ""}</p>
                              </div>
                            </TableCell>
                            <TableCell>
@@ -527,9 +527,11 @@ export default function DashboardReports() {
                                 {audit.kondisi}
                               </Badge>
                            </TableCell>
-                           <TableCell>
-                              <p className="text-sm font-medium">{audit.tindak_lanjut || "—"}</p>
-                              {audit.catatan && <p className="text-xs text-muted-foreground mt-0.5 max-w-[150px] truncate" title={audit.catatan}>"{audit.catatan}"</p>}
+                           <TableCell className="hidden md:table-cell">
+                              <div className="max-w-[150px]">
+                                <p className="text-sm font-medium truncate">{audit.tindak_lanjut || "—"}</p>
+                                {audit.catatan && <p className="text-xs text-muted-foreground mt-0.5 truncate" title={audit.catatan}>"{audit.catatan}"</p>}
+                              </div>
                            </TableCell>
                            <TableCell className="text-center">
                               <div className="flex items-center justify-center gap-2">

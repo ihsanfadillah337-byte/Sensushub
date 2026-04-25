@@ -277,8 +277,8 @@ export default function DashboardAssets() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Daftar Aset</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Kelola semua aset inventaris perusahaan Anda.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Daftar Aset</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Kelola semua aset inventaris perusahaan Anda.</p>
         </div>
         <div className="flex items-center gap-2 self-start flex-wrap">
           {selectedIds.size > 0 && (
@@ -305,13 +305,13 @@ export default function DashboardAssets() {
               </DropdownMenu>
             </>
           )}
-          <Button size="sm" variant="outline" className="gap-1.5" disabled={isExportingExcel || assets.length === 0} onClick={handleExportExcel}>
+          <Button size="sm" variant="outline" className="gap-1.5 hidden sm:inline-flex" disabled={isExportingExcel || assets.length === 0} onClick={handleExportExcel}>
             {isExportingExcel ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-            Export Excel{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+            <span className="hidden md:inline">Export </span>Excel{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" disabled={isExportingPDF || assets.length === 0} onClick={handleExportPDF}>
+          <Button size="sm" variant="outline" className="gap-1.5 hidden sm:inline-flex" disabled={isExportingPDF || assets.length === 0} onClick={handleExportPDF}>
             {isExportingPDF ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            Export PDF{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+            <span className="hidden md:inline">Export </span>PDF{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
           </Button>
           <Button size="sm" className="gap-1.5" onClick={() => navigate("/dashboard/assets/new")}>
             <Plus className="h-4 w-4" />
@@ -381,10 +381,10 @@ export default function DashboardAssets() {
                 {filteredAssets.map((asset) => (
                   <TableRow key={asset.id} data-state={selectedIds.has(asset.id) ? "selected" : undefined}>
                     <TableCell><Checkbox checked={selectedIds.has(asset.id)} onCheckedChange={() => toggleOne(asset.id)} /></TableCell>
-                    <TableCell className="font-mono text-sm font-medium text-foreground">{asset.kode_aset}</TableCell>
-                    <TableCell className="text-sm text-foreground">
-                      <div className="flex items-center gap-1.5">
-                        {asset.nama_aset}
+                    <TableCell className="font-mono text-xs sm:text-sm font-medium text-foreground max-w-[100px] truncate">{asset.kode_aset}</TableCell>
+                    <TableCell className="text-sm text-foreground max-w-[160px] sm:max-w-none">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="truncate">{asset.nama_aset}</span>
                         {(() => {
                           const cd = typeof asset.custom_data === "object" && asset.custom_data && !Array.isArray(asset.custom_data) ? asset.custom_data as Record<string, unknown> : null;
                           if (cd?.["status_aset"] === "Unit Pengganti") {
@@ -408,7 +408,7 @@ export default function DashboardAssets() {
                         return <Badge className={`${style.bg} ${style.color} ${style.border} text-xs`}>{style.label}</Badge>;
                       })()}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{assetSmartLocation(asset)}</TableCell>
+                    <TableCell className="text-xs sm:text-sm text-muted-foreground hidden lg:table-cell truncate max-w-[160px]">{assetSmartLocation(asset)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => navigate(`/dashboard/assets/${asset.id}/edit`)}>
