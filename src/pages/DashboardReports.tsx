@@ -614,7 +614,7 @@ export default function DashboardReports() {
                   </SelectContent>
                 </Select>
                 {resolusiForm.aksi === "Dihapuskan" && (
-                  <p className="text-xs text-destructive">⚠ Aset akan ditandai sebagai "Usul Hapus".</p>
+                  <p className="text-xs text-destructive">Aset akan ditandai sebagai "Usul Hapus".</p>
                 )}
               </div>
               <div className="space-y-2">

@@ -284,7 +284,7 @@ export default function CensusAuditForm() {
         </p>
         {gpsCoords && (
           <p className="text-xs text-muted-foreground mt-2">
-            📍 Lokasi: {gpsCoords.lat.toFixed(6)}, {gpsCoords.lng.toFixed(6)}
+            Lokasi: {gpsCoords.lat.toFixed(6)}, {gpsCoords.lng.toFixed(6)}
           </p>
         )}
         <div className="flex gap-3 mt-6">
@@ -422,7 +422,7 @@ export default function CensusAuditForm() {
             {gpsLoading && <p className="text-sm text-muted-foreground">Meminta akses lokasi GPS…</p>}
             {gpsCoords && (
               <p className="text-sm text-foreground font-medium truncate">
-                📍 {gpsCoords.lat.toFixed(6)}, {gpsCoords.lng.toFixed(6)}
+                {gpsCoords.lat.toFixed(6)}, {gpsCoords.lng.toFixed(6)}
               </p>
             )}
             {gpsError && <p className="text-sm text-destructive">{gpsError}</p>}
@@ -448,10 +448,10 @@ export default function CensusAuditForm() {
             <Select value={kondisi} onValueChange={setKondisi}>
               <SelectTrigger><SelectValue placeholder="Pilih kondisi aset…" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Baik">✅ Baik</SelectItem>
-                <SelectItem value="Rusak Ringan">⚠️ Rusak Ringan</SelectItem>
-                <SelectItem value="Rusak Berat">❌ Rusak Berat</SelectItem>
-                <SelectItem value="Tidak Ditemukan">🔍 Tidak Ditemukan</SelectItem>
+                <SelectItem value="Baik">Baik</SelectItem>
+                <SelectItem value="Rusak Ringan">Rusak Ringan</SelectItem>
+                <SelectItem value="Rusak Berat">Rusak Berat</SelectItem>
+                <SelectItem value="Tidak Ditemukan">Tidak Ditemukan</SelectItem>
               </SelectContent>
             </Select>
           </div>
