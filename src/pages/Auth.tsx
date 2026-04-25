@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Package } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { checkRateLimit, resetRateLimit } from "@/lib/rateLimit";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -33,11 +34,23 @@ export default function Auth() {
       toast.error("Nama Instansi wajib diisi.");
       return;
     }
+
     setLoading(true);
+
+    // Rate Limiting Check (Client-side proxy check to prevent spam before hitting Supabase API)
+    const { allowed, remainingMs } = await checkRateLimit(`login_${email.trim()}`);
+    if (!allowed) {
+      const minutes = Math.ceil(remainingMs / 60000);
+      toast.error(`Terlalu banyak percobaan. Silakan coba lagi dalam ${minutes} menit.`);
+      setLoading(false);
+      return;
+    }
+
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        resetRateLimit(`login_${email.trim()}`); // Reset on success
         toast.success("Login berhasil!");
         navigate("/dashboard/assets", { replace: true });
       } else {
