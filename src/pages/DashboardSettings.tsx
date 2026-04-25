@@ -347,6 +347,7 @@ export default function DashboardSettings() {
                       <SelectItem value="date">Date</SelectItem>
                       <SelectItem value="dropdown">Dropdown</SelectItem>
                       <SelectItem value="coded_dropdown">Dropdown Berkode</SelectItem>
+                      <SelectItem value="creatable_text">Teks Dinamis (Creatable)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

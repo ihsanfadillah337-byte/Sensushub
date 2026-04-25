@@ -17,6 +17,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { getSmartLocation } from "@/lib/smartLocation";
 import { buildAssetCode, buildCodePrefix, type CodeValueMap } from "@/lib/assetCode";
 import CascadingDropdown, { getTreeCodeValue, getTreeLabelChain } from "@/components/CascadingDropdown";
+import { CreatableCombobox } from "@/components/CreatableCombobox";
 
 const KONDISI_OPTIONS = ["Baik", "Rusak Ringan", "Rusak Berat"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -415,6 +416,12 @@ export default function DashboardAssetEdit() {
                       ))}
                     </SelectContent>
                   </Select>
+                ) : col.type === "creatable_text" ? (
+                  <CreatableCombobox
+                    columnName={col.name}
+                    value={customData[col.name] || ""}
+                    onChange={(v) => setCustomData((p) => ({ ...p, [col.name]: v }))}
+                  />
                 ) : (
                   <Input
                     type={col.type === "number" ? "number" : col.type === "date" ? "date" : "text"}

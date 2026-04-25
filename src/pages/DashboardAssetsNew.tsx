@@ -15,6 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getSmartLocation } from "@/lib/smartLocation";
 import { buildAssetCode, buildCodePrefix, buildCodePreview, type CodeValueMap } from "@/lib/assetCode";
 import CascadingDropdown, { getTreeCodeValue, getTreeLabelChain } from "@/components/CascadingDropdown";
+import { CreatableCombobox } from "@/components/CreatableCombobox";
 
 const KONDISI_OPTIONS = ["Baik", "Rusak Ringan", "Rusak Berat"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -315,6 +316,12 @@ export default function DashboardAssetsNew() {
                       {col.simple_options.filter(Boolean).map((opt) => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>))}
                     </SelectContent>
                   </Select>
+                ) : col.type === "creatable_text" ? (
+                  <CreatableCombobox
+                    columnName={col.name}
+                    value={customData[col.name] || ""}
+                    onChange={(v) => setCustomData((p) => ({ ...p, [col.name]: v }))}
+                  />
                 ) : (
                   <Input type={col.type === "number" ? "number" : col.type === "date" ? "date" : "text"} placeholder={col.type === "number" ? "0" : `Masukkan ${col.name.toLowerCase()}`} value={customData[col.name] || ""} onChange={(e) => setCustomData((p) => ({ ...p, [col.name]: e.target.value }))} onWheel={(e) => col.type === "number" && (e.target as HTMLInputElement).blur()} />
                 )}
