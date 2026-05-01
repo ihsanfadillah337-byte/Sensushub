@@ -124,10 +124,10 @@ export default function ScanAsset() {
     try {
       const ext = file.name.split(".").pop();
       const fileName = `report-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const filePath = `public-reports/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from("asset-photos").upload(filePath, file);
+      const filePath = `${fileName}`;
+      const { error: uploadError } = await supabase.storage.from("report-evidence").upload(filePath, file);
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("asset-photos").getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from("report-evidence").getPublicUrl(filePath);
       setReportImageUrl(urlData.publicUrl);
       toast.success("Foto bukti berhasil diunggah!");
     } catch (err: any) {
