@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { AlertCircle, Loader2, ExternalLink, FileText, Download, MessageCircle, Users, ClipboardCheck, Camera, MapPin, Wrench } from "lucide-react";
+import { AlertCircle, Loader2, ExternalLink, FileText, Download, MessageCircle, Users, ClipboardCheck, Camera, MapPin, Wrench, Eye, ImageIcon, Building2, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -66,8 +66,12 @@ function handlePrintBeritaAcara(report: any) {
     ["Kode Aset", assetData?.kode_aset ?? "-"],
     ["Judul Kendala", report.judul],
     ["Deskripsi Kendala", report.deskripsi || "-"],
-    ["Nama Pelapor", report.nama_pelapor || "-"],
-    ["Kontak Pelapor", report.kontak_pelapor || "-"],
+    ["Nama Pelapor", report.reporter_name || report.nama_pelapor || "-"],
+    ["Kontak Pelapor", report.reporter_contact || report.kontak_pelapor || "-"],
+    ["Asal Bidang", report.origin_department || "-"],
+    ["Ruangan", report.current_location || "-"],
+    ["Kategori Masalah", report.issue_category || "-"],
+    ["Kondisi Aktual", report.actual_condition || "-"],
     ["Tindakan (Resolusi)", resolusi?.aksi || "-"],
     ["Total Biaya", `Rp ${Math.round(Number(resolusi?.biaya || 0)).toLocaleString("id-ID")}`],
     ["Catatan Teknisi", resolusi?.catatan || "-"],
@@ -107,14 +111,19 @@ function handleExportExcel(reports: any[]) {
       "Tanggal": new Date(r.created_at).toLocaleDateString("id-ID"),
       "Nama Aset": asset?.nama_aset ?? "-",
       "Kode Aset": asset?.kode_aset ?? "-",
-      "Judul": r.judul,
+      "Nama Pelapor": r.reporter_name || r.nama_pelapor || "-",
+      "Kontak": r.reporter_contact || r.kontak_pelapor || "-",
+      "Asal Bidang": r.origin_department || "-",
+      "Ruangan": r.current_location || "-",
+      "Kategori Masalah": r.issue_category || "-",
+      "Kondisi Aktual": r.actual_condition || "-",
+      "Judul Kendala": r.judul,
       "Deskripsi": r.deskripsi || "-",
-      "Nama Pelapor": r.nama_pelapor || "-",
-      "Kontak": r.kontak_pelapor || "-",
       "Status": r.status,
       "Tindakan": resolusi?.aksi || "-",
       "Biaya (Rp)": Number(resolusi?.biaya || 0),
       "Catatan": resolusi?.catatan || "-",
+      "Link Foto": r.image_url || "-",
     };
   });
 
@@ -137,6 +146,9 @@ export default function DashboardReports() {
 
   // Modal for evidence photos
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+
+  // Detail modal for full report view
+  const [detailReport, setDetailReport] = useState<any | null>(null);
 
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ["asset_reports", companyId],
@@ -356,8 +368,10 @@ export default function DashboardReports() {
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Aset</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Pelapor</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Judul</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Deskripsi</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kendala</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Kategori & Kondisi</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Lokasi</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Bukti</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
                   </TableRow>
@@ -367,8 +381,15 @@ export default function DashboardReports() {
                     const assetData = report.assets as any;
                     const cfg = statusConfig[report.status ?? "Menunggu"] ?? statusConfig.Menunggu;
                     const resolusi = (report as any).resolusi as Record<string, any> | null;
+                    const kondisiAktual = (report as any).actual_condition || "—";
+                    const kategori = (report as any).issue_category || "—";
+                    const reporterName = (report as any).reporter_name || report.nama_pelapor || "—";
+                    const reporterContact = (report as any).reporter_contact || report.kontak_pelapor || "";
+                    const originDept = (report as any).origin_department || "";
+                    const currentLoc = (report as any).current_location || "";
+                    const imageUrl = (report as any).image_url as string | null;
                     return (
-                      <TableRow key={report.id}>
+                      <TableRow key={report.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailReport(report)}>
                         <TableCell className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                           {new Date(report.created_at).toLocaleDateString("id-ID", {
                             day: "2-digit", month: "short", year: "numeric",
@@ -382,22 +403,56 @@ export default function DashboardReports() {
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <div className="max-w-[120px]">
-                            <p className="text-sm font-medium text-foreground truncate">{report.nama_pelapor || "—"}</p>
-                            <p className="text-xs text-muted-foreground truncate">{report.kontak_pelapor || ""}</p>
+                            <p className="text-sm font-medium text-foreground truncate">{reporterName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{reporterContact}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm font-medium text-foreground max-w-[150px] sm:max-w-[200px] truncate">
-                          {report.judul}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground hidden md:table-cell max-w-[250px]">
-                          <p className="truncate">{report.deskripsi || "—"}</p>
+                        <TableCell className="max-w-[150px] sm:max-w-[200px]">
+                          <p className="text-sm font-medium text-foreground truncate">{report.judul}</p>
+                          {report.deskripsi && <p className="text-xs text-muted-foreground truncate mt-0.5">{report.deskripsi}</p>}
                           {report.status === "Selesai" && resolusi?.aksi && (
                             <p className="text-xs mt-1 text-chart-1">
                               ✓ {resolusi.aksi} — Rp{Math.round(Number(resolusi.biaya || 0)).toLocaleString("id-ID")}
                             </p>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="space-y-1">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">{kategori}</Badge>
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 block w-fit ${
+                              kondisiAktual === 'Rusak Berat' ? 'bg-destructive/10 text-destructive border-destructive/30' :
+                              kondisiAktual === 'Rusak Ringan' ? 'bg-warning/10 text-warning border-warning/30' :
+                              kondisiAktual === 'Baik' ? 'bg-chart-1/10 text-chart-1 border-chart-1/30' : ''
+                            }`}>{kondisiAktual}</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell">
+                          <div className="max-w-[130px]">
+                            {originDept && <p className="text-xs text-foreground truncate">{originDept}</p>}
+                            {currentLoc && <p className="text-xs text-muted-foreground truncate">{currentLoc}</p>}
+                            {!originDept && !currentLoc && <span className="text-xs text-muted-foreground">—</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          {imageUrl ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button onClick={() => setSelectedPhoto(imageUrl)} type="button" className="focus:outline-none">
+                                  <Camera className="h-4 w-4 text-primary" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Lihat Foto Bukti</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Camera className="h-4 w-4 text-muted-foreground/30" />
+                              </TooltipTrigger>
+                              <TooltipContent>Tidak Ada Foto</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           {updatingId === report.id ? (
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                           ) : (
@@ -416,16 +471,29 @@ export default function DashboardReports() {
                             </Select>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
-                            {report.kontak_pelapor && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                  onClick={() => setDetailReport(report)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Detail Laporan</TooltipContent>
+                            </Tooltip>
+                            {reporterContact && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-chart-1 hover:text-primary hover:bg-accent"
-                                    onClick={() => window.open(`https://wa.me/${formatPhone(report.kontak_pelapor)}`, "_blank")}
+                                    onClick={() => window.open(`https://wa.me/${formatPhone(reporterContact)}`, "_blank")}
                                   >
                                     <MessageCircle className="h-4 w-4" />
                                   </Button>
@@ -644,6 +712,129 @@ export default function DashboardReports() {
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Selesaikan Tiket
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Detail Report Modal */}
+        <Dialog open={!!detailReport} onOpenChange={(open) => !open && setDetailReport(null)}>
+          <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-primary" />
+                Detail Laporan #{detailReport?.id?.substring(0, 8).toUpperCase()}
+              </DialogTitle>
+              <DialogDescription>
+                Dilaporkan {detailReport ? new Date(detailReport.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+              </DialogDescription>
+            </DialogHeader>
+            {detailReport && (() => {
+              const asset = detailReport.assets as any;
+              const resolusi = detailReport.resolusi as Record<string, any> | null;
+              const detailCfg = statusConfig[detailReport.status ?? "Menunggu"] ?? statusConfig.Menunggu;
+              return (
+                <div className="space-y-5 py-2">
+                  {/* Asset Info */}
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informasi Aset</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{asset?.nama_aset ?? "—"}</p>
+                        <p className="text-xs font-mono text-muted-foreground">{asset?.kode_aset ?? ""}</p>
+                      </div>
+                      <Badge variant="outline" className={detailCfg.class}>{detailCfg.label}</Badge>
+                    </div>
+                  </div>
+
+                  {/* Reporter Info */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Nama Pelapor</p>
+                      <p className="text-sm text-foreground">{detailReport.reporter_name || detailReport.nama_pelapor || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Kontak</p>
+                      <p className="text-sm text-foreground">{detailReport.reporter_contact || detailReport.kontak_pelapor || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Asal Bidang</p>
+                      <p className="text-sm text-foreground">{detailReport.origin_department || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Ruangan</p>
+                      <p className="text-sm text-foreground">{detailReport.current_location || "—"}</p>
+                    </div>
+                  </div>
+
+                  {/* Issue Details */}
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Judul Kendala</p>
+                      <p className="text-sm font-semibold text-foreground">{detailReport.judul}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground font-medium mb-1">Kategori Masalah</p>
+                        <Badge variant="outline">{detailReport.issue_category || "—"}</Badge>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground font-medium mb-1">Kondisi Aktual</p>
+                        <Badge variant="outline" className={
+                          detailReport.actual_condition === 'Rusak Berat' ? 'bg-destructive/10 text-destructive border-destructive/30' :
+                          detailReport.actual_condition === 'Rusak Ringan' ? 'bg-warning/10 text-warning border-warning/30' :
+                          detailReport.actual_condition === 'Baik' ? 'bg-chart-1/10 text-chart-1 border-chart-1/30' : ''
+                        }>{detailReport.actual_condition || "—"}</Badge>
+                      </div>
+                    </div>
+                    {detailReport.deskripsi && (
+                      <div>
+                        <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Kronologi / Catatan</p>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{detailReport.deskripsi}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Photo Evidence */}
+                  {detailReport.image_url && (
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-1.5">Foto Bukti</p>
+                      <div className="rounded-lg border border-border overflow-hidden bg-muted/30">
+                        <img
+                          src={detailReport.image_url}
+                          alt="Bukti Laporan"
+                          className="w-full h-auto max-h-[400px] object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resolusi (if resolved) */}
+                  {resolusi?.aksi && (
+                    <div className="rounded-lg border border-chart-1/20 bg-chart-1/5 p-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-chart-1">Resolusi</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-[11px] text-muted-foreground mb-0.5">Tindakan</p>
+                          <p className="text-sm font-medium text-foreground">{resolusi.aksi}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground mb-0.5">Biaya</p>
+                          <p className="text-sm font-medium text-foreground">Rp {Math.round(Number(resolusi.biaya || 0)).toLocaleString("id-ID")}</p>
+                        </div>
+                      </div>
+                      {resolusi.catatan && (
+                        <div>
+                          <p className="text-[11px] text-muted-foreground mb-0.5">Catatan Teknisi</p>
+                          <p className="text-sm text-foreground">{resolusi.catatan}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetailReport(null)}>Tutup</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
