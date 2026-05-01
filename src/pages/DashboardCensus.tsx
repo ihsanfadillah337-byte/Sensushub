@@ -110,6 +110,39 @@ export default function DashboardCensus() {
     enabled: !!companyId,
   });
 
+  // ─── Audit data from asset_audits (source of truth) ───
+  const { data: auditsRaw = [], isLoading: isLoadingAudits } = useQuery({
+    queryKey: ["census-audits", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("asset_audits")
+        .select("id, asset_id, kondisi, tindak_lanjut, catatan, created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  // Build a map: asset_id → latest audit record
+  const auditMap = useMemo(() => {
+    const map = new Map<string, { kondisi: string; tindak_lanjut: string; catatan: string | null; created_at: string }>();
+    // Filter only audits for assets in this company
+    const companyAssetIds = new Set(assets.map(a => a.id));
+    auditsRaw.forEach((audit) => {
+      if (!companyAssetIds.has(audit.asset_id)) return;
+      if (!map.has(audit.asset_id)) {
+        map.set(audit.asset_id, {
+          kondisi: audit.kondisi,
+          tindak_lanjut: audit.tindak_lanjut,
+          catatan: audit.catatan,
+          created_at: audit.created_at,
+        });
+      }
+    });
+    return map;
+  }, [auditsRaw, assets]);
+
   // ─── QR Scanner ───────────────────────────────────────
   const stopScanner = useCallback(async () => {
     try {
@@ -166,31 +199,23 @@ export default function DashboardCensus() {
     return () => { stopScanner(); };
   }, [scannerOpen, startScanner, stopScanner]);
 
-  // ─── Census statistics (based on Terakhir Diaudit) ───
+  // ─── Census statistics (based on DISTINCT asset_id in asset_audits) ───
   const stats = useMemo(() => {
     const total = assets.length;
-    let baik = 0, rusakRingan = 0, rusakBerat = 0, belumDicek = 0;
+    let baik = 0, rusakRingan = 0, rusakBerat = 0;
     const auditDates: string[] = [];
 
-    assets.forEach((asset) => {
-      const cd = getCd(asset);
-      const tglAudit = getTerakhirDiaudit(cd);
-
-      if (!tglAudit) {
-        // No audit date → belum dicek regardless of kondisi bawaan
-        belumDicek++;
-        return;
-      }
-
-      auditDates.push(tglAudit);
-      const kondisi = getKondisi(cd);
-      if (kondisi === "Baik") baik++;
-      else if (kondisi === "Rusak Ringan") rusakRingan++;
-      else if (kondisi === "Rusak Berat" || kondisi === "Dalam Perbaikan") rusakBerat++;
-      else belumDicek++;
+    // Count by latest audit kondisi from auditMap
+    auditMap.forEach((audit) => {
+      auditDates.push(audit.created_at);
+      const k = audit.kondisi;
+      if (k === "Baik") baik++;
+      else if (k === "Rusak Ringan") rusakRingan++;
+      else if (k === "Rusak Berat" || k === "Dalam Perbaikan") rusakBerat++;
     });
 
-    const audited = total - belumDicek;
+    const audited = auditMap.size;
+    const belumDicek = total - audited;
     const progress = total > 0 ? Math.round((audited / total) * 100) : 0;
 
     // Periode: earliest and latest audit dates
@@ -199,50 +224,40 @@ export default function DashboardCensus() {
     const periodeAkhir = auditDates.length > 0 ? auditDates[auditDates.length - 1] : null;
 
     return { total, baik, rusakRingan, rusakBerat, belumDicek, audited, progress, periodeAwal, periodeAkhir };
-  }, [assets]);
+  }, [assets, auditMap]);
 
   // ─── Filtered list ────────────────────────────────────
   const filteredAssets = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return assets.filter((a) => {
       if (q && !a.nama_aset.toLowerCase().includes(q) && !a.kode_aset.toLowerCase().includes(q)) return false;
-      // Status filter
       if (statusFilter !== "all") {
-        const cd = getCd(a);
-        const hasAudit = !!getTerakhirDiaudit(cd);
+        const hasAudit = auditMap.has(a.id);
         if (statusFilter === "sudah" && !hasAudit) return false;
         if (statusFilter === "belum" && hasAudit) return false;
       }
       return true;
     });
-  }, [assets, searchQuery, statusFilter]);
+  }, [assets, searchQuery, statusFilter, auditMap]);
 
   // ─── Reset Sensus ─────────────────────────────────────
   const handleResetSensus = async () => {
     if (!companyId) return;
     setResetting(true);
     try {
-      // Fetch all assets for this company
-      const { data: allAssets, error: fetchErr } = await supabase
-        .from("assets")
-        .select("id, custom_data")
-        .eq("company_id", companyId);
-      if (fetchErr) throw fetchErr;
+      // Get all asset IDs for this company
+      const assetIds = assets.map(a => a.id);
 
-      // Mass-update: clear audit fields from custom_data
-      const updates = (allAssets || []).map((a) => {
-        const cd = (typeof a.custom_data === "object" && a.custom_data && !Array.isArray(a.custom_data))
-          ? { ...(a.custom_data as Record<string, Json>) }
-          : {};
-        delete cd["Terakhir Diaudit"];
-        delete cd["Tindak Lanjut Sensus"];
-        delete cd["Auditor"];
-        // Keep Kondisi bawaan as-is but it won't count towards progress without Terakhir Diaudit
+      // Delete all audit records for these assets (fresh census cycle)
+      if (assetIds.length > 0) {
+        const { error: deleteErr } = await supabase
+          .from("asset_audits")
+          .delete()
+          .in("asset_id", assetIds);
+        if (deleteErr) throw deleteErr;
+      }
 
-        return supabase.from("assets").update({ custom_data: cd }).eq("id", a.id);
-      });
-
-      await Promise.all(updates);
+      queryClient.invalidateQueries({ queryKey: ["census-audits"] });
       queryClient.invalidateQueries({ queryKey: ["census-assets"] });
       queryClient.invalidateQueries({ queryKey: ["assets"] });
       // Also deactivate census after reset
@@ -284,24 +299,18 @@ export default function DashboardCensus() {
       doc.setFontSize(9);
       doc.text(`Total Aset: ${stats.total}  |  Sudah Diaudit: ${stats.audited}  |  Belum Dicek: ${stats.belumDicek}`, pageW / 2, 42, { align: "center" });
 
-      // Table — only audited assets
-      const auditedAssets = assets.filter((a) => {
-        const cd = getCd(a);
-        return !!getTerakhirDiaudit(cd);
-      });
+      // Table — only audited assets (from asset_audits)
+      const auditedAssets = assets.filter((a) => auditMap.has(a.id));
 
       const tableBody = auditedAssets.map((a, idx) => {
-        const cd = getCd(a);
-        const kondisi = getKondisi(cd);
-        const tglAudit = getTerakhirDiaudit(cd);
-        const tindakLanjut = cd?.["Tindak Lanjut Sensus"] as string || "—";
+        const audit = auditMap.get(a.id);
         return [
           (idx + 1).toString(),
           a.kode_aset,
           a.nama_aset,
-          kondisi,
-          formatTanggal(tglAudit),
-          tindakLanjut,
+          audit?.kondisi ?? "—",
+          formatTanggal(audit?.created_at ?? null),
+          audit?.tindak_lanjut ?? "—",
         ];
       });
 
@@ -352,11 +361,14 @@ export default function DashboardCensus() {
   }
 
   function assetKondisi(a: typeof assets[0]) {
-    return getKondisiStyle(getKondisi(getCd(a)));
+    const audit = auditMap.get(a.id);
+    // Use audit kondisi if available, otherwise fall back to master
+    return getKondisiStyle(audit?.kondisi ?? getKondisi(getCd(a)));
   }
 
   function assetTerakhirDiaudit(a: typeof assets[0]): string {
-    return formatTanggal(getTerakhirDiaudit(getCd(a)));
+    const audit = auditMap.get(a.id);
+    return formatTanggal(audit?.created_at ?? null);
   }
 
   const metricCards = [
@@ -470,7 +482,7 @@ export default function DashboardCensus() {
 
         {/* ========== TAB 1: OVERVIEW ========== */}
         <TabsContent value="overview" className="mt-6 space-y-6">
-          {isLoading ? (
+          {isLoading || isLoadingAudits ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
             </div>
