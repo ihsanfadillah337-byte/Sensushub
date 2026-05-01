@@ -84,3 +84,32 @@ export interface AssetAudit {
   longitude: number | null;
   created_at: string;
 }
+
+// === Asset Reports (Ticketing / Evidence Collection) ===
+// This is the INDEPENDENT ticketing system for field-reported issues.
+// actual_condition is the reporter's on-site assessment — it does NOT
+// override the master asset's "Kondisi Tercatat (Data SIMDA)".
+export type IssueCategory = 'Rusak Fisik' | 'Kendala Sistem' | 'Hilang/Tidak Ditemukan' | 'Lainnya';
+export type ActualCondition = 'Baik' | 'Rusak Ringan' | 'Rusak Berat';
+export type ReportStatus = 'Menunggu Validasi' | 'Tervalidasi' | 'Ditolak';
+
+export interface AssetReport {
+  id: string;
+  asset_id: string;
+  company_id: string;
+  reporter_name: string | null;
+  reporter_contact: string | null;
+  origin_department: string | null;
+  current_location: string | null;
+  issue_category: IssueCategory;
+  actual_condition: ActualCondition;
+  judul: string;
+  deskripsi: string | null;
+  image_url: string | null;
+  status: ReportStatus;
+  resolusi: Record<string, unknown> | null;
+  created_at: string;
+  // Legacy columns (backward compat)
+  nama_pelapor: string | null;
+  kontak_pelapor: string | null;
+}

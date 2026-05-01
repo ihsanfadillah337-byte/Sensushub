@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, ImagePlus, Save, Package, X, Loader2, Building2 } from "lucide-react";
+import { ArrowLeft, Upload, ImagePlus, Save, Package, X, Loader2, Building2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -140,7 +140,7 @@ export default function DashboardAssetEdit() {
     if (!selectedDivisi && masterDivisi.length > 0) { toast.error("Divisi / Satuan Kerja wajib dipilih."); return; }
     if (!selectedKib && masterKib.length > 0) { toast.error("KIB wajib dipilih."); return; }
     if (!namaAset.trim()) { toast.error("Nama Aset wajib diisi."); return; }
-    if (!kondisi) { toast.error("Kondisi wajib dipilih."); return; }
+    // Kondisi is now read-only from SIMDA — no validation needed here
 
     setIsSubmitting(true);
     try {
@@ -356,11 +356,23 @@ export default function DashboardAssetEdit() {
             <Input value={namaAset} onChange={(e) => setNamaAset(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Kondisi <span className="text-destructive">*</span></Label>
-            <Select value={kondisi} onValueChange={setKondisi}>
-              <SelectTrigger><SelectValue placeholder="Pilih kondisi" /></SelectTrigger>
-              <SelectContent>{KONDISI_OPTIONS.filter(Boolean).map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
-            </Select>
+            <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              Kondisi Tercatat (Data SIMDA)
+              <span className="relative group">
+                <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 px-3 py-2 text-[11px] leading-relaxed text-popover-foreground bg-popover border border-border rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                  Kondisi master hanya dapat diubah oleh Super Admin setelah proses rekonsiliasi disetujui bidang akuntansi.
+                </span>
+              </span>
+            </Label>
+            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2 h-10">
+              <span className={`text-sm font-medium ${kondisi === 'Baik' ? 'text-chart-1' : kondisi === 'Rusak Ringan' ? 'text-warning' : kondisi === 'Rusak Berat' ? 'text-destructive' : 'text-foreground'}`}>
+                {kondisi || '—'}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
+              Kondisi master hanya dapat diubah oleh Super Admin setelah proses rekonsiliasi disetujui bidang akuntansi.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Tanggal Perolehan</Label>

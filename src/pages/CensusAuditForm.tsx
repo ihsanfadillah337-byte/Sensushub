@@ -191,19 +191,9 @@ export default function CensusAuditForm() {
 
       if (insertError) throw insertError;
 
-      // 2. Sync master asset status — update Kondisi in assets.custom_data
-      const currentCd = (typeof asset!.custom_data === "object" && asset!.custom_data && !Array.isArray(asset!.custom_data))
-        ? { ...(asset!.custom_data as Record<string, unknown>) }
-        : {};
-      currentCd["Kondisi"] = kondisi;
-      currentCd["Tindak Lanjut Sensus"] = tindakLanjut;
-      currentCd["Terakhir Diaudit"] = new Date().toISOString().split("T")[0];
-      currentCd["Auditor"] = user?.email || "Unknown";
-
-      await supabase
-        .from("assets")
-        .update({ custom_data: currentCd as any })
-        .eq("id", asset!.id);
+      // Anti-Override: Census audit data is stored exclusively in asset_audits.
+      // Master asset condition (assets.custom_data.Kondisi) is NOT updated here.
+      // Reconciliation to master data requires Super Admin approval via the Reports dashboard.
 
       // 3. Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ["census-assets"] });

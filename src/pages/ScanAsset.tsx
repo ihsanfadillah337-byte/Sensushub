@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -8,6 +8,9 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ImageIcon, MapPin, Building2, Tag, AlertTriangle, PackageX, ShieldAlert, ChevronRight,
-  ClipboardCheck, Eye
+  ClipboardCheck, Eye, Camera, Loader2, X
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,12 +28,24 @@ import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import type { AppRole } from "@/types/supabase";
 
+const ISSUE_CATEGORIES = ['Rusak Fisik', 'Kendala Sistem', 'Hilang/Tidak Ditemukan', 'Lainnya'] as const;
+const ACTUAL_CONDITIONS = ['Baik', 'Rusak Ringan', 'Rusak Berat'] as const;
+
 export default function ScanAsset() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [reportOpen, setReportOpen] = useState(false);
-  const [reportForm, setReportForm] = useState({ judul: "", deskripsi: "", nama_pelapor: "", kontak_pelapor: "" });
+  const [reportForm, setReportForm] = useState({
+    judul: "", deskripsi: "", nama_pelapor: "", kontak_pelapor: "",
+    origin_department: "", current_location: "",
+    issue_category: "Lainnya" as string,
+    actual_condition: "" as string,
+  });
+  const [reportImageUrl, setReportImageUrl] = useState<string | null>(null);
+  const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
+  const [isUploadingReport, setIsUploadingReport] = useState(false);
+  const reportFileRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Dual-Scan: Check if current visitor is an authenticated auditor/admin
@@ -97,11 +112,34 @@ export default function ScanAsset() {
     enabled: !!id,
   });
 
-  const handleSubmitReport = async () => {
-    if (!reportForm.judul.trim()) {
-      toast.error("Judul kendala wajib diisi.");
-      return;
+  // Handle report photo upload
+  const handleReportPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("File terlalu besar. Maksimal 5MB."); return; }
+    if (!file.type.startsWith("image/")) { toast.error("Hanya file gambar yang diperbolehkan."); return; }
+
+    setIsUploadingReport(true);
+    setReportImagePreview(URL.createObjectURL(file));
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `report-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const filePath = `public-reports/${fileName}`;
+      const { error: uploadError } = await supabase.storage.from("asset-photos").upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("asset-photos").getPublicUrl(filePath);
+      setReportImageUrl(urlData.publicUrl);
+      toast.success("Foto bukti berhasil diunggah!");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mengunggah foto.");
+      setReportImagePreview(null);
+      setReportImageUrl(null);
+    } finally {
+      setIsUploadingReport(false);
     }
+  };
+
+  const handleSubmitReport = async () => {
     if (!reportForm.nama_pelapor.trim()) {
       toast.error("Nama pelapor wajib diisi.");
       return;
@@ -110,9 +148,21 @@ export default function ScanAsset() {
       toast.error("Nomor WhatsApp / Kontak wajib diisi.");
       return;
     }
+    if (!reportForm.judul.trim()) {
+      toast.error("Judul kendala wajib diisi.");
+      return;
+    }
+    if (!reportForm.actual_condition) {
+      toast.error("Kondisi aktual aset wajib dipilih.");
+      return;
+    }
+    if (!reportImageUrl) {
+      toast.error("Foto bukti wajib dilampirkan.");
+      return;
+    }
     setSubmitting(true);
     try {
-      // Insert report
+      // INSERT only — no master asset updates (Anti-Override)
       const { error } = await supabase.from("asset_reports").insert({
         asset_id: asset!.id,
         company_id: asset!.company_id,
@@ -120,22 +170,27 @@ export default function ScanAsset() {
         deskripsi: reportForm.deskripsi.trim() || null,
         nama_pelapor: reportForm.nama_pelapor.trim(),
         kontak_pelapor: reportForm.kontak_pelapor.trim(),
+        reporter_name: reportForm.nama_pelapor.trim(),
+        reporter_contact: reportForm.kontak_pelapor.trim(),
+        origin_department: reportForm.origin_department.trim() || null,
+        current_location: reportForm.current_location.trim() || null,
+        issue_category: reportForm.issue_category,
+        actual_condition: reportForm.actual_condition,
+        image_url: reportImageUrl,
       });
       if (error) throw error;
 
-      // Auto-update asset status to "Dalam Perbaikan"
-      const currentCd = (typeof asset!.custom_data === "object" && asset!.custom_data && !Array.isArray(asset!.custom_data))
-        ? { ...(asset!.custom_data as Record<string, Json>) }
-        : {};
-      currentCd["Kondisi"] = "Dalam Perbaikan";
-      await supabase.from("assets").update({ custom_data: currentCd }).eq("id", asset!.id);
-
-      // Invalidate queries to refresh UI
-      queryClient.invalidateQueries({ queryKey: ["asset", id] });
+      // Invalidate queries to refresh open tickets count
       queryClient.invalidateQueries({ queryKey: ["asset-open-tickets", id] });
 
       setReportOpen(false);
-      setReportForm({ judul: "", deskripsi: "", nama_pelapor: "", kontak_pelapor: "" });
+      setReportForm({
+        judul: "", deskripsi: "", nama_pelapor: "", kontak_pelapor: "",
+        origin_department: "", current_location: "",
+        issue_category: "Lainnya", actual_condition: "",
+      });
+      setReportImageUrl(null);
+      setReportImagePreview(null);
       toast.success("Laporan kendala berhasil dikirim!");
     } catch (err: any) {
       console.error(err);
@@ -396,26 +451,108 @@ export default function ScanAsset() {
         </div>
       )}
 
-      {/* Report dialog */}
+      {/* Hidden file input for report photo */}
+      <input
+        ref={reportFileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleReportPhotoUpload}
+      />
+
+      {/* Report dialog — Restructured for ticketing paradigm */}
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
-          <DialogHeader><DialogTitle>Lapor Kendala Aset</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Lapor Kendala Aset</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">Laporan ini tidak mengubah data master — tiket akan divalidasi oleh admin.</p>
+          </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="nama_pelapor">Nama Pelapor <span className="text-destructive">*</span></Label>
-              <Input id="nama_pelapor" placeholder="Nama lengkap Anda" value={reportForm.nama_pelapor} onChange={(e) => setReportForm((p) => ({ ...p, nama_pelapor: e.target.value }))} />
+            {/* Identitas Pelapor */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="nama_pelapor">Nama Pelapor <span className="text-destructive">*</span></Label>
+                <Input id="nama_pelapor" placeholder="Nama lengkap Anda" value={reportForm.nama_pelapor} onChange={(e) => setReportForm((p) => ({ ...p, nama_pelapor: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="kontak_pelapor">No. WhatsApp / Kontak <span className="text-destructive">*</span></Label>
+                <Input id="kontak_pelapor" placeholder="08xxxxxxxxxx" value={reportForm.kontak_pelapor} onChange={(e) => setReportForm((p) => ({ ...p, kontak_pelapor: e.target.value }))} />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="kontak_pelapor">No. WhatsApp / Kontak <span className="text-destructive">*</span></Label>
-              <Input id="kontak_pelapor" placeholder="08xxxxxxxxxx" value={reportForm.kontak_pelapor} onChange={(e) => setReportForm((p) => ({ ...p, kontak_pelapor: e.target.value }))} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="origin_department">Asal Bidang / Subbidang</Label>
+                <Input id="origin_department" placeholder="cth: Bidang Keuangan" value={reportForm.origin_department} onChange={(e) => setReportForm((p) => ({ ...p, origin_department: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="current_location">Ruangan Saat Dilaporkan</Label>
+                <Input id="current_location" placeholder="cth: Ruang Server Lt.2" value={reportForm.current_location} onChange={(e) => setReportForm((p) => ({ ...p, current_location: e.target.value }))} />
+              </div>
             </div>
+
+            {/* Detail Kendala */}
             <div className="space-y-2">
               <Label htmlFor="judul">Judul Kendala <span className="text-destructive">*</span></Label>
               <Input id="judul" placeholder="Contoh: Layar retak" value={reportForm.judul} onChange={(e) => setReportForm((p) => ({ ...p, judul: e.target.value }))} />
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Kategori Masalah</Label>
+                <Select value={reportForm.issue_category} onValueChange={(v) => setReportForm((p) => ({ ...p, issue_category: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
+                  <SelectContent>
+                    {ISSUE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Kondisi Aktual <span className="text-destructive">*</span></Label>
+                <Select value={reportForm.actual_condition} onValueChange={(v) => setReportForm((p) => ({ ...p, actual_condition: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Pilih kondisi" /></SelectTrigger>
+                  <SelectContent>
+                    {ACTUAL_CONDITIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">Kondisi ini hanya tercatat di tiket, bukan data master SIMDA.</p>
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label htmlFor="deskripsi">Deskripsi</Label>
-              <Textarea id="deskripsi" placeholder="Jelaskan detail kendala…" rows={4} value={reportForm.deskripsi} onChange={(e) => setReportForm((p) => ({ ...p, deskripsi: e.target.value }))} />
+              <Label htmlFor="deskripsi">Kronologi / Catatan</Label>
+              <Textarea id="deskripsi" placeholder="Jelaskan detail kendala…" rows={3} value={reportForm.deskripsi} onChange={(e) => setReportForm((p) => ({ ...p, deskripsi: e.target.value }))} />
+            </div>
+
+            {/* Photo Evidence */}
+            <div className="space-y-2">
+              <Label>Foto Bukti <span className="text-destructive">*</span></Label>
+              {reportImagePreview ? (
+                <div className="relative rounded-lg border border-border bg-muted/30 p-2 flex items-center gap-3">
+                  <img src={reportImagePreview} alt="Bukti" className="h-20 w-20 rounded-md object-cover border border-border" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground">Foto bukti terlampir</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Foto ini akan dilampirkan ke tiket.</p>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => { setReportImageUrl(null); setReportImagePreview(null); if (reportFileRef.current) reportFileRef.current.value = ""; }} disabled={isUploadingReport}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => reportFileRef.current?.click()}
+                  disabled={isUploadingReport}
+                  className="w-full rounded-lg border-2 border-dashed border-border hover:border-primary/40 bg-muted/30 hover:bg-muted/60 py-6 flex flex-col items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  {isUploadingReport ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : (
+                    <Camera className="h-6 w-6 text-muted-foreground" />
+                  )}
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {isUploadingReport ? "Mengunggah…" : "Ambil / Pilih Foto Bukti"}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
           <DialogFooter>

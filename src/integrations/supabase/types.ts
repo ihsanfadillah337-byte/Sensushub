@@ -16,40 +16,61 @@ export type Database = {
     Tables: {
       asset_reports: {
         Row: {
+          id: string
           asset_id: string
           company_id: string
-          created_at: string
-          deskripsi: string | null
-          id: string
           judul: string
-          kontak_pelapor: string | null
+          deskripsi: string | null
           nama_pelapor: string | null
-          resolusi: Json | null
+          kontak_pelapor: string | null
+          reporter_name: string | null
+          reporter_contact: string | null
+          origin_department: string | null
+          current_location: string | null
+          issue_category: string
+          actual_condition: string
+          image_url: string | null
           status: string
+          resolusi: Json | null
+          created_at: string
         }
         Insert: {
+          id?: string
           asset_id: string
           company_id: string
-          created_at?: string
-          deskripsi?: string | null
-          id?: string
           judul: string
-          kontak_pelapor?: string | null
+          deskripsi?: string | null
           nama_pelapor?: string | null
-          resolusi?: Json | null
+          kontak_pelapor?: string | null
+          reporter_name?: string | null
+          reporter_contact?: string | null
+          origin_department?: string | null
+          current_location?: string | null
+          issue_category?: string
+          actual_condition?: string
+          image_url?: string | null
           status?: string
+          resolusi?: Json | null
+          created_at?: string
         }
         Update: {
+          id?: string
           asset_id?: string
           company_id?: string
-          created_at?: string
-          deskripsi?: string | null
-          id?: string
           judul?: string
-          kontak_pelapor?: string | null
+          deskripsi?: string | null
           nama_pelapor?: string | null
-          resolusi?: Json | null
+          kontak_pelapor?: string | null
+          reporter_name?: string | null
+          reporter_contact?: string | null
+          origin_department?: string | null
+          current_location?: string | null
+          issue_category?: string
+          actual_condition?: string
+          image_url?: string | null
           status?: string
+          resolusi?: Json | null
+          created_at?: string
         }
         Relationships: [
           {
