@@ -8,7 +8,7 @@ import { getSmartLocation } from "@/lib/smartLocation";
 import {
   ClipboardCheck, CheckCircle2, XCircle, BarChart3,
   Search, Package, Clock, ScanLine, Camera, FileText,
-  RotateCcw, AlertTriangle, CalendarDays, Power, ShieldAlert
+  RotateCcw, AlertTriangle, CalendarDays, Power, ShieldAlert, Archive, Trash2, History
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,13 +24,8 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
 
 // ─── Helpers ────────────────────────────────────────────
 function getCd(asset: any): Record<string, unknown> | null {
@@ -61,6 +56,8 @@ export default function DashboardCensus() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [togglingCensus, setTogglingCensus] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveName, setArchiveName] = useState("");
   const scannerRef = useRef<any>(null);
   const scannedRef = useRef(false);
   const scannerContainerId = "qr-reader-census";
@@ -142,6 +139,21 @@ export default function DashboardCensus() {
     });
     return map;
   }, [auditsRaw, assets]);
+
+  // ─── Sensus Archives (historical data) ─────────────────
+  const { data: archives = [] } = useQuery({
+    queryKey: ["sensus-archives", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sensus_archives")
+        .select("*")
+        .eq("company_id", companyId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
 
   // ─── QR Scanner ───────────────────────────────────────
   const stopScanner = useCallback(async () => {
@@ -240,15 +252,41 @@ export default function DashboardCensus() {
     });
   }, [assets, searchQuery, statusFilter, auditMap]);
 
-  // ─── Reset Sensus ─────────────────────────────────────
-  const handleResetSensus = async () => {
-    if (!companyId) return;
+  // ─── Archive & Reset Sensus ────────────────────────────
+  const handleArchiveAndReset = async () => {
+    if (!companyId || !archiveName.trim()) return;
     setResetting(true);
     try {
-      // Get all asset IDs for this company
       const assetIds = assets.map(a => a.id);
 
-      // Delete all audit records for these assets (fresh census cycle)
+      // Step A: Build audit snapshot from raw data
+      const companyAudits = auditsRaw.filter(a => assetIds.includes(a.asset_id));
+      const auditSnapshot = companyAudits.map(a => ({
+        asset_id: a.asset_id,
+        kondisi: a.kondisi,
+        tindak_lanjut: a.tindak_lanjut,
+        catatan: a.catatan,
+        created_at: a.created_at,
+      }));
+
+      // Step B: INSERT archive record
+      const { error: archiveErr } = await supabase
+        .from("sensus_archives")
+        .insert({
+          company_id: companyId,
+          period_name: archiveName.trim(),
+          start_date: stats.periodeAwal,
+          end_date: stats.periodeAkhir,
+          total_assets: stats.total,
+          total_audited: stats.audited,
+          total_baik: stats.baik,
+          total_rusak_ringan: stats.rusakRingan,
+          total_rusak_berat: stats.rusakBerat,
+          audit_snapshot: auditSnapshot as any,
+        });
+      if (archiveErr) throw archiveErr;
+
+      // Step C: DELETE all audit records
       if (assetIds.length > 0) {
         const { error: deleteErr } = await supabase
           .from("asset_audits")
@@ -257,16 +295,22 @@ export default function DashboardCensus() {
         if (deleteErr) throw deleteErr;
       }
 
+      // Step D: Refresh all queries
       queryClient.invalidateQueries({ queryKey: ["census-audits"] });
       queryClient.invalidateQueries({ queryKey: ["census-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["sensus-archives"] });
       queryClient.invalidateQueries({ queryKey: ["assets"] });
-      // Also deactivate census after reset
+
+      // Deactivate census
       await supabase.from("companies").update({ sensus_active: false }).eq("id", companyId);
       queryClient.invalidateQueries({ queryKey: ["sensus-active"] });
-      toast.success("Siklus sensus direset. Progres kembali ke 0%.");
+
+      toast.success(`Sensus "${archiveName.trim()}" berhasil diarsipkan. Progres kembali ke 0%.`);
+      setArchiveOpen(false);
+      setArchiveName("");
     } catch (err: any) {
       console.error(err);
-      toast.error("Gagal mereset sensus.");
+      toast.error("Gagal mengarsipkan sensus: " + (err.message || "Coba lagi."));
     } finally {
       setResetting(false);
     }
@@ -415,32 +459,10 @@ export default function DashboardCensus() {
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Cetak</span> Berita Acara
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button className="gap-2" size="sm" variant="destructive" disabled={resetting}>
-                <RotateCcw className="h-4 w-4" />
-                Mulai Sensus Baru
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  Reset Siklus Sensus?
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Semua data "Terakhir Diaudit" dan "Tindak Lanjut Sensus" akan dihapus dari seluruh aset.
-                  Progres sensus akan kembali ke <strong>0%</strong>. Data histori di tabel <code>asset_audits</code> tetap aman.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Batal</AlertDialogCancel>
-                <AlertDialogAction onClick={handleResetSensus} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Ya, Reset Sensus
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button className="gap-2" size="sm" variant="destructive" disabled={resetting || stats.audited === 0} onClick={() => setArchiveOpen(true)}>
+            <Archive className="h-4 w-4" />
+            Tutup & Arsipkan
+          </Button>
         </div>
       </div>
 
@@ -571,6 +593,59 @@ export default function DashboardCensus() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Archive History */}
+              {archives.length > 0 && (
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <History className="h-4 w-4 text-muted-foreground" />
+                      Riwayat Sensus Sebelumnya
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Periode</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Aset</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Diaudit</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center hidden sm:table-cell">Baik</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center hidden sm:table-cell">Rusak</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">%</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {archives.map((arc) => {
+                            const pct = arc.total_assets > 0 ? Math.round((arc.total_audited / arc.total_assets) * 100) : 0;
+                            return (
+                              <TableRow key={arc.id}>
+                                <TableCell className="text-sm font-medium text-foreground">{arc.period_name}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {arc.start_date ? formatTanggal(arc.start_date) : "—"}
+                                  {" s/d "}
+                                  {arc.end_date ? formatTanggal(arc.end_date) : "—"}
+                                </TableCell>
+                                <TableCell className="text-center text-sm">{arc.total_assets}</TableCell>
+                                <TableCell className="text-center text-sm font-medium">{arc.total_audited}</TableCell>
+                                <TableCell className="text-center text-sm text-chart-3 hidden sm:table-cell">{arc.total_baik}</TableCell>
+                                <TableCell className="text-center text-sm text-destructive hidden sm:table-cell">{arc.total_rusak_ringan + arc.total_rusak_berat}</TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="outline" className={pct === 100 ? 'bg-chart-3/10 text-chart-3 border-chart-3/30' : 'bg-warning/10 text-warning border-warning/30'}>
+                                    {pct}%
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </TabsContent>
@@ -669,6 +744,68 @@ export default function DashboardCensus() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Archive & Reset Dialog */}
+      <Dialog open={archiveOpen} onOpenChange={(open) => !open && setArchiveOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-primary" />
+              Tutup & Arsipkan Sensus
+            </DialogTitle>
+            <DialogDescription>
+              Data sensus saat ini ({stats.audited} aset diaudit dari {stats.total}) akan disimpan sebagai arsip historis, lalu progres direset ke 0%.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="archive-name">Nama Periode Sensus <span className="text-destructive">*</span></Label>
+              <Input
+                id="archive-name"
+                placeholder='Contoh: "Sensus Semester 1 2026"'
+                value={archiveName}
+                onChange={(e) => setArchiveName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rangkuman Yang Akan Diarsipkan</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                <span className="text-muted-foreground">Total Aset</span>
+                <span className="font-medium text-foreground">{stats.total}</span>
+                <span className="text-muted-foreground">Sudah Diaudit</span>
+                <span className="font-medium text-foreground">{stats.audited}</span>
+                <span className="text-muted-foreground">Baik</span>
+                <span className="font-medium text-chart-3">{stats.baik}</span>
+                <span className="text-muted-foreground">Rusak Ringan</span>
+                <span className="font-medium text-warning">{stats.rusakRingan}</span>
+                <span className="text-muted-foreground">Rusak Berat</span>
+                <span className="font-medium text-destructive">{stats.rusakBerat}</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-xs text-destructive">
+                Setelah diarsipkan, seluruh data audit lapangan akan dihapus dan progres kembali ke 0%. Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArchiveOpen(false)} disabled={resetting}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleArchiveAndReset}
+              disabled={resetting || !archiveName.trim()}
+              className="gap-2"
+            >
+              {resetting && <RotateCcw className="h-4 w-4 animate-spin" />}
+              Simpan Arsip & Reset
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

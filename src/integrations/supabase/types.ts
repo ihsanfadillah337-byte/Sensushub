@@ -264,6 +264,59 @@ export type Database = {
           },
         ]
       }
+      sensus_archives: {
+        Row: {
+          id: string
+          company_id: string
+          period_name: string
+          start_date: string | null
+          end_date: string | null
+          total_assets: number
+          total_audited: number
+          total_baik: number
+          total_rusak_ringan: number
+          total_rusak_berat: number
+          audit_snapshot: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          period_name: string
+          start_date?: string | null
+          end_date?: string | null
+          total_assets?: number
+          total_audited?: number
+          total_baik?: number
+          total_rusak_ringan?: number
+          total_rusak_berat?: number
+          audit_snapshot?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          period_name?: string
+          start_date?: string | null
+          end_date?: string | null
+          total_assets?: number
+          total_audited?: number
+          total_baik?: number
+          total_rusak_ringan?: number
+          total_rusak_berat?: number
+          audit_snapshot?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensus_archives_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
