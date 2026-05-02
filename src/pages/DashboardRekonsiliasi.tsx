@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Inbox, ClipboardCheck, Scale } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import DashboardReports from "./DashboardReports";
 import DashboardCensus from "./DashboardCensus";
+import PapanRekonsiliasi from "./PapanRekonsiliasi";
 
 export default function DashboardRekonsiliasi() {
   const [activeTab, setActiveTab] = useState("inbox");
@@ -48,33 +47,19 @@ export default function DashboardRekonsiliasi() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Laporan Masuk (from DashboardReports) */}
+        {/* Tab 1: Laporan Masuk */}
         <TabsContent value="inbox" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
           <DashboardReports />
         </TabsContent>
 
-        {/* Tab 2: Sensus Lapangan (from DashboardCensus) */}
+        {/* Tab 2: Sensus Lapangan */}
         <TabsContent value="sensus" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
           <DashboardCensus />
         </TabsContent>
 
-        {/* Tab 3: Papan Rekonsiliasi (Placeholder) */}
+        {/* Tab 3: Papan Rekonsiliasi (Anomaly Engine) */}
         <TabsContent value="papan" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
-          <Card className="border-border/60 border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                <Scale className="h-8 w-8 text-primary/60" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Papan Rekonsiliasi</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Fitur ini akan menampilkan daftar aset yang perlu direkonsiliasi
-                antara data lapangan (tiket + audit) dengan data master SIMDA.
-              </p>
-              <Badge variant="outline" className="mt-4 text-xs">
-                Segera Hadir
-              </Badge>
-            </CardContent>
-          </Card>
+          <PapanRekonsiliasi />
         </TabsContent>
       </Tabs>
     </div>
