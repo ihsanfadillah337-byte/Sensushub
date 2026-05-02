@@ -15,6 +15,7 @@ import DashboardAssetEdit from "./pages/DashboardAssetEdit";
 import DashboardSettings from "./pages/DashboardSettings";
 import DashboardReports from "./pages/DashboardReports";
 import DashboardCensus from "./pages/DashboardCensus";
+import DashboardRekonsiliasi from "./pages/DashboardRekonsiliasi";
 import CensusAuditForm from "./pages/CensusAuditForm";
 import UserManagement from "./pages/UserManagement";
 import Auth from "./pages/Auth";
@@ -48,7 +49,13 @@ const App = () => (
               <Route path="assets" element={<DashboardAssets />} />
               <Route path="assets/new" element={<DashboardAssetsNew />} />
               <Route path="assets/:id/edit" element={<DashboardAssetEdit />} />
-              <Route path="reports" element={<DashboardReports />} />
+              <Route path="reports" element={<Navigate to="/dashboard/rekonsiliasi" replace />} />
+              <Route path="rekonsiliasi" element={
+                <ProtectedRoute allowedRoles={['super_admin', 'operator', 'auditor']}>
+                  <DashboardRekonsiliasi />
+                </ProtectedRoute>
+              } />
+              <Route path="census" element={<Navigate to="/dashboard/rekonsiliasi" replace />} />
               <Route path="settings" element={
                 <ProtectedRoute allowedRoles={['super_admin']}>
                   <DashboardSettings />
@@ -57,11 +64,6 @@ const App = () => (
               <Route path="users" element={
                 <ProtectedRoute allowedRoles={['super_admin']}>
                   <UserManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="census" element={
-                <ProtectedRoute allowedRoles={['super_admin', 'auditor']}>
-                  <DashboardCensus />
                 </ProtectedRoute>
               } />
               <Route path="census/audit/:id" element={

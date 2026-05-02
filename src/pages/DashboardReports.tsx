@@ -286,15 +286,6 @@ export default function DashboardReports() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Manajemen Masalah & Laporan</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Tangani keluhan publik dan tindak lanjuti temuan sensus lapangan.
-            </p>
-          </div>
-        </div>
-
         <Tabs defaultValue="public_reports" className="space-y-6">
           <TabsList className="bg-muted/50 p-1 inline-flex w-full sm:w-auto h-auto">
             <TabsTrigger value="public_reports" className="gap-2 px-6 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">

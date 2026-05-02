@@ -381,23 +381,18 @@ export default function DashboardCensus() {
   // ─── Render ───────────────────────────────────────────
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2 flex-wrap">
-            <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-            Sensus Aset
-            <Badge className={sensusActive ? "bg-chart-3/15 text-chart-3 border-chart-3/30" : "bg-destructive/10 text-destructive border-destructive/20"}>
-              {sensusActive ? "AKTIF" : "NONAKTIF"}
-            </Badge>
-          </h1>
-          {/* Periode Sensus */}
-          <div className="flex items-center gap-1.5 mt-1">
+      {/* Sensus Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge className={sensusActive ? "bg-chart-3/15 text-chart-3 border-chart-3/30" : "bg-destructive/10 text-destructive border-destructive/20"}>
+            {sensusActive ? "SENSUS AKTIF" : "SENSUS NONAKTIF"}
+          </Badge>
+          <div className="flex items-center gap-1.5">
             <CalendarDays className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+            <p className="text-xs text-muted-foreground truncate">
               {stats.periodeAwal
-                ? `Periode: ${formatTanggal(stats.periodeAwal)} s/d ${formatTanggal(stats.periodeAkhir)}`
-                : "Periode Sensus: Belum dimulai"}
+                ? `${formatTanggal(stats.periodeAwal)} s/d ${formatTanggal(stats.periodeAkhir)}`
+                : "Belum dimulai"}
             </p>
           </div>
         </div>
