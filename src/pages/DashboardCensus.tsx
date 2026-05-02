@@ -286,13 +286,26 @@ export default function DashboardCensus() {
         });
       if (archiveErr) throw archiveErr;
 
-      // Step C: DELETE all audit records
-      if (assetIds.length > 0) {
-        const { error: deleteErr } = await supabase
-          .from("asset_audits")
-          .delete()
-          .in("asset_id", assetIds);
-        if (deleteErr) throw deleteErr;
+      // Step C: DELETE all audit records (robust: fetch IDs first, then delete by ID)
+      const auditIdsToDelete = companyAudits.map(a => a.id);
+      console.log(`[Archive] Deleting ${auditIdsToDelete.length} audit records...`);
+
+      if (auditIdsToDelete.length > 0) {
+        // Batch delete in chunks of 100 to avoid URL length limits
+        const chunkSize = 100;
+        for (let i = 0; i < auditIdsToDelete.length; i += chunkSize) {
+          const chunk = auditIdsToDelete.slice(i, i + chunkSize);
+          const { error: deleteErr, count } = await supabase
+            .from("asset_audits")
+            .delete({ count: "exact" })
+            .in("id", chunk);
+
+          if (deleteErr) {
+            console.error(`[Archive] DELETE chunk ${i}-${i + chunk.length} failed:`, deleteErr);
+            throw new Error(`Gagal menghapus data audit (batch ${Math.floor(i / chunkSize) + 1}): ${deleteErr.message}`);
+          }
+          console.log(`[Archive] Deleted chunk ${i}-${i + chunk.length}, count: ${count}`);
+        }
       }
 
       // Step D: Refresh all queries
