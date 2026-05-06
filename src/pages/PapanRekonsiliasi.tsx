@@ -283,19 +283,33 @@ export default function PapanRekonsiliasi() {
         rowData["Keterangan"] = item.deskripsi || "—";
         rowData["Kondisi"] = item.kondisi;
 
-        let nilaiRaw = cd["nilai_perolehan"] || cd["Nilai Perolehan"] || cd["Harga"];
-        let nilaiFormatted = "";
+        // Sapu Jagat pencarian Nilai Perolehan / Harga
+        let nilaiRaw: any = asset.nilai_perolehan || asset.harga;
         
-        if (nilaiRaw !== undefined && nilaiRaw !== null && nilaiRaw !== "") {
-          const num = Number(String(nilaiRaw).replace(/[^0-9,-]+/g,""));
-          if (!isNaN(num)) {
-            nilaiFormatted = num.toLocaleString("id-ID");
-            totalNilai += num;
-          } else {
-            nilaiFormatted = String(nilaiRaw);
+        if (nilaiRaw === undefined || nilaiRaw === null || nilaiRaw === "") {
+          const cdKeys = Object.keys(cd);
+          const matchKey = cdKeys.find(k => {
+            const lower = k.toLowerCase();
+            return lower.includes("nilai") || lower.includes("harga");
+          });
+          if (matchKey) {
+            nilaiRaw = cd[matchKey];
           }
         }
-        rowData["Nilai Perolehan"] = nilaiFormatted;
+
+        let num = 0;
+        if (nilaiRaw !== undefined && nilaiRaw !== null && nilaiRaw !== "") {
+          // Ambil string sebelum koma desimal (contoh: Rp. 15.000.000,00 -> Rp. 15.000.000)
+          let strVal = String(nilaiRaw).split(",")[0];
+          // Hapus semua karakter yang BUKAN ANGKA (titik, Rp, spasi, teks lain)
+          const parsed = Number(strVal.replace(/[^0-9]/g, ""));
+          if (!isNaN(parsed)) {
+            num = parsed;
+          }
+        }
+
+        totalNilai += num;
+        rowData["Nilai Perolehan"] = num === 0 ? "0" : num.toLocaleString("id-ID");
 
         return rowData;
       });
