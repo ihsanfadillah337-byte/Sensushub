@@ -234,20 +234,20 @@ export default function PapanRekonsiliasi() {
   const handleExportExcel = () => {
     setIsExporting(true);
     try {
-      const exportAssets = assets.filter(a => {
-        const cd = (a.custom_data as Record<string, any>) || {};
+      const exportItems = anomalies.filter(item => {
+        const cd = (item.assetData.custom_data as Record<string, any>) || {};
         return cd.status_usulan === "Pengajuan Perubahan Kondisi";
       });
 
-      if (exportAssets.length === 0) {
+      if (exportItems.length === 0) {
         toast.info("Tidak ada aset dengan status Pengajuan Perubahan Kondisi.");
         setIsExporting(false);
         return;
       }
 
       // We group by KIB or just make one big sheet with all possible columns
-      // Prompt: "Struktur Kolom Baku: [No] | [Kode Barang] | [Nama Barang] | [...Kolom Dinamis sesuai Konfigurasi KIB] | [Kondisi] | [Nilai Perolehan]"
-      const kibSet = new Set(exportAssets.map(a => a.kib || ""));
+      // Prompt: "Struktur Kolom Baku: [No] | [Kode Barang] | [Nama Barang] | [...Kolom Dinamis sesuai Konfigurasi KIB] | Keterangan | Kondisi | Nilai Perolehan"
+      const kibSet = new Set(exportItems.map(item => item.assetData.kib || ""));
       const dynamicCols = new Set<string>();
       
       kibSet.forEach(kib => {
@@ -255,20 +255,20 @@ export default function PapanRekonsiliasi() {
         const kibItem = masterKib.find((k) => k.code === kibCode);
         const kibLabel = kibItem ? kibItem.label : kib.split(" - ")[1]?.trim() || kib;
         const cols = getColumnsForKib(kibLabel);
-        cols.forEach(c => dynamicCols.add(c.name));
+        cols.forEach(c => {
+          if (c.name.toLowerCase() !== "kode aset") {
+            dynamicCols.add(c.name);
+          }
+        });
       });
 
       const dynamicColList = Array.from(dynamicCols);
 
       let totalNilai = 0;
 
-      const rows = exportAssets.map((asset, index) => {
+      const rows = exportItems.map((item, index) => {
+        const asset = item.assetData;
         const cd = (asset.custom_data as Record<string, any>) || {};
-        const damagedAudits = (asset.asset_audits || []).filter((a: any) =>
-          a.kondisi === "Rusak Ringan" || a.kondisi === "Rusak Berat" || a.kondisi === "Dalam Perbaikan"
-        );
-        damagedAudits.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        const kondisi = damagedAudits.length > 0 ? damagedAudits[0].kondisi : "Rusak Berat";
 
         const rowData: Record<string, any> = {
           "No": index + 1,
@@ -279,6 +279,9 @@ export default function PapanRekonsiliasi() {
         dynamicColList.forEach(col => {
           rowData[col] = cd[col] !== undefined ? cd[col] : "";
         });
+
+        rowData["Keterangan"] = item.deskripsi || "—";
+        rowData["Kondisi"] = item.kondisi;
 
         let nilaiRaw = cd["nilai_perolehan"] || cd["Nilai Perolehan"] || cd["Harga"];
         let nilaiFormatted = "";
@@ -304,6 +307,7 @@ export default function PapanRekonsiliasi() {
         "Nama Barang": "TOTAL KESELURUHAN",
       };
       dynamicColList.forEach(col => { totalRow[col] = ""; });
+      totalRow["Keterangan"] = "";
       totalRow["Kondisi"] = "";
       totalRow["Nilai Perolehan"] = totalNilai > 0 ? totalNilai.toLocaleString("id-ID") : "";
       
