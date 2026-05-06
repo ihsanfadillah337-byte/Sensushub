@@ -123,19 +123,18 @@ export default function PapanRekonsiliasi() {
       }
     });
 
-    // Merge into anomalies
-    const anomalyIds = new Set([...reportsByAsset.keys(), ...damagedAudits.keys()]);
+    // Merge into anomalies by iterating over ALL assets
     const result: AnomalyItem[] = [];
 
-    anomalyIds.forEach(assetId => {
-      const asset = assetMap.get(assetId);
-      if (!asset) return;
+    assets.forEach(asset => {
+      const reps = reportsByAsset.get(asset.id) || [];
+      const audit = damagedAudits.get(asset.id);
 
-      const reps = reportsByAsset.get(assetId);
-      const audit = damagedAudits.get(assetId);
-
-      const hasReport = !!reps && reps.length > 0;
+      const hasReport = reps.length > 0;
       const hasAudit = !!audit;
+
+      // SYARAT ANOMALI: Harus punya laporan publik (Menunggu/Diproses) ATAU audit bermasalah
+      if (!hasReport && !hasAudit) return;
 
       let source: AnomalyItem["source"] = "keluhan";
       if (hasReport && hasAudit) source = "both";
@@ -147,20 +146,21 @@ export default function PapanRekonsiliasi() {
       let latestDate = "";
       let reporterContact: string | undefined;
 
+      // 1. Ambil data dari laporan publik jika ada
       if (hasReport) {
-        const latest = reps![0];
+        const latest = reps[0];
         kondisi = latest.actual_condition || latest.issue_category || "Dilaporkan";
         deskripsi = latest.judul || latest.deskripsi || "";
         latestDate = latest.created_at;
         reporterContact = latest.reporter_contact || undefined;
       }
 
+      // 2. Timpa dengan data audit sensus jika ada (Sensus selalu menang/override)
       if (hasAudit) {
-        // Audit kondisi takes priority for severity
-        kondisi = audit!.kondisi;
-        if (!deskripsi) deskripsi = audit!.tindak_lanjut || audit!.catatan || "";
-        if (!latestDate || new Date(audit!.created_at) > new Date(latestDate)) {
-          latestDate = audit!.created_at;
+        kondisi = audit.kondisi;
+        if (!deskripsi) deskripsi = audit.tindak_lanjut || audit.catatan || "";
+        if (!latestDate || new Date(audit.created_at) > new Date(latestDate)) {
+          latestDate = audit.created_at;
         }
       }
 
