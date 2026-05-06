@@ -46,7 +46,7 @@ interface AnomalyItem {
 export default function PapanRekonsiliasi() {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
-  const { getColumnsForKib, kibColumns } = useCustomColumns();
+  const { getColumnsForKib, kibColumns, masterKib } = useCustomColumns();
 
   const [resolveModalOpen, setResolveModalOpen] = useState(false);
   const [selectedAnomaly, setSelectedAnomaly] = useState<AnomalyItem | null>(null);
@@ -251,11 +251,16 @@ export default function PapanRekonsiliasi() {
       const dynamicCols = new Set<string>();
       
       kibSet.forEach(kib => {
-        const cols = getColumnsForKib(kib);
+        const kibCode = kib.split(" - ")[0]?.trim();
+        const kibItem = masterKib.find((k) => k.code === kibCode);
+        const kibLabel = kibItem ? kibItem.label : kib.split(" - ")[1]?.trim() || kib;
+        const cols = getColumnsForKib(kibLabel);
         cols.forEach(c => dynamicCols.add(c.name));
       });
 
       const dynamicColList = Array.from(dynamicCols);
+
+      let totalNilai = 0;
 
       const rows = exportAssets.map((asset, index) => {
         const cd = (asset.custom_data as Record<string, any>) || {};
@@ -275,11 +280,34 @@ export default function PapanRekonsiliasi() {
           rowData[col] = cd[col] !== undefined ? cd[col] : "";
         });
 
-        rowData["Kondisi"] = kondisi;
-        rowData["Nilai Perolehan"] = cd["nilai_perolehan"] || cd["Nilai Perolehan"] || cd["Harga"] || 0;
+        let nilaiRaw = cd["nilai_perolehan"] || cd["Nilai Perolehan"] || cd["Harga"];
+        let nilaiFormatted = "";
+        
+        if (nilaiRaw !== undefined && nilaiRaw !== null && nilaiRaw !== "") {
+          const num = Number(String(nilaiRaw).replace(/[^0-9,-]+/g,""));
+          if (!isNaN(num)) {
+            nilaiFormatted = num.toLocaleString("id-ID");
+            totalNilai += num;
+          } else {
+            nilaiFormatted = String(nilaiRaw);
+          }
+        }
+        rowData["Nilai Perolehan"] = nilaiFormatted;
 
         return rowData;
       });
+
+      // Tambahkan baris total di akhir
+      const totalRow: Record<string, any> = {
+        "No": "",
+        "Kode Barang": "",
+        "Nama Barang": "TOTAL KESELURUHAN",
+      };
+      dynamicColList.forEach(col => { totalRow[col] = ""; });
+      totalRow["Kondisi"] = "";
+      totalRow["Nilai Perolehan"] = totalNilai > 0 ? totalNilai.toLocaleString("id-ID") : "";
+      
+      rows.push(totalRow);
 
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
@@ -434,20 +462,33 @@ export default function PapanRekonsiliasi() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-1.5 text-xs"
-                                      onClick={() => openResolveModal(item)}
-                                    >
-                                      <Wrench className="h-3.5 w-3.5" />
-                                      Tindak Lanjuti
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Buat Berita Acara Rekonsiliasi</TooltipContent>
-                              </Tooltip>
+                              {(() => {
+                                const customData = (item.assetData.custom_data as Record<string, any>) || {};
+                                const isDiajukan = customData.status_usulan === "Pengajuan Perubahan Kondisi" || customData.status_aset === "Usul Hapus";
+                                if (isDiajukan) {
+                                  return (
+                                    <Badge variant="outline" className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[11px] gap-1 py-1 mr-2 px-2">
+                                      <CheckCircle2 className="h-3 w-3" /> Siap Diekspor
+                                    </Badge>
+                                  );
+                                }
+                                return (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="gap-1.5 text-xs mr-1"
+                                          onClick={() => openResolveModal(item)}
+                                        >
+                                          <Wrench className="h-3.5 w-3.5" />
+                                          Tindak Lanjuti
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Buat Berita Acara Rekonsiliasi</TooltipContent>
+                                  </Tooltip>
+                                );
+                              })()}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
