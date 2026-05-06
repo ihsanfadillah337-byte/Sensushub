@@ -1,10 +1,12 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCustomColumns } from "@/contexts/CustomColumnsContext";
+import * as XLSX from "xlsx";
 import {
   AlertTriangle, CheckCircle2, Wrench, Users, ClipboardCheck,
-  ExternalLink, PartyPopper, MessageCircle, Shield
+  ExternalLink, PartyPopper, MessageCircle, Shield, FileSpreadsheet, Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,13 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 // ─── Types ──────────────────────────────────────────────
@@ -29,11 +38,21 @@ interface AnomalyItem {
   reportCount: number;
   latestDate: string;
   reporterContact?: string;
+  reportId?: string;
+  assetData: any;
 }
 
 // ─── Component ──────────────────────────────────────────
 export default function PapanRekonsiliasi() {
   const { companyId } = useAuth();
+  const queryClient = useQueryClient();
+  const { getColumnsForKib, kibColumns } = useCustomColumns();
+
+  const [resolveModalOpen, setResolveModalOpen] = useState(false);
+  const [selectedAnomaly, setSelectedAnomaly] = useState<AnomalyItem | null>(null);
+  const [rekomendasi, setRekomendasi] = useState<string>("");
+  const [isResolving, setIsResolving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch assets
   const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
@@ -41,7 +60,7 @@ export default function PapanRekonsiliasi() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("assets")
-        .select("id, kode_aset, nama_aset")
+        .select("id, kode_aset, nama_aset, custom_data, nilai_perolehan, master_kib")
         .eq("company_id", companyId!)
         .order("kode_aset", { ascending: true });
       if (error) throw error;
@@ -56,7 +75,7 @@ export default function PapanRekonsiliasi() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("asset_reports")
-        .select("asset_id, judul, deskripsi, status, actual_condition, issue_category, reporter_contact, created_at")
+        .select("id, asset_id, judul, deskripsi, status, actual_condition, issue_category, reporter_contact, created_at")
         .eq("company_id", companyId!)
         .in("status", ["Menunggu", "Diproses"])
         .order("created_at", { ascending: false });
@@ -145,6 +164,16 @@ export default function PapanRekonsiliasi() {
         }
       }
 
+      // Filter out those already set to "Pengajuan Perubahan Kondisi" or similar
+      const customData = (asset.custom_data as Record<string, any>) || {};
+      if (customData.status_usulan === "Pengajuan Perubahan Kondisi" || customData.status_aset === "Usul Hapus") {
+         // Skip, already handled
+         // But we still want them for export, wait, the prompt says "Aset otomatis hilang dari Papan Rekonsiliasi."
+         // Actually, let's keep them if they have open reports or bad audit.
+         // We will filter them from the UI if needed, but for now we'll just map them.
+         // Actually prompt: "Aset otomatis hilang dari Papan Rekonsiliasi" (if Layak Pakai).
+      }
+
       result.push({
         assetId,
         kodeAset: asset.kode_aset,
@@ -155,6 +184,8 @@ export default function PapanRekonsiliasi() {
         reportCount: reps?.length ?? 0,
         latestDate,
         reporterContact,
+        reportId: reps && reps.length > 0 ? reps[0].id : undefined,
+        assetData: asset,
       });
     });
 
@@ -207,6 +238,113 @@ export default function PapanRekonsiliasi() {
     } catch { return "—"; }
   }
 
+  // ─── Actions ──────────────────────────────────────────
+  const openResolveModal = (item: AnomalyItem) => {
+    setSelectedAnomaly(item);
+    setRekomendasi("");
+    setResolveModalOpen(true);
+  };
+
+  const handleResolveSubmit = async () => {
+    if (!selectedAnomaly || !rekomendasi) return;
+    setIsResolving(true);
+    try {
+      if (rekomendasi === "Layak Pakai") {
+        if (selectedAnomaly.reportId) {
+          await supabase.from("asset_reports").update({ status: "Selesai" } as any).eq("id", selectedAnomaly.reportId);
+        }
+        // Jika ada di sensus (Rusak), override jadi Baik? Prompt: "Jika pilih Layak Pakai: Ubah status di tabel reports menjadi Selesai. Aset otomatis hilang dari Papan Rekonsiliasi."
+        // We will just clear the audit if it was from sensus, or update it.
+        if (selectedAnomaly.source === "sensus" || selectedAnomaly.source === "both") {
+           await supabase.from("asset_audits").update({ kondisi: "Baik", tindak_lanjut: "Layak Pakai (Hasil Rekonsiliasi)" }).eq("asset_id", selectedAnomaly.assetId);
+        }
+      } else if (rekomendasi === "Usul Perbaikan") {
+        if (selectedAnomaly.reportId) {
+          await supabase.from("asset_reports").update({ status: "Diproses" } as any).eq("id", selectedAnomaly.reportId);
+        }
+      } else if (rekomendasi === "Pengajuan Perubahan Kondisi") {
+        const customData = (selectedAnomaly.assetData.custom_data as Record<string, any>) || {};
+        await supabase.from("assets").update({
+          custom_data: { ...customData, status_usulan: "Pengajuan Perubahan Kondisi" }
+        }).eq("id", selectedAnomaly.assetId);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["rekon-reports"] });
+      await queryClient.invalidateQueries({ queryKey: ["rekon-audits"] });
+      await queryClient.invalidateQueries({ queryKey: ["rekon-assets"] });
+      toast.success("Tindak lanjut berhasil disimpan.");
+      setResolveModalOpen(false);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Gagal menyimpan tindak lanjut.");
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  const handleExportExcel = () => {
+    setIsExporting(true);
+    try {
+      const exportAssets = assets.filter(a => {
+        const cd = (a.custom_data as Record<string, any>) || {};
+        return cd.status_usulan === "Pengajuan Perubahan Kondisi";
+      });
+
+      if (exportAssets.length === 0) {
+        toast.info("Tidak ada aset dengan status Pengajuan Perubahan Kondisi.");
+        setIsExporting(false);
+        return;
+      }
+
+      // We group by KIB or just make one big sheet with all possible columns
+      // Prompt: "Struktur Kolom Baku: [No] | [Kode Barang] | [Nama Barang] | [...Kolom Dinamis sesuai Konfigurasi KIB] | [Kondisi] | [Nilai Perolehan]"
+      const kibSet = new Set(exportAssets.map(a => a.master_kib || ""));
+      const dynamicCols = new Set<string>();
+      
+      kibSet.forEach(kib => {
+        const cols = getColumnsForKib(kib);
+        cols.forEach(c => dynamicCols.add(c.name));
+      });
+
+      const dynamicColList = Array.from(dynamicCols);
+
+      const rows = exportAssets.map((asset, index) => {
+        const cd = (asset.custom_data as Record<string, any>) || {};
+        // Get the latest audit condition, or default
+        const audit = audits.find(a => a.asset_id === asset.id);
+        const kondisi = audit ? audit.kondisi : "Rusak Berat";
+
+        const rowData: Record<string, any> = {
+          "No": index + 1,
+          "Kode Barang": asset.kode_aset,
+          "Nama Barang": asset.nama_aset,
+        };
+
+        dynamicColList.forEach(col => {
+          rowData[col] = cd[col] !== undefined ? cd[col] : "";
+        });
+
+        rowData["Kondisi"] = kondisi;
+        rowData["Nilai Perolehan"] = asset.nilai_perolehan || 0;
+
+        return rowData;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Lampiran Perubahan Kondisi");
+      
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(wb, `Lampiran_Perubahan_Kondisi_${dateStr}.xlsx`);
+      toast.success("Excel berhasil diunduh.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Gagal mengekspor Excel.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // ─── Render ───────────────────────────────────────────
   return (
     <TooltipProvider>
@@ -238,6 +376,14 @@ export default function PapanRekonsiliasi() {
           </Card>
         ) : (
           <>
+            {/* Header Actions */}
+            <div className="flex justify-end mb-4">
+              <Button onClick={handleExportExcel} disabled={isExporting} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                Cetak Lampiran Perubahan Kondisi
+              </Button>
+            </div>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="border-border/60">
@@ -339,15 +485,15 @@ export default function PapanRekonsiliasi() {
                             <div className="flex items-center justify-end gap-1">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-1.5 text-xs"
-                                    onClick={() => toast.info("Fitur pembuatan Berita Acara sedang dikembangkan.")}
-                                  >
-                                    <Wrench className="h-3.5 w-3.5" />
-                                    Tindak Lanjuti
-                                  </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1.5 text-xs"
+                                      onClick={() => openResolveModal(item)}
+                                    >
+                                      <Wrench className="h-3.5 w-3.5" />
+                                      Tindak Lanjuti
+                                    </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Buat Berita Acara Rekonsiliasi</TooltipContent>
                               </Tooltip>
@@ -395,6 +541,53 @@ export default function PapanRekonsiliasi() {
             </div>
           </>
         )}
+
+        {/* Tindak Lanjut Modal */}
+        <Dialog open={resolveModalOpen} onOpenChange={setResolveModalOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Tindak Lanjut Eksekusi</DialogTitle>
+              <DialogDescription>
+                Pilih rekomendasi tindak lanjut untuk anomali aset ini.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedAnomaly && (
+              <div className="space-y-4 py-4">
+                <div className="rounded-md bg-muted p-3 space-y-1">
+                  <p className="text-sm font-medium">{selectedAnomaly.namaAset}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{selectedAnomaly.kodeAset}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Badge variant="outline" className={kondisiBadge(selectedAnomaly.kondisi)}>
+                      {selectedAnomaly.kondisi}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Rekomendasi Tindak Lanjut</Label>
+                  <Select value={rekomendasi} onValueChange={setRekomendasi}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih rekomendasi..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Layak Pakai">Layak Pakai (Tutup Laporan)</SelectItem>
+                      <SelectItem value="Usul Perbaikan">Usul Perbaikan</SelectItem>
+                      <SelectItem value="Pengajuan Perubahan Kondisi">Pengajuan Perubahan Kondisi (Rusak Berat)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setResolveModalOpen(false)} disabled={isResolving}>
+                Batal
+              </Button>
+              <Button onClick={handleResolveSubmit} disabled={!rekomendasi || isResolving} className="gap-2">
+                {isResolving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Simpan & Selesaikan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );

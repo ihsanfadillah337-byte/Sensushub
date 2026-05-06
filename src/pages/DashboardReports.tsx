@@ -231,24 +231,6 @@ export default function DashboardReports() {
         .eq("id", resolveReport.id);
       if (error) throw error;
 
-      if (resolusiForm.aksi === "Dihapuskan" && resolveReport.asset_id) {
-        const { data: asset } = await supabase
-          .from("assets")
-          .select("custom_data")
-          .eq("id", resolveReport.asset_id)
-          .single();
-
-        const currentCustom = (asset?.custom_data as Record<string, any>) || {};
-        const { error: assetErr } = await supabase
-          .from("assets")
-          .update({
-            custom_data: { ...currentCustom, status_aset: "Usul Hapus" },
-          })
-          .eq("id", resolveReport.asset_id);
-        if (assetErr) throw assetErr;
-        await queryClient.invalidateQueries({ queryKey: ["assets"] });
-      }
-
       if (resolusiForm.aksi === "Diganti" && resolveReport.asset_id) {
         const { data: asset } = await supabase
           .from("assets")
@@ -669,12 +651,8 @@ export default function DashboardReports() {
                   <SelectContent>
                     <SelectItem value="Diperbaiki">Diperbaiki</SelectItem>
                     <SelectItem value="Diganti">Diganti</SelectItem>
-                    <SelectItem value="Dihapuskan">Dihapuskan</SelectItem>
                   </SelectContent>
                 </Select>
-                {resolusiForm.aksi === "Dihapuskan" && (
-                  <p className="text-xs text-destructive">Aset akan ditandai sebagai "Usul Hapus".</p>
-                )}
               </div>
               <div className="space-y-2">
                 <Label>Total Biaya (Rp)</Label>
