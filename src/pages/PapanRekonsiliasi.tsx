@@ -154,9 +154,7 @@ export default function PapanRekonsiliasi() {
     });
 
     return result;
-  }, [assets, reports, audits]);
-
-  const isLoading = isLoadingAssets || isLoadingReports || isLoadingAudits;
+  }, [assets]);
 
   // ─── Stats ────────────────────────────────────────────
   const statsData = useMemo(() => {
