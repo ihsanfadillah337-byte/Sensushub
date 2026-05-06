@@ -54,13 +54,17 @@ export default function PapanRekonsiliasi() {
   const [isResolving, setIsResolving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Fetch assets
-  const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
-    queryKey: ["rekon-assets", companyId],
+  // Fetch assets with joined reports and audits
+  const { data: assets = [], isLoading } = useQuery({
+    queryKey: ["rekon-assets-joined", companyId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("assets")
-        .select("id, kode_aset, nama_aset, custom_data, nilai_perolehan, master_kib")
+        .select(`
+          id, kode_aset, nama_aset, custom_data, nilai_perolehan, master_kib,
+          asset_reports (id, judul, deskripsi, status, actual_condition, issue_category, reporter_contact, created_at),
+          asset_audits (kondisi, tindak_lanjut, catatan, created_at)
+        `)
         .eq("company_id", companyId!)
         .order("kode_aset", { ascending: true });
       if (error) throw error;
@@ -69,71 +73,29 @@ export default function PapanRekonsiliasi() {
     enabled: !!companyId,
   });
 
-  // Fetch open/in-progress reports (tiket publik yang belum selesai)
-  const { data: reports = [], isLoading: isLoadingReports } = useQuery({
-    queryKey: ["rekon-reports", companyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("asset_reports")
-        .select("id, asset_id, judul, deskripsi, status, actual_condition, issue_category, reporter_contact, created_at")
-        .eq("company_id", companyId!)
-        .in("status", ["Menunggu", "Diproses"])
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!companyId,
-  });
-
-  // Fetch latest audits with bad condition
-  const { data: audits = [], isLoading: isLoadingAudits } = useQuery({
-    queryKey: ["rekon-audits", companyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("asset_audits")
-        .select("asset_id, kondisi, tindak_lanjut, catatan, created_at")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!companyId,
-  });
-
   // Build anomaly list
   const anomalies = useMemo(() => {
-    const assetMap = new Map(assets.map(a => [a.id, a]));
-    const companyAssetIds = new Set(assets.map(a => a.id));
-
-    // Reports grouped by asset_id
-    const reportsByAsset = new Map<string, typeof reports>();
-    reports.forEach(r => {
-      if (!companyAssetIds.has(r.asset_id)) return;
-      const arr = reportsByAsset.get(r.asset_id) || [];
-      arr.push(r);
-      reportsByAsset.set(r.asset_id, arr);
-    });
-
-    // Latest audit per asset (only damaged ones)
-    const damagedAudits = new Map<string, (typeof audits)[0]>();
-    audits.forEach(a => {
-      if (!companyAssetIds.has(a.asset_id)) return;
-      if (damagedAudits.has(a.asset_id)) return; // already have latest
-      if (a.kondisi === "Rusak Ringan" || a.kondisi === "Rusak Berat" || a.kondisi === "Dalam Perbaikan") {
-        damagedAudits.set(a.asset_id, a);
-      }
-    });
-
-    // Merge into anomalies by iterating over ALL assets
     const result: AnomalyItem[] = [];
 
-    assets.forEach(asset => {
-      const reps = reportsByAsset.get(asset.id) || [];
-      const audit = damagedAudits.get(asset.id);
+    assets.forEach((asset: any) => {
+      // 1. Jalur Publik: Ambil reports yang berstatus Menunggu atau Diproses
+      const openReports = (asset.asset_reports || []).filter((r: any) => 
+        r.status === "Menunggu" || r.status === "Diproses"
+      );
+      // Urutkan laporan dari yang terbaru
+      openReports.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      const hasReport = reps.length > 0;
-      const hasAudit = !!audit;
+      // 2. Jalur Sensus: Ambil audits yang kondisinya Rusak
+      const damagedAudits = (asset.asset_audits || []).filter((a: any) =>
+        a.kondisi === "Rusak Ringan" || a.kondisi === "Rusak Berat" || a.kondisi === "Dalam Perbaikan"
+      );
+      // Urutkan audit dari yang terbaru
+      damagedAudits.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      // SYARAT ANOMALI: Harus punya laporan publik (Menunggu/Diproses) ATAU audit bermasalah
+      const hasReport = openReports?.length > 0;
+      const hasAudit = damagedAudits?.length > 0;
+
+      // SYARAT MUTLAK: Harus punya laporan publik ATAU audit bermasalah
       if (!hasReport && !hasAudit) return;
 
       let source: AnomalyItem["source"] = "keluhan";
@@ -146,36 +108,27 @@ export default function PapanRekonsiliasi() {
       let latestDate = "";
       let reporterContact: string | undefined;
 
-      // 1. Ambil data dari laporan publik jika ada
+      // Prioritas 1: Ambil data dari laporan publik jika ada
       if (hasReport) {
-        const latest = reps[0];
-        kondisi = latest.actual_condition || latest.issue_category || "Dilaporkan";
-        deskripsi = latest.judul || latest.deskripsi || "";
-        latestDate = latest.created_at;
-        reporterContact = latest.reporter_contact || undefined;
+        const latestRep = openReports[0];
+        kondisi = latestRep.actual_condition || latestRep.issue_category || "Dilaporkan";
+        deskripsi = latestRep.judul || latestRep.deskripsi || "";
+        latestDate = latestRep.created_at;
+        reporterContact = latestRep.reporter_contact || undefined;
       }
 
-      // 2. Timpa dengan data audit sensus jika ada (Sensus selalu menang/override)
+      // Prioritas 2: Timpa dengan data audit sensus jika ada (Sensus selalu menang/override)
       if (hasAudit) {
-        kondisi = audit.kondisi;
-        if (!deskripsi) deskripsi = audit.tindak_lanjut || audit.catatan || "";
-        if (!latestDate || new Date(audit.created_at) > new Date(latestDate)) {
-          latestDate = audit.created_at;
+        const latestAud = damagedAudits[0];
+        kondisi = latestAud.kondisi;
+        if (!deskripsi) deskripsi = latestAud.tindak_lanjut || latestAud.catatan || "";
+        if (!latestDate || new Date(latestAud.created_at) > new Date(latestDate)) {
+          latestDate = latestAud.created_at;
         }
       }
 
-      // Filter out those already set to "Pengajuan Perubahan Kondisi" or similar
-      const customData = (asset.custom_data as Record<string, any>) || {};
-      if (customData.status_usulan === "Pengajuan Perubahan Kondisi" || customData.status_aset === "Usul Hapus") {
-         // Skip, already handled
-         // But we still want them for export, wait, the prompt says "Aset otomatis hilang dari Papan Rekonsiliasi."
-         // Actually, let's keep them if they have open reports or bad audit.
-         // We will filter them from the UI if needed, but for now we'll just map them.
-         // Actually prompt: "Aset otomatis hilang dari Papan Rekonsiliasi" (if Layak Pakai).
-      }
-
       result.push({
-        assetId,
+        assetId: asset.id,
         kodeAset: asset.kode_aset,
         namaAset: asset.nama_aset,
         source,
@@ -269,9 +222,7 @@ export default function PapanRekonsiliasi() {
         }).eq("id", selectedAnomaly.assetId);
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["rekon-reports"] });
-      await queryClient.invalidateQueries({ queryKey: ["rekon-audits"] });
-      await queryClient.invalidateQueries({ queryKey: ["rekon-assets"] });
+      await queryClient.invalidateQueries({ queryKey: ["rekon-assets-joined"] });
       toast.success("Tindak lanjut berhasil disimpan.");
       setResolveModalOpen(false);
     } catch (error: any) {
@@ -310,9 +261,11 @@ export default function PapanRekonsiliasi() {
 
       const rows = exportAssets.map((asset, index) => {
         const cd = (asset.custom_data as Record<string, any>) || {};
-        // Get the latest audit condition, or default
-        const audit = audits.find(a => a.asset_id === asset.id);
-        const kondisi = audit ? audit.kondisi : "Rusak Berat";
+        const damagedAudits = (asset.asset_audits || []).filter((a: any) =>
+          a.kondisi === "Rusak Ringan" || a.kondisi === "Rusak Berat" || a.kondisi === "Dalam Perbaikan"
+        );
+        damagedAudits.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const kondisi = damagedAudits.length > 0 ? damagedAudits[0].kondisi : "Rusak Berat";
 
         const rowData: Record<string, any> = {
           "No": index + 1,
