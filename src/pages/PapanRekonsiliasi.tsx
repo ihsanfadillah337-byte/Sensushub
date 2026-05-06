@@ -61,7 +61,7 @@ export default function PapanRekonsiliasi() {
       const { data, error } = await supabase
         .from("assets")
         .select(`
-          id, kode_aset, nama_aset, custom_data, nilai_perolehan, master_kib,
+          id, kode_aset, nama_aset, custom_data, kib,
           asset_reports (id, judul, deskripsi, status, actual_condition, issue_category, reporter_contact, created_at),
           asset_audits (kondisi, tindak_lanjut, catatan, created_at)
         `)
@@ -134,10 +134,10 @@ export default function PapanRekonsiliasi() {
         source,
         kondisi,
         deskripsi,
-        reportCount: reps?.length ?? 0,
+        reportCount: openReports.length,
         latestDate,
         reporterContact,
-        reportId: reps && reps.length > 0 ? reps[0].id : undefined,
+        reportId: hasReport ? openReports[0].id : undefined,
         assetData: asset,
       });
     });
@@ -247,7 +247,7 @@ export default function PapanRekonsiliasi() {
 
       // We group by KIB or just make one big sheet with all possible columns
       // Prompt: "Struktur Kolom Baku: [No] | [Kode Barang] | [Nama Barang] | [...Kolom Dinamis sesuai Konfigurasi KIB] | [Kondisi] | [Nilai Perolehan]"
-      const kibSet = new Set(exportAssets.map(a => a.master_kib || ""));
+      const kibSet = new Set(exportAssets.map(a => a.kib || ""));
       const dynamicCols = new Set<string>();
       
       kibSet.forEach(kib => {
@@ -276,7 +276,7 @@ export default function PapanRekonsiliasi() {
         });
 
         rowData["Kondisi"] = kondisi;
-        rowData["Nilai Perolehan"] = asset.nilai_perolehan || 0;
+        rowData["Nilai Perolehan"] = cd["nilai_perolehan"] || cd["Nilai Perolehan"] || cd["Harga"] || 0;
 
         return rowData;
       });
