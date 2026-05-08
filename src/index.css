@@ -177,20 +177,37 @@ input[type=number] {
   }
 }
 
-/* ─── Print Styles for Surat ──────────────────── */
+/* ─── Print Styles for Surat (F4 Mixed Orientation) ─── */
 @media print {
+  @page {
+    size: 215mm 330mm portrait;
+    margin: 1.5cm;
+  }
+
+  @page landscape-page {
+    size: 330mm 215mm landscape;
+    margin: 1.5cm;
+  }
+
+  .print-landscape {
+    page: landscape-page;
+    page-break-before: always;
+  }
+
   body * { visibility: hidden !important; }
-  .print-surat, .print-surat * { visibility: visible !important; }
-  .print-surat {
+  #print-area, #print-area * { visibility: visible !important; }
+  #print-area {
     position: absolute !important;
     left: 0 !important; top: 0 !important;
-    width: 210mm !important;
-    padding: 20mm !important;
+    width: 100% !important;
     margin: 0 !important;
+    padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
     background: white !important;
     color: black !important;
+    font-family: 'Times New Roman', Times, serif !important;
     font-size: 12pt !important;
+    line-height: 1.5 !important;
   }
 }

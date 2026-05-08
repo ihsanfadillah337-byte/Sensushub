@@ -429,63 +429,91 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
               <p className="text-xs text-warning">Setelah menekan tombol di bawah, <strong>{parsedRowCount} aset</strong> akan ditandai "Menunggu Update SIMDA" dan hilang dari Papan Rekonsiliasi.</p>
             </div>
 
-            {/* Print-ready content */}
-            <div ref={printRef} className="print-surat border border-border rounded-lg p-6 bg-white text-black text-[13px] leading-relaxed" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
-              <div className="text-center mb-6 border-b-2 border-black pb-4">
-                <p className="text-[10px] tracking-widest uppercase text-gray-500">Kop Surat Instansi</p>
-                <p className="font-bold text-lg mt-1">PEMERINTAH KABUPATEN BANDUNG</p>
-                <p className="text-sm">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-              </div>
+            <div id="print-area" ref={printRef} className="border border-border rounded-lg bg-white text-black text-[13px] leading-relaxed" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+              {/* ═══ PAGE 1: Surat Pernyataan (Portrait) ═══ */}
+              <div className="p-8">
+                {/* Kop Surat */}
+                <div className="flex items-center gap-4 border-b-[3px] border-black pb-3 mb-4">
+                  <div className="w-16 h-16 border border-gray-300 rounded flex items-center justify-center text-[8px] text-gray-400 shrink-0">LOGO</div>
+                  <div className="text-center flex-1">
+                    <p className="font-bold text-[15px] tracking-wide">PEMERINTAH KABUPATEN BANDUNG</p>
+                    <p className="font-bold text-[13px]">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+                    <p className="text-[9px] mt-0.5">Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
+                    <p className="text-[9px]">E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
+                  </div>
+                </div>
 
-              <div className="flex justify-between mb-4">
-                <div><p>Nomor: {nomorSurat}</p><p>Perihal: Pengajuan Perubahan Kondisi BMD</p></div>
-                <p>{tglSuratFormatted}</p>
-              </div>
+                {/* Judul Surat */}
+                <div className="text-center mb-4">
+                  <p className="font-bold underline text-[14px]">SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
+                  <p className="text-[13px] mt-1">Nomor : {nomorSurat}</p>
+                </div>
 
-              <p className="mb-4">Kepada Yth,<br />Bupati Bandung<br />di Tempat</p>
+                {/* Isi Surat */}
+                <p className="text-justify mb-4 indent-8">
+                  Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPenelusuranFormatted}</strong>, yang bertanda tangan di bawah ini :
+                </p>
 
-              <p className="text-justify mb-3">Dengan hormat,</p>
-              <p className="text-justify mb-3 indent-8">
-                Berdasarkan hasil penelusuran fisik terhadap Barang Milik Daerah (BMD) yang dilaksanakan pada tanggal <strong>{tglPenelusuranFormatted}</strong>, dengan ini kami sampaikan pengajuan perubahan kondisi BMD berupa <strong>{jenisKib}</strong>.
-              </p>
+                <table className="ml-8 mb-4 text-[13px]">
+                  <tbody>
+                    <tr><td className="pr-4 align-top">Nama</td><td className="pr-2 align-top">:</td><td>{namaKadis}</td></tr>
+                    <tr><td className="pr-4 align-top">Nip</td><td className="pr-2 align-top">:</td><td>{nipKadis}</td></tr>
+                    <tr><td className="pr-4 align-top">Jabatan</td><td className="pr-2 align-top">:</td><td>{jabatanKadis}</td></tr>
+                  </tbody>
+                </table>
 
-              <p className="text-justify mb-3 font-bold">SURAT PERNYATAAN</p>
-              <p className="text-justify mb-3 indent-8">
-                Yang bertanda tangan di bawah ini, <strong>{namaKadis}</strong>, NIP. {nipKadis}, {jabatanKadis}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sebanyak <strong>{parsedRowCount} item</strong> senilai <strong>Rp {parsedTotalNilai.toLocaleString("id-ID")}</strong> sudah dalam kondisi rusak berat dan tidak dapat digunakan lagi untuk menunjang tugas pokok dan fungsi.
-              </p>
-              <p className="text-justify mb-6 indent-8">
-                Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.
-              </p>
+                <p className="text-justify mb-4">
+                  Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.
+                </p>
+                <p className="text-justify mb-4">
+                  Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.
+                </p>
+                <p className="text-justify mb-8">
+                  Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.
+                </p>
 
-              <div className="flex justify-end mb-8">
-                <div className="text-center w-64">
-                  <p>{jabatanKadis},</p>
-                  <div className="h-20" />
-                  <p className="font-bold underline">{namaKadis}</p>
-                  <p>NIP. {nipKadis}</p>
+                {/* Tanda Tangan */}
+                <div className="flex justify-end mb-12">
+                  <div className="text-center w-72">
+                    <p>Soreang, {tglSuratFormatted}</p>
+                    <p className="mt-1">{jabatanKadis},</p>
+                    <p>Selaku Pengguna BMD,</p>
+                    <div className="h-24" />
+                    <p className="font-bold underline">{namaKadis.toUpperCase()}</p>
+                    <p>Nip. {nipKadis}</p>
+                  </div>
+                </div>
+
+                {/* Tembusan */}
+                <div className="text-[11px] mt-4">
+                  <p><strong><u>Tembusan</u></strong>, Kepada Yth :</p>
+                  <ol className="list-decimal list-inside space-y-0.5 mt-1">
+                    {tembusan.filter(t => t.trim()).map((t, i) => <li key={i}>{t};</li>)}
+                  </ol>
                 </div>
               </div>
 
-              <div className="border-t border-gray-300 pt-3 text-[11px]">
-                <p className="font-bold mb-1">Tembusan:</p>
-                <ol className="list-decimal list-inside space-y-0.5">
-                  {tembusan.filter(t => t.trim()).map((t, i) => <li key={i}>{t}</li>)}
-                </ol>
-              </div>
-
-              {/* Page 2: Lampiran */}
+              {/* ═══ PAGE 2: Lampiran (Landscape) ═══ */}
               {parsedRows.length > 0 && (
-                <div style={{ pageBreakBefore: "always" }}>
-                  <p className="font-bold text-center text-base mb-1 mt-6">LAMPIRAN SURAT PERNYATAAN</p>
-                  <p className="text-center text-[12px] mb-4">Nomor: {nomorSurat} — Tanggal: {tglSuratFormatted}</p>
-                  <table className="w-full border-collapse text-[11px]">
+                <div className="print-landscape p-6">
+                  {/* Header Kiri */}
+                  <div className="mb-2 text-[11px]">
+                    <p>Lampiran I (Rubah Kondisi BMD)</p>
+                    <p>Nomor : {nomorSurat}</p>
+                    <p>Tanggal : {tglSuratFormatted}</p>
+                  </div>
+
+                  <p className="font-bold text-center text-[13px] mb-1">DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
+                  <p className="font-bold text-center text-[12px] mb-4">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+
+                  <table className="w-full border-collapse text-[10px]">
                     <thead>
                       <tr>
-                        <th className="border border-black px-2 py-1 text-center">No</th>
+                        <th className="border border-black px-2 py-1 text-center w-8">No</th>
                         <th className="border border-black px-2 py-1">Kode Barang</th>
                         <th className="border border-black px-2 py-1">Nama Barang</th>
                         <th className="border border-black px-2 py-1 text-center">Kondisi</th>
-                        <th className="border border-black px-2 py-1 text-right">Nilai Perolehan</th>
+                        <th className="border border-black px-2 py-1 text-right">Nilai Perolehan (Rp)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -504,6 +532,17 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
                       </tr>
                     </tbody>
                   </table>
+
+                  {/* Tanda Tangan Lampiran */}
+                  <div className="flex justify-end mt-6">
+                    <div className="text-center text-[11px] w-64">
+                      <p>Mengetahui,</p>
+                      <p>{jabatanKadis},</p>
+                      <div className="h-20" />
+                      <p className="font-bold underline">{namaKadis.toUpperCase()}</p>
+                      <p>Nip. {nipKadis}</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -538,7 +577,6 @@ function ReprintDialog({ arc, onClose }: { arc: any; onClose: () => void }) {
   const tmb: string[] = (arc.tembusan || []).filter((t: string) => t?.trim());
   const tglSurat = arc.tanggal_surat ? new Date(arc.tanggal_surat).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const tglPen = arc.tanggal_penelusuran ? new Date(arc.tanggal_penelusuran).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
-
   const handlePrint = () => { setTimeout(() => window.print(), 200); };
 
   return (
@@ -547,43 +585,61 @@ function ReprintDialog({ arc, onClose }: { arc: any; onClose: () => void }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Printer className="h-5 w-5 text-primary" /> Cetak Ulang Surat</DialogTitle>
         </DialogHeader>
-        <div className="print-surat border border-border rounded-lg p-6 bg-white text-black text-[13px] leading-relaxed" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
-          <div className="text-center mb-6 border-b-2 border-black pb-4">
-            <p className="text-[10px] tracking-widest uppercase text-gray-500">Kop Surat Instansi</p>
-            <p className="font-bold text-lg mt-1">PEMERINTAH KABUPATEN BANDUNG</p>
-            <p className="text-sm">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-          </div>
-          <div className="flex justify-between mb-4">
-            <div><p>Nomor: {arc.nomor_surat}</p><p>Perihal: Pengajuan Perubahan Kondisi BMD</p></div>
-            <p>{tglSurat}</p>
-          </div>
-          <p className="mb-4">Kepada Yth,<br/>Bupati Bandung<br/>di Tempat</p>
-          <p className="text-justify mb-3">Dengan hormat,</p>
-          <p className="text-justify mb-3 indent-8">Berdasarkan hasil penelusuran fisik terhadap Barang Milik Daerah (BMD) yang dilaksanakan pada tanggal <strong>{tglPen}</strong>, dengan ini kami sampaikan pengajuan perubahan kondisi BMD berupa <strong>{arc.jenis_kib}</strong>.</p>
-          <p className="text-justify mb-3 font-bold">SURAT PERNYATAAN</p>
-          <p className="text-justify mb-3 indent-8">Yang bertanda tangan di bawah ini, <strong>{ot.nama}</strong>, NIP. {ot.nip}, {ot.jabatan}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sebanyak <strong>{arc.total_aset} item</strong> senilai <strong>Rp {Number(arc.total_nilai || 0).toLocaleString("id-ID")}</strong> sudah dalam kondisi rusak berat dan tidak dapat digunakan lagi untuk menunjang tugas pokok dan fungsi.</p>
-          <p className="text-justify mb-6 indent-8">Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.</p>
-          <div className="flex justify-end mb-8">
-            <div className="text-center w-64">
-              <p>{ot.jabatan},</p><div className="h-20" />
-              <p className="font-bold underline">{ot.nama}</p><p>NIP. {ot.nip}</p>
+        <div id="print-area" className="border border-border rounded-lg bg-white text-black text-[13px] leading-relaxed" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+          <div className="p-8">
+            <div className="flex items-center gap-4 border-b-[3px] border-black pb-3 mb-4">
+              <div className="w-16 h-16 border border-gray-300 rounded flex items-center justify-center text-[8px] text-gray-400 shrink-0">LOGO</div>
+              <div className="text-center flex-1">
+                <p className="font-bold text-[15px] tracking-wide">PEMERINTAH KABUPATEN BANDUNG</p>
+                <p className="font-bold text-[13px]">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+                <p className="text-[9px] mt-0.5">Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
+                <p className="text-[9px]">E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
+              </div>
+            </div>
+            <div className="text-center mb-4">
+              <p className="font-bold underline text-[14px]">SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
+              <p className="text-[13px] mt-1">Nomor : {arc.nomor_surat}</p>
+            </div>
+            <p className="text-justify mb-4 indent-8">Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPen}</strong>, yang bertanda tangan di bawah ini :</p>
+            <table className="ml-8 mb-4 text-[13px]"><tbody>
+              <tr><td className="pr-4 align-top">Nama</td><td className="pr-2 align-top">:</td><td>{ot.nama}</td></tr>
+              <tr><td className="pr-4 align-top">Nip</td><td className="pr-2 align-top">:</td><td>{ot.nip}</td></tr>
+              <tr><td className="pr-4 align-top">Jabatan</td><td className="pr-2 align-top">:</td><td>{ot.jabatan}</td></tr>
+            </tbody></table>
+            <p className="text-justify mb-4">Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.</p>
+            <p className="text-justify mb-4">Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.</p>
+            <p className="text-justify mb-8">Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.</p>
+            <div className="flex justify-end mb-12">
+              <div className="text-center w-72">
+                <p>Soreang, {tglSurat}</p>
+                <p className="mt-1">{ot.jabatan},</p>
+                <p>Selaku Pengguna BMD,</p>
+                <div className="h-24" />
+                <p className="font-bold underline">{(ot.nama || "").toUpperCase()}</p>
+                <p>Nip. {ot.nip}</p>
+              </div>
+            </div>
+            <div className="text-[11px] mt-4">
+              <p><strong><u>Tembusan</u></strong>, Kepada Yth :</p>
+              <ol className="list-decimal list-inside space-y-0.5 mt-1">{tmb.map((t, i) => <li key={i}>{t};</li>)}</ol>
             </div>
           </div>
-          <div className="border-t border-gray-300 pt-3 text-[11px]">
-            <p className="font-bold mb-1">Tembusan:</p>
-            <ol className="list-decimal list-inside space-y-0.5">{tmb.map((t, i) => <li key={i}>{t}</li>)}</ol>
-          </div>
           {lampiran.length > 0 && (
-            <div style={{ pageBreakBefore: "always" }}>
-              <p className="font-bold text-center text-base mb-1 mt-6">LAMPIRAN SURAT PERNYATAAN</p>
-              <p className="text-center text-[12px] mb-4">Nomor: {arc.nomor_surat} — Tanggal: {tglSurat}</p>
-              <table className="w-full border-collapse text-[11px]">
+            <div className="print-landscape p-6">
+              <div className="mb-2 text-[11px]">
+                <p>Lampiran I (Rubah Kondisi BMD)</p>
+                <p>Nomor : {arc.nomor_surat}</p>
+                <p>Tanggal : {tglSurat}</p>
+              </div>
+              <p className="font-bold text-center text-[13px] mb-1">DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
+              <p className="font-bold text-center text-[12px] mb-4">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+              <table className="w-full border-collapse text-[10px]">
                 <thead><tr>
-                  <th className="border border-black px-2 py-1 text-center">No</th>
+                  <th className="border border-black px-2 py-1 text-center w-8">No</th>
                   <th className="border border-black px-2 py-1">Kode Barang</th>
                   <th className="border border-black px-2 py-1">Nama Barang</th>
                   <th className="border border-black px-2 py-1 text-center">Kondisi</th>
-                  <th className="border border-black px-2 py-1 text-right">Nilai Perolehan</th>
+                  <th className="border border-black px-2 py-1 text-right">Nilai Perolehan (Rp)</th>
                 </tr></thead>
                 <tbody>
                   {lampiran.map((r: any, i: number) => (
@@ -601,6 +657,15 @@ function ReprintDialog({ arc, onClose }: { arc: any; onClose: () => void }) {
                   </tr>
                 </tbody>
               </table>
+              <div className="flex justify-end mt-6">
+                <div className="text-center text-[11px] w-64">
+                  <p>Mengetahui,</p>
+                  <p>{ot.jabatan},</p>
+                  <div className="h-20" />
+                  <p className="font-bold underline">{(ot.nama || "").toUpperCase()}</p>
+                  <p>Nip. {ot.nip}</p>
+                </div>
+              </div>
             </div>
           )}
         </div>
