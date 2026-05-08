@@ -59,6 +59,136 @@ async function generatePDF(page1Id: string, page2Id: string, filename: string) {
   pdf.save(filename);
 }
 
+// ─── Shared PDF Inline Styles ───────────────────────────
+const S = {
+  wrap1: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "900px", fontFamily: "'Times New Roman', Times, serif", color: "#000", background: "#fff" },
+  page1: { width: "900px", minHeight: "1300px", padding: "60px", backgroundColor: "#fff", color: "#000", fontSize: "22px", lineHeight: "1.6" as const },
+  kopBox: { display: "flex", alignItems: "center", gap: "20px", borderBottom: "5px solid #000", paddingBottom: "16px", marginBottom: "30px" },
+  kopLogo: { width: "80px", height: "80px", border: "1px solid #ccc", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#999", flexShrink: 0 },
+  kopTitle: { fontWeight: "bold" as const, fontSize: "32px", letterSpacing: "1.5px" },
+  kopSub: { fontWeight: "bold" as const, fontSize: "22px" },
+  kopAddr: { fontSize: "18px", marginTop: "2px" },
+  judul: { fontWeight: "bold" as const, textDecoration: "underline" as const, fontSize: "24px", textAlign: "center" as const },
+  nomor: { fontSize: "22px", marginTop: "6px", textAlign: "center" as const },
+  para: { textAlign: "justify" as const, marginBottom: "24px", fontSize: "22px", lineHeight: "1.6" },
+  paraIndent: { textAlign: "justify" as const, marginBottom: "24px", fontSize: "22px", lineHeight: "1.6", textIndent: "48px" },
+  idTable: { marginLeft: "48px", marginBottom: "24px", fontSize: "22px" },
+  idTd: { paddingRight: "20px", verticalAlign: "top" as const, fontSize: "22px" },
+  signBlock: { display: "flex", justifyContent: "flex-end", marginBottom: "60px" },
+  signInner: { textAlign: "center" as const, width: "360px", fontSize: "20px", lineHeight: "1.5" },
+  tembusanBox: { fontSize: "20px", lineHeight: "1.5", marginTop: "20px" },
+  wrap2: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "1400px", fontFamily: "'Times New Roman', Times, serif", color: "#000", background: "#fff" },
+  page2: { width: "1400px", minHeight: "900px", padding: "60px", backgroundColor: "#fff", color: "#000" },
+  p2Header: { marginBottom: "12px", fontSize: "18px" },
+  p2Title: { fontWeight: "bold" as const, textAlign: "center" as const, fontSize: "22px", marginBottom: "6px" },
+  p2Sub: { fontWeight: "bold" as const, textAlign: "center" as const, fontSize: "20px", marginBottom: "24px" },
+  tbl: { width: "100%", borderCollapse: "collapse" as const, tableLayout: "auto" as const, fontSize: "16px" },
+  th: { border: "1px solid #000", padding: "16px 12px", fontWeight: "bold" as const, verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "16px" },
+  td: { border: "1px solid #000", padding: "16px 12px", verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "16px" },
+  p2Sign: { display: "flex", justifyContent: "flex-end", marginTop: "30px" },
+  p2SignInner: { textAlign: "center" as const, fontSize: "18px", width: "320px", lineHeight: "1.5" },
+};
+
+// ─── Reusable Off-Screen PDF Pages ──────────────────────
+function PdfPages({ id1, id2, data }: {
+  id1: string; id2: string;
+  data: { nomorSurat: string; tglSurat: string; tglPen: string; nama: string; nip: string; jabatan: string; tembusan: string[]; rows: any[]; totalNilai: number };
+}) {
+  const { nomorSurat, tglSurat, tglPen, nama, nip, jabatan, tembusan, rows, totalNilai } = data;
+  return (
+    <>
+      <div style={S.wrap1}>
+        <div id={id1} style={S.page1}>
+          <div style={S.kopBox}>
+            <div style={S.kopLogo}>LOGO</div>
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <p style={S.kopTitle}>PEMERINTAH KABUPATEN BANDUNG</p>
+              <p style={S.kopSub}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+              <p style={S.kopAddr}>Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
+              <p style={{ fontSize: "18px" }}>E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
+            </div>
+          </div>
+          <div style={{ textAlign: "center", marginBottom: "30px" }}>
+            <p style={S.judul}>SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
+            <p style={S.nomor}>Nomor : {nomorSurat}</p>
+          </div>
+          <p style={S.paraIndent}>Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPen}</strong>, yang bertanda tangan di bawah ini :</p>
+          <table style={S.idTable}><tbody>
+            <tr><td style={S.idTd}>Nama</td><td style={{ paddingRight: "10px" }}>:</td><td>{nama}</td></tr>
+            <tr><td style={S.idTd}>Nip</td><td style={{ paddingRight: "10px" }}>:</td><td>{nip}</td></tr>
+            <tr><td style={S.idTd}>Jabatan</td><td style={{ paddingRight: "10px" }}>:</td><td>{jabatan}</td></tr>
+          </tbody></table>
+          <p style={S.para}>Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.</p>
+          <p style={S.para}>Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.</p>
+          <p style={{ ...S.para, marginBottom: "48px" }}>Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.</p>
+          <div style={S.signBlock}>
+            <div style={S.signInner}>
+              <p>Soreang, {tglSurat}</p>
+              <p style={{ marginTop: "6px" }}>{jabatan},</p>
+              <p>Selaku Pengguna BMD,</p>
+              <div style={{ height: "120px" }} />
+              <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{(nama || "").toUpperCase()}</p>
+              <p>Nip. {nip}</p>
+            </div>
+          </div>
+          <div style={S.tembusanBox}>
+            <p><strong><u>Tembusan</u></strong>, Kepada Yth :</p>
+            <ol style={{ listStyleType: "decimal", paddingLeft: "24px", marginTop: "6px" }}>
+              {tembusan.filter(t => t.trim()).map((t, i) => <li key={i} style={{ marginBottom: "4px" }}>{t};</li>)}
+            </ol>
+          </div>
+        </div>
+      </div>
+      {rows.length > 0 && (
+        <div style={S.wrap2}>
+          <div id={id2} style={S.page2}>
+            <div style={S.p2Header}>
+              <p>Lampiran I (Rubah Kondisi BMD)</p>
+              <p>Nomor : {nomorSurat}</p>
+              <p>Tanggal : {tglSurat}</p>
+            </div>
+            <p style={S.p2Title}>DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
+            <p style={S.p2Sub}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+            <table style={S.tbl}>
+              <thead><tr>
+                <th style={{ ...S.th, textAlign: "center", width: "50px" }}>No</th>
+                <th style={S.th}>Kode Barang</th>
+                <th style={S.th}>Nama Barang</th>
+                <th style={{ ...S.th, textAlign: "center" }}>Kondisi</th>
+                <th style={{ ...S.th, textAlign: "right" }}>Nilai Perolehan (Rp)</th>
+              </tr></thead>
+              <tbody>
+                {rows.map((r: any, i: number) => (
+                  <tr key={i}>
+                    <td style={{ ...S.td, textAlign: "center" }}>{r.no}</td>
+                    <td style={S.td}>{r.kode_barang}</td>
+                    <td style={S.td}>{r.nama_barang}</td>
+                    <td style={{ ...S.td, textAlign: "center" }}>{r.kondisi}</td>
+                    <td style={{ ...S.td, textAlign: "right" }}>{(r.nilai_perolehan || 0) > 0 ? Number(r.nilai_perolehan).toLocaleString("id-ID") : "0"}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={4} style={{ ...S.td, fontWeight: "bold", textAlign: "right" }}>TOTAL</td>
+                  <td style={{ ...S.td, fontWeight: "bold", textAlign: "right" }}>{totalNilai.toLocaleString("id-ID")}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style={S.p2Sign}>
+              <div style={S.p2SignInner}>
+                <p>Mengetahui,</p>
+                <p>{jabatan},</p>
+                <div style={{ height: "100px" }} />
+                <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{(nama || "").toUpperCase()}</p>
+                <p>Nip. {nip}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── Main Page ──────────────────────────────────────────
 export default function PengajuanSuratPage() {
   const { companyId } = useAuth();
@@ -478,101 +608,11 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
 
         {/* ═══ OFF-SCREEN PDF Containers ═══ */}
         {step === 4 && (
-          <>
-            {/* Page 1: Portrait Surat */}
-            <div style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "215mm", fontFamily: "'Times New Roman', Times, serif", fontSize: "13px", lineHeight: "1.6", color: "#000", background: "#fff" }}>
-              <div id="pdf-page-1" style={{ padding: "30px 40px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "16px", borderBottom: "3px solid #000", paddingBottom: "12px", marginBottom: "16px" }}>
-                  <div style={{ width: "64px", height: "64px", border: "1px solid #ccc", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", color: "#999", flexShrink: 0 }}>LOGO</div>
-                  <div style={{ textAlign: "center", flex: 1 }}>
-                    <p style={{ fontWeight: "bold", fontSize: "16px", letterSpacing: "1px" }}>PEMERINTAH KABUPATEN BANDUNG</p>
-                    <p style={{ fontWeight: "bold", fontSize: "13px" }}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-                    <p style={{ fontSize: "9px", marginTop: "2px" }}>Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
-                    <p style={{ fontSize: "9px" }}>E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
-                  </div>
-                </div>
-                <div style={{ textAlign: "center", marginBottom: "16px" }}>
-                  <p style={{ fontWeight: "bold", textDecoration: "underline", fontSize: "14px" }}>SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
-                  <p style={{ fontSize: "13px", marginTop: "4px" }}>Nomor : {nomorSurat}</p>
-                </div>
-                <p style={{ textAlign: "justify", marginBottom: "16px", textIndent: "32px" }}>Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPenelusuranFormatted}</strong>, yang bertanda tangan di bawah ini :</p>
-                <table style={{ marginLeft: "32px", marginBottom: "16px", fontSize: "13px" }}><tbody>
-                  <tr><td style={{ paddingRight: "16px" }}>Nama</td><td style={{ paddingRight: "8px" }}>:</td><td>{namaKadis}</td></tr>
-                  <tr><td style={{ paddingRight: "16px" }}>Nip</td><td style={{ paddingRight: "8px" }}>:</td><td>{nipKadis}</td></tr>
-                  <tr><td style={{ paddingRight: "16px" }}>Jabatan</td><td style={{ paddingRight: "8px" }}>:</td><td>{jabatanKadis}</td></tr>
-                </tbody></table>
-                <p style={{ textAlign: "justify", marginBottom: "16px" }}>Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.</p>
-                <p style={{ textAlign: "justify", marginBottom: "16px" }}>Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.</p>
-                <p style={{ textAlign: "justify", marginBottom: "32px" }}>Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.</p>
-                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "48px" }}>
-                  <div style={{ textAlign: "center", width: "280px" }}>
-                    <p>Soreang, {tglSuratFormatted}</p>
-                    <p style={{ marginTop: "4px" }}>{jabatanKadis},</p>
-                    <p>Selaku Pengguna BMD,</p>
-                    <div style={{ height: "96px" }} />
-                    <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{namaKadis.toUpperCase()}</p>
-                    <p>Nip. {nipKadis}</p>
-                  </div>
-                </div>
-                <div style={{ fontSize: "11px", marginTop: "16px" }}>
-                  <p><strong><u>Tembusan</u></strong>, Kepada Yth :</p>
-                  <ol style={{ listStyleType: "decimal", paddingLeft: "20px", marginTop: "4px" }}>
-                    {tembusan.filter(t => t.trim()).map((t, i) => <li key={i}>{t};</li>)}
-                  </ol>
-                </div>
-              </div>
-            </div>
-
-            {/* Page 2: Landscape Lampiran */}
-            {parsedRows.length > 0 && (
-              <div style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "330mm", fontFamily: "'Times New Roman', Times, serif", fontSize: "11px", lineHeight: "1.4", color: "#000", background: "#fff" }}>
-                <div id="pdf-page-2" style={{ padding: "24px 30px" }}>
-                  <div style={{ marginBottom: "8px", fontSize: "11px" }}>
-                    <p>Lampiran I (Rubah Kondisi BMD)</p>
-                    <p>Nomor : {nomorSurat}</p>
-                    <p>Tanggal : {tglSuratFormatted}</p>
-                  </div>
-                  <p style={{ fontWeight: "bold", textAlign: "center", fontSize: "13px", marginBottom: "4px" }}>DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
-                  <p style={{ fontWeight: "bold", textAlign: "center", fontSize: "12px", marginBottom: "16px" }}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
-                    <thead>
-                      <tr>
-                        <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "center", width: "30px" }}>No</th>
-                        <th style={{ border: "1px solid #000", padding: "4px 8px" }}>Kode Barang</th>
-                        <th style={{ border: "1px solid #000", padding: "4px 8px" }}>Nama Barang</th>
-                        <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "center" }}>Kondisi</th>
-                        <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "right" }}>Nilai Perolehan (Rp)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {parsedRows.map((r, i) => (
-                        <tr key={i}>
-                          <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "center" }}>{r.no}</td>
-                          <td style={{ border: "1px solid #000", padding: "2px 8px" }}>{r.kode_barang}</td>
-                          <td style={{ border: "1px solid #000", padding: "2px 8px" }}>{r.nama_barang}</td>
-                          <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "center" }}>{r.kondisi}</td>
-                          <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "right" }}>{r.nilai_perolehan > 0 ? r.nilai_perolehan.toLocaleString("id-ID") : "0"}</td>
-                        </tr>
-                      ))}
-                      <tr>
-                        <td colSpan={4} style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", textAlign: "right" }}>TOTAL</td>
-                        <td style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", textAlign: "right" }}>{parsedTotalNilai.toLocaleString("id-ID")}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px" }}>
-                    <div style={{ textAlign: "center", fontSize: "11px", width: "250px" }}>
-                      <p>Mengetahui,</p>
-                      <p>{jabatanKadis},</p>
-                      <div style={{ height: "80px" }} />
-                      <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{namaKadis.toUpperCase()}</p>
-                      <p>Nip. {nipKadis}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
+          <PdfPages id1="pdf-page-1" id2="pdf-page-2" data={{
+            nomorSurat, tglSurat: tglSuratFormatted, tglPen: tglPenelusuranFormatted,
+            nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis,
+            tembusan, rows: parsedRows, totalNilai: parsedTotalNilai,
+          }} />
         )}
 
         {/* Navigation */}
@@ -636,95 +676,11 @@ function ReprintDialog({ arc, onClose }: { arc: any; onClose: () => void }) {
         </div>
       </DialogContent>
 
-      {/* Off-screen Page 1 */}
-      <div style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "215mm", fontFamily: "'Times New Roman', Times, serif", fontSize: "13px", lineHeight: "1.6", color: "#000", background: "#fff" }}>
-        <div id="reprint-page-1" style={{ padding: "30px 40px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", borderBottom: "3px solid #000", paddingBottom: "12px", marginBottom: "16px" }}>
-            <div style={{ width: "64px", height: "64px", border: "1px solid #ccc", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", color: "#999", flexShrink: 0 }}>LOGO</div>
-            <div style={{ textAlign: "center", flex: 1 }}>
-              <p style={{ fontWeight: "bold", fontSize: "16px", letterSpacing: "1px" }}>PEMERINTAH KABUPATEN BANDUNG</p>
-              <p style={{ fontWeight: "bold", fontSize: "13px" }}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-              <p style={{ fontSize: "9px", marginTop: "2px" }}>Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
-              <p style={{ fontSize: "9px" }}>E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
-            </div>
-          </div>
-          <div style={{ textAlign: "center", marginBottom: "16px" }}>
-            <p style={{ fontWeight: "bold", textDecoration: "underline", fontSize: "14px" }}>SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
-            <p style={{ fontSize: "13px", marginTop: "4px" }}>Nomor : {arc.nomor_surat}</p>
-          </div>
-          <p style={{ textAlign: "justify", marginBottom: "16px", textIndent: "32px" }}>Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPen}</strong>, yang bertanda tangan di bawah ini :</p>
-          <table style={{ marginLeft: "32px", marginBottom: "16px", fontSize: "13px" }}><tbody>
-            <tr><td style={{ paddingRight: "16px" }}>Nama</td><td style={{ paddingRight: "8px" }}>:</td><td>{ot.nama}</td></tr>
-            <tr><td style={{ paddingRight: "16px" }}>Nip</td><td style={{ paddingRight: "8px" }}>:</td><td>{ot.nip}</td></tr>
-            <tr><td style={{ paddingRight: "16px" }}>Jabatan</td><td style={{ paddingRight: "8px" }}>:</td><td>{ot.jabatan}</td></tr>
-          </tbody></table>
-          <p style={{ textAlign: "justify", marginBottom: "16px" }}>Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.</p>
-          <p style={{ textAlign: "justify", marginBottom: "16px" }}>Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.</p>
-          <p style={{ textAlign: "justify", marginBottom: "32px" }}>Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.</p>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "48px" }}>
-            <div style={{ textAlign: "center", width: "280px" }}>
-              <p>Soreang, {tglSurat}</p>
-              <p style={{ marginTop: "4px" }}>{ot.jabatan},</p>
-              <p>Selaku Pengguna BMD,</p>
-              <div style={{ height: "96px" }} />
-              <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{(ot.nama || "").toUpperCase()}</p>
-              <p>Nip. {ot.nip}</p>
-            </div>
-          </div>
-          <div style={{ fontSize: "11px", marginTop: "16px" }}>
-            <p><strong><u>Tembusan</u></strong>, Kepada Yth :</p>
-            <ol style={{ listStyleType: "decimal", paddingLeft: "20px", marginTop: "4px" }}>{tmb.map((t, i) => <li key={i}>{t};</li>)}</ol>
-          </div>
-        </div>
-      </div>
-
-      {/* Off-screen Page 2 */}
-      {lampiran.length > 0 && (
-        <div style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "330mm", fontFamily: "'Times New Roman', Times, serif", fontSize: "11px", lineHeight: "1.4", color: "#000", background: "#fff" }}>
-          <div id="reprint-page-2" style={{ padding: "24px 30px" }}>
-            <div style={{ marginBottom: "8px", fontSize: "11px" }}>
-              <p>Lampiran I (Rubah Kondisi BMD)</p>
-              <p>Nomor : {arc.nomor_surat}</p>
-              <p>Tanggal : {tglSurat}</p>
-            </div>
-            <p style={{ fontWeight: "bold", textAlign: "center", fontSize: "13px", marginBottom: "4px" }}>DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
-            <p style={{ fontWeight: "bold", textAlign: "center", fontSize: "12px", marginBottom: "16px" }}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
-              <thead><tr>
-                <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "center", width: "30px" }}>No</th>
-                <th style={{ border: "1px solid #000", padding: "4px 8px" }}>Kode Barang</th>
-                <th style={{ border: "1px solid #000", padding: "4px 8px" }}>Nama Barang</th>
-                <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "center" }}>Kondisi</th>
-                <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "right" }}>Nilai Perolehan (Rp)</th>
-              </tr></thead>
-              <tbody>
-                {lampiran.map((r: any, i: number) => (
-                  <tr key={i}>
-                    <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "center" }}>{r.no}</td>
-                    <td style={{ border: "1px solid #000", padding: "2px 8px" }}>{r.kode_barang}</td>
-                    <td style={{ border: "1px solid #000", padding: "2px 8px" }}>{r.nama_barang}</td>
-                    <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "center" }}>{r.kondisi}</td>
-                    <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "right" }}>{(r.nilai_perolehan || 0) > 0 ? Number(r.nilai_perolehan).toLocaleString("id-ID") : "0"}</td>
-                  </tr>
-                ))}
-                <tr>
-                  <td colSpan={4} style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", textAlign: "right" }}>TOTAL</td>
-                  <td style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", textAlign: "right" }}>{Number(arc.total_nilai || 0).toLocaleString("id-ID")}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px" }}>
-              <div style={{ textAlign: "center", fontSize: "11px", width: "250px" }}>
-                <p>Mengetahui,</p>
-                <p>{ot.jabatan},</p>
-                <div style={{ height: "80px" }} />
-                <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{(ot.nama || "").toUpperCase()}</p>
-                <p>Nip. {ot.nip}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PdfPages id1="reprint-page-1" id2="reprint-page-2" data={{
+        nomorSurat: arc.nomor_surat || "", tglSurat, tglPen,
+        nama: ot.nama || "", nip: ot.nip || "", jabatan: ot.jabatan || "",
+        tembusan: tmb, rows: lampiran, totalNilai: Number(arc.total_nilai || 0),
+      }} />
     </Dialog>
   );
 }
