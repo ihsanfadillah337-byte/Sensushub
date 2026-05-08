@@ -92,9 +92,11 @@ const S = {
 // ─── Reusable Off-Screen PDF Pages ──────────────────────
 function PdfPages({ id1, id2, data }: {
   id1: string; id2: string;
-  data: { nomorSurat: string; tglSurat: string; tglPen: string; nama: string; nip: string; jabatan: string; tembusan: string[]; rows: any[]; totalNilai: number };
+  data: { nomorSurat: string; tglSurat: string; tglPen: string; nama: string; nip: string; jabatan: string; tembusan: string[]; headers: string[]; rows: any[]; totalNilai: number; nilaiKey: string };
 }) {
-  const { nomorSurat, tglSurat, tglPen, nama, nip, jabatan, tembusan, rows, totalNilai } = data;
+  const { nomorSurat, tglSurat, tglPen, nama, nip, jabatan, tembusan, headers, rows, totalNilai, nilaiKey } = data;
+  // Determine which column is the "nilai" column for right-align + total row
+  const nilaiIdx = headers.findIndex(h => h === nilaiKey);
   return (
     <>
       <div style={S.wrap1}>
@@ -151,24 +153,24 @@ function PdfPages({ id1, id2, data }: {
             <p style={S.p2Sub}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
             <table style={S.tbl}>
               <thead><tr>
-                <th style={{ ...S.th, textAlign: "center", width: "50px" }}>No</th>
-                <th style={S.th}>Kode Barang</th>
-                <th style={S.th}>Nama Barang</th>
-                <th style={{ ...S.th, textAlign: "center" }}>Kondisi</th>
-                <th style={{ ...S.th, textAlign: "right" }}>Nilai Perolehan (Rp)</th>
+                <th style={{ ...S.th, textAlign: "center", width: "40px" }}>No</th>
+                {headers.map((h, hi) => (
+                  <th key={hi} style={{ ...S.th, ...(hi === nilaiIdx ? { textAlign: "right" } : {}) }}>{h}</th>
+                ))}
               </tr></thead>
               <tbody>
                 {rows.map((r: any, i: number) => (
                   <tr key={i}>
-                    <td style={{ ...S.td, textAlign: "center" }}>{r.no}</td>
-                    <td style={S.td}>{r.kode_barang}</td>
-                    <td style={S.td}>{r.nama_barang}</td>
-                    <td style={{ ...S.td, textAlign: "center" }}>{r.kondisi}</td>
-                    <td style={{ ...S.td, textAlign: "right" }}>{(r.nilai_perolehan || 0) > 0 ? Number(r.nilai_perolehan).toLocaleString("id-ID") : "0"}</td>
+                    <td style={{ ...S.td, textAlign: "center" }}>{i + 1}</td>
+                    {headers.map((h, hi) => {
+                      const val = r[h] ?? "";
+                      const isNilai = hi === nilaiIdx;
+                      return <td key={hi} style={{ ...S.td, ...(isNilai ? { textAlign: "right" } : {}) }}>{isNilai && Number(val) > 0 ? Number(val).toLocaleString("id-ID") : String(val)}</td>;
+                    })}
                   </tr>
                 ))}
                 <tr>
-                  <td colSpan={4} style={{ ...S.td, fontWeight: "bold", textAlign: "right" }}>TOTAL</td>
+                  <td colSpan={headers.length} style={{ ...S.td, fontWeight: "bold", textAlign: "right" }}>TOTAL</td>
                   <td style={{ ...S.td, fontWeight: "bold", textAlign: "right" }}>{totalNilai.toLocaleString("id-ID")}</td>
                 </tr>
               </tbody>
@@ -322,6 +324,8 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const [parsedTotalNilai, setParsedTotalNilai] = useState(0);
   const [parsedRowCount, setParsedRowCount] = useState(0);
   const [parsedRows, setParsedRows] = useState<any[]>([]);
+  const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
+  const [parsedNilaiKey, setParsedNilaiKey] = useState("");
   const [excelFileName, setExcelFileName] = useState("");
 
   // Step 3
@@ -362,31 +366,24 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
           return !namaVal.toUpperCase().includes("TOTAL");
         });
 
-        const namaKey = keys.find(k => k.toLowerCase().includes("nama barang") || k.toLowerCase().includes("nama_barang")) || "";
-        const kondisiKey = keys.find(k => k.toLowerCase().includes("kondisi")) || "";
-        const rowsForLampiran: any[] = [];
+        // Build header list: skip "No" column from Excel (we auto-generate it)
+        const noKey = keys.find(k => k.toLowerCase() === "no") || "";
+        const displayHeaders = keys.filter(k => k !== noKey);
 
-        dataRows.forEach((row, idx) => {
+        dataRows.forEach((row) => {
           if (kodeKey && row[kodeKey]) kodeList.push(String(row[kodeKey]).trim());
-          let num = 0;
           if (nilaiKey && row[nilaiKey]) {
             const raw = String(row[nilaiKey]).split(",")[0];
-            num = Number(raw.replace(/[^0-9]/g, "")) || 0;
-            total += num;
+            total += Number(raw.replace(/[^0-9]/g, "")) || 0;
           }
-          rowsForLampiran.push({
-            no: idx + 1,
-            kode_barang: kodeKey ? String(row[kodeKey] || "").trim() : "",
-            nama_barang: namaKey ? String(row[namaKey] || "").trim() : "",
-            kondisi: kondisiKey ? String(row[kondisiKey] || "").trim() : "",
-            nilai_perolehan: num,
-          });
         });
 
         setParsedKodeBarang(kodeList);
         setParsedTotalNilai(total);
         setParsedRowCount(dataRows.length);
-        setParsedRows(rowsForLampiran);
+        setParsedHeaders(displayHeaders);
+        setParsedNilaiKey(nilaiKey);
+        setParsedRows(dataRows);
         toast.success(`Berhasil membaca ${dataRows.length} baris data.`);
       } catch (err) {
         console.error(err);
@@ -611,7 +608,7 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
           <PdfPages id1="pdf-page-1" id2="pdf-page-2" data={{
             nomorSurat, tglSurat: tglSuratFormatted, tglPen: tglPenelusuranFormatted,
             nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis,
-            tembusan, rows: parsedRows, totalNilai: parsedTotalNilai,
+            tembusan, headers: parsedHeaders, rows: parsedRows, totalNilai: parsedTotalNilai, nilaiKey: parsedNilaiKey,
           }} />
         )}
 
@@ -679,7 +676,11 @@ function ReprintDialog({ arc, onClose }: { arc: any; onClose: () => void }) {
       <PdfPages id1="reprint-page-1" id2="reprint-page-2" data={{
         nomorSurat: arc.nomor_surat || "", tglSurat, tglPen,
         nama: ot.nama || "", nip: ot.nip || "", jabatan: ot.jabatan || "",
-        tembusan: tmb, rows: lampiran, totalNilai: Number(arc.total_nilai || 0),
+        tembusan: tmb,
+        headers: lampiran.length > 0 ? Object.keys(lampiran[0]).filter(k => k.toLowerCase() !== "no") : [],
+        rows: lampiran,
+        totalNilai: Number(arc.total_nilai || 0),
+        nilaiKey: lampiran.length > 0 ? (Object.keys(lampiran[0]).find(k => k.toLowerCase().includes("nilai") || k.toLowerCase().includes("harga")) || "") : "",
       }} />
     </Dialog>
   );
