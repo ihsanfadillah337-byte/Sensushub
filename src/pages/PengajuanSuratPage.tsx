@@ -31,6 +31,7 @@ export default function PengajuanSuratPage() {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [reprintArc, setReprintArc] = useState<any>(null);
 
   const { data: archives = [], isLoading } = useQuery({
     queryKey: ["document-archives", companyId],
@@ -92,6 +93,7 @@ export default function PengajuanSuratPage() {
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Total Aset</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Total Nilai</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Status</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -104,6 +106,11 @@ export default function PengajuanSuratPage() {
                       <TableCell className="text-right text-sm font-medium">Rp {Number(arc.total_nilai || 0).toLocaleString("id-ID")}</TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30">{arc.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => setReprintArc(arc)} title="Cetak Ulang">
+                          <Printer className="h-4 w-4 text-primary" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -119,6 +126,10 @@ export default function PengajuanSuratPage() {
           open={wizardOpen}
           onClose={() => { setWizardOpen(false); queryClient.invalidateQueries({ queryKey: ["document-archives"] }); }}
         />
+      )}
+
+      {reprintArc && (
+        <ReprintDialog arc={reprintArc} onClose={() => setReprintArc(null)} />
       )}
     </div>
   );
@@ -147,6 +158,7 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const [parsedKodeBarang, setParsedKodeBarang] = useState<string[]>([]);
   const [parsedTotalNilai, setParsedTotalNilai] = useState(0);
   const [parsedRowCount, setParsedRowCount] = useState(0);
+  const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [excelFileName, setExcelFileName] = useState("");
 
   // Step 3
@@ -187,18 +199,31 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
           return !namaVal.toUpperCase().includes("TOTAL");
         });
 
-        dataRows.forEach(row => {
+        const namaKey = keys.find(k => k.toLowerCase().includes("nama barang") || k.toLowerCase().includes("nama_barang")) || "";
+        const kondisiKey = keys.find(k => k.toLowerCase().includes("kondisi")) || "";
+        const rowsForLampiran: any[] = [];
+
+        dataRows.forEach((row, idx) => {
           if (kodeKey && row[kodeKey]) kodeList.push(String(row[kodeKey]).trim());
+          let num = 0;
           if (nilaiKey && row[nilaiKey]) {
             const raw = String(row[nilaiKey]).split(",")[0];
-            const num = Number(raw.replace(/[^0-9]/g, ""));
-            if (!isNaN(num)) total += num;
+            num = Number(raw.replace(/[^0-9]/g, "")) || 0;
+            total += num;
           }
+          rowsForLampiran.push({
+            no: idx + 1,
+            kode_barang: kodeKey ? String(row[kodeKey] || "").trim() : "",
+            nama_barang: namaKey ? String(row[namaKey] || "").trim() : "",
+            kondisi: kondisiKey ? String(row[kondisiKey] || "").trim() : "",
+            nilai_perolehan: num,
+          });
         });
 
         setParsedKodeBarang(kodeList);
         setParsedTotalNilai(total);
         setParsedRowCount(dataRows.length);
+        setParsedRows(rowsForLampiran);
         toast.success(`Berhasil membaca ${dataRows.length} baris data.`);
       } catch (err) {
         console.error(err);
@@ -224,7 +249,7 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
         total_nilai: parsedTotalNilai,
         kode_barang_list: parsedKodeBarang as any,
         tembusan: tembusan as any,
-        data_otorisasi: { nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis } as any,
+        data_otorisasi: { nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis, lampiran_data: parsedRows } as any,
         status: "Selesai",
       });
       if (insertErr) throw insertErr;
@@ -447,6 +472,40 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
                   {tembusan.filter(t => t.trim()).map((t, i) => <li key={i}>{t}</li>)}
                 </ol>
               </div>
+
+              {/* Page 2: Lampiran */}
+              {parsedRows.length > 0 && (
+                <div style={{ pageBreakBefore: "always" }}>
+                  <p className="font-bold text-center text-base mb-1 mt-6">LAMPIRAN SURAT PERNYATAAN</p>
+                  <p className="text-center text-[12px] mb-4">Nomor: {nomorSurat} — Tanggal: {tglSuratFormatted}</p>
+                  <table className="w-full border-collapse text-[11px]">
+                    <thead>
+                      <tr>
+                        <th className="border border-black px-2 py-1 text-center">No</th>
+                        <th className="border border-black px-2 py-1">Kode Barang</th>
+                        <th className="border border-black px-2 py-1">Nama Barang</th>
+                        <th className="border border-black px-2 py-1 text-center">Kondisi</th>
+                        <th className="border border-black px-2 py-1 text-right">Nilai Perolehan</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsedRows.map((r, i) => (
+                        <tr key={i}>
+                          <td className="border border-black px-2 py-0.5 text-center">{r.no}</td>
+                          <td className="border border-black px-2 py-0.5">{r.kode_barang}</td>
+                          <td className="border border-black px-2 py-0.5">{r.nama_barang}</td>
+                          <td className="border border-black px-2 py-0.5 text-center">{r.kondisi}</td>
+                          <td className="border border-black px-2 py-0.5 text-right">{r.nilai_perolehan > 0 ? r.nilai_perolehan.toLocaleString("id-ID") : "0"}</td>
+                        </tr>
+                      ))}
+                      <tr>
+                        <td colSpan={4} className="border border-black px-2 py-1 font-bold text-right">TOTAL</td>
+                        <td className="border border-black px-2 py-1 font-bold text-right">{parsedTotalNilai.toLocaleString("id-ID")}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -466,6 +525,87 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
               {submitting ? "Memproses..." : "Generate PDF & Tutup Periode"}
             </Button>
           )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Reprint Dialog ─────────────────────────────────────
+function ReprintDialog({ arc, onClose }: { arc: any; onClose: () => void }) {
+  const ot = arc.data_otorisasi || {};
+  const lampiran: any[] = ot.lampiran_data || [];
+  const tmb: string[] = (arc.tembusan || []).filter((t: string) => t?.trim());
+  const tglSurat = arc.tanggal_surat ? new Date(arc.tanggal_surat).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
+  const tglPen = arc.tanggal_penelusuran ? new Date(arc.tanggal_penelusuran).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
+
+  const handlePrint = () => { setTimeout(() => window.print(), 200); };
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Printer className="h-5 w-5 text-primary" /> Cetak Ulang Surat</DialogTitle>
+        </DialogHeader>
+        <div className="print-surat border border-border rounded-lg p-6 bg-white text-black text-[13px] leading-relaxed" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+          <div className="text-center mb-6 border-b-2 border-black pb-4">
+            <p className="text-[10px] tracking-widest uppercase text-gray-500">Kop Surat Instansi</p>
+            <p className="font-bold text-lg mt-1">PEMERINTAH KABUPATEN BANDUNG</p>
+            <p className="text-sm">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+          </div>
+          <div className="flex justify-between mb-4">
+            <div><p>Nomor: {arc.nomor_surat}</p><p>Perihal: Pengajuan Perubahan Kondisi BMD</p></div>
+            <p>{tglSurat}</p>
+          </div>
+          <p className="mb-4">Kepada Yth,<br/>Bupati Bandung<br/>di Tempat</p>
+          <p className="text-justify mb-3">Dengan hormat,</p>
+          <p className="text-justify mb-3 indent-8">Berdasarkan hasil penelusuran fisik terhadap Barang Milik Daerah (BMD) yang dilaksanakan pada tanggal <strong>{tglPen}</strong>, dengan ini kami sampaikan pengajuan perubahan kondisi BMD berupa <strong>{arc.jenis_kib}</strong>.</p>
+          <p className="text-justify mb-3 font-bold">SURAT PERNYATAAN</p>
+          <p className="text-justify mb-3 indent-8">Yang bertanda tangan di bawah ini, <strong>{ot.nama}</strong>, NIP. {ot.nip}, {ot.jabatan}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sebanyak <strong>{arc.total_aset} item</strong> senilai <strong>Rp {Number(arc.total_nilai || 0).toLocaleString("id-ID")}</strong> sudah dalam kondisi rusak berat dan tidak dapat digunakan lagi untuk menunjang tugas pokok dan fungsi.</p>
+          <p className="text-justify mb-6 indent-8">Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.</p>
+          <div className="flex justify-end mb-8">
+            <div className="text-center w-64">
+              <p>{ot.jabatan},</p><div className="h-20" />
+              <p className="font-bold underline">{ot.nama}</p><p>NIP. {ot.nip}</p>
+            </div>
+          </div>
+          <div className="border-t border-gray-300 pt-3 text-[11px]">
+            <p className="font-bold mb-1">Tembusan:</p>
+            <ol className="list-decimal list-inside space-y-0.5">{tmb.map((t, i) => <li key={i}>{t}</li>)}</ol>
+          </div>
+          {lampiran.length > 0 && (
+            <div style={{ pageBreakBefore: "always" }}>
+              <p className="font-bold text-center text-base mb-1 mt-6">LAMPIRAN SURAT PERNYATAAN</p>
+              <p className="text-center text-[12px] mb-4">Nomor: {arc.nomor_surat} — Tanggal: {tglSurat}</p>
+              <table className="w-full border-collapse text-[11px]">
+                <thead><tr>
+                  <th className="border border-black px-2 py-1 text-center">No</th>
+                  <th className="border border-black px-2 py-1">Kode Barang</th>
+                  <th className="border border-black px-2 py-1">Nama Barang</th>
+                  <th className="border border-black px-2 py-1 text-center">Kondisi</th>
+                  <th className="border border-black px-2 py-1 text-right">Nilai Perolehan</th>
+                </tr></thead>
+                <tbody>
+                  {lampiran.map((r: any, i: number) => (
+                    <tr key={i}>
+                      <td className="border border-black px-2 py-0.5 text-center">{r.no}</td>
+                      <td className="border border-black px-2 py-0.5">{r.kode_barang}</td>
+                      <td className="border border-black px-2 py-0.5">{r.nama_barang}</td>
+                      <td className="border border-black px-2 py-0.5 text-center">{r.kondisi}</td>
+                      <td className="border border-black px-2 py-0.5 text-right">{(r.nilai_perolehan || 0) > 0 ? Number(r.nilai_perolehan).toLocaleString("id-ID") : "0"}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td colSpan={4} className="border border-black px-2 py-1 font-bold text-right">TOTAL</td>
+                    <td className="border border-black px-2 py-1 font-bold text-right">{Number(arc.total_nilai || 0).toLocaleString("id-ID")}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end pt-3 border-t border-border">
+          <Button onClick={handlePrint} className="gap-1.5"><Printer className="h-4 w-4" /> Cetak PDF</Button>
         </div>
       </DialogContent>
     </Dialog>
