@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -68,7 +69,9 @@ export default function CensusAuditForm() {
 
   // Form state
   const [kondisi, setKondisi] = useState("");
-  const [tindakLanjut, setTindakLanjut] = useState("");
+  const [kesesuaianKib, setKesesuaianKib] = useState("");
+  const [rekomendasiAuditor, setRekomendasiAuditor] = useState("");
+  const [lokasiAktual, setLokasiAktual] = useState("");
   const [catatan, setCatatan] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -169,8 +172,19 @@ export default function CensusAuditForm() {
       toast.error("Pilih kondisi aset terlebih dahulu.");
       return;
     }
-    if (!tindakLanjut) {
-      toast.error("Pilih tindak lanjut terlebih dahulu.");
+    if (!kesesuaianKib) {
+      toast.error("Pilih kesesuaian KIB terlebih dahulu.");
+      return;
+    }
+    if (!rekomendasiAuditor) {
+      toast.error("Pilih rekomendasi auditor terlebih dahulu.");
+      return;
+    }
+
+    const isCatatanRequired = kondisi === "Rusak Berat" || kesesuaianKib === "Tidak Sesuai" || rekomendasiAuditor === "Pengajuan Perubahan Kondisi (Rusak Berat)";
+    
+    if (isCatatanRequired && !catatan.trim()) {
+      toast.error("Catatan wajib diisi untuk kondisi atau usulan yang dipilih.");
       return;
     }
 
@@ -182,7 +196,10 @@ export default function CensusAuditForm() {
         asset_id: asset!.id,
         auditor_id: user?.id || null,
         kondisi,
-        tindak_lanjut: tindakLanjut,
+        tindak_lanjut: rekomendasiAuditor,
+        kesesuaian_kib: kesesuaianKib,
+        rekomendasi_auditor: rekomendasiAuditor,
+        lokasi_aktual: lokasiAktual || null,
         catatan: catatan || null,
         foto_url: capturedPhotos.length > 0 ? capturedPhotos[0] : null,
         latitude: gpsCoords?.lat || null,
@@ -285,7 +302,9 @@ export default function CensusAuditForm() {
           <Button className="gap-1.5" onClick={() => {
             setSubmitted(false);
             setKondisi("");
-            setTindakLanjut("");
+            setKesesuaianKib("");
+            setRekomendasiAuditor("");
+            setLokasiAktual("");
             setCatatan("");
             setCapturedPhotos([]);
             setGpsCoords(null);
@@ -441,30 +460,57 @@ export default function CensusAuditForm() {
                 <SelectItem value="Baik">Baik</SelectItem>
                 <SelectItem value="Rusak Ringan">Rusak Ringan</SelectItem>
                 <SelectItem value="Rusak Berat">Rusak Berat</SelectItem>
-                <SelectItem value="Tidak Ditemukan">Tidak Ditemukan</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Tindak Lanjut */}
+          {/* Kesesuaian KIB */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
-              Tindak Lanjut <span className="text-destructive">*</span>
+              Kesesuaian Spesifikasi KIB <span className="text-destructive">*</span>
             </Label>
-            <Select value={tindakLanjut} onValueChange={setTindakLanjut}>
+            <Select value={kesesuaianKib} onValueChange={setKesesuaianKib}>
+              <SelectTrigger><SelectValue placeholder="Sesuai / Tidak Sesuai…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sesuai">Sesuai</SelectItem>
+                <SelectItem value="Tidak Sesuai">Tidak Sesuai</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Lokasi Aktual */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Lokasi Aktual (Jika Berbeda)</Label>
+            <Input 
+              placeholder="Contoh: Dipindah ke Ruang Rapat Lt.2" 
+              value={lokasiAktual} 
+              onChange={(e) => setLokasiAktual(e.target.value)} 
+            />
+          </div>
+
+          {/* Rekomendasi Auditor */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              Rekomendasi Auditor <span className="text-destructive">*</span>
+            </Label>
+            <Select value={rekomendasiAuditor} onValueChange={setRekomendasiAuditor}>
               <SelectTrigger><SelectValue placeholder="Pilih rekomendasi…" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pertahankan">Pertahankan (Layak Pakai)</SelectItem>
-                <SelectItem value="Perbaikan">Perlu Perbaikan</SelectItem>
-                <SelectItem value="Mutasi">Mutasi / Relokasi</SelectItem>
-                <SelectItem value="Usul Hapus">Usul Hapus / Disposal</SelectItem>
+                <SelectItem value="Layak Pakai">Layak Pakai</SelectItem>
+                <SelectItem value="Usul Perbaikan">Usul Perbaikan</SelectItem>
+                <SelectItem value="Pengajuan Perubahan Kondisi (Rusak Berat)">Pengajuan Perubahan Kondisi (Rusak Berat)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Catatan */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Catatan Auditor</Label>
+            <Label className="text-sm font-medium">
+              Catatan Auditor
+              {(kondisi === "Rusak Berat" || kesesuaianKib === "Tidak Sesuai" || rekomendasiAuditor === "Pengajuan Perubahan Kondisi (Rusak Berat)") && (
+                <span className="text-destructive ml-1">*</span>
+              )}
+            </Label>
             <Textarea
               placeholder="Tulis catatan temuan di lapangan…"
               rows={3}
@@ -511,7 +557,7 @@ export default function CensusAuditForm() {
           <Button
             className="w-full gap-2 mt-2"
             size="lg"
-            disabled={submitting || !kondisi || !tindakLanjut}
+            disabled={submitting || !kondisi || !kesesuaianKib || !rekomendasiAuditor}
             onClick={handleSubmit}
           >
             {submitting ? (

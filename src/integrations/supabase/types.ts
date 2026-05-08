@@ -100,6 +100,9 @@ export type Database = {
           foto_url: string | null
           latitude: number | null
           longitude: number | null
+          kesesuaian_kib: string | null
+          rekomendasi_auditor: string | null
+          lokasi_aktual: string | null
           created_at: string
         }
         Insert: {
@@ -112,6 +115,9 @@ export type Database = {
           foto_url?: string | null
           latitude?: number | null
           longitude?: number | null
+          kesesuaian_kib?: string | null
+          rekomendasi_auditor?: string | null
+          lokasi_aktual?: string | null
           created_at?: string
         }
         Update: {
@@ -124,6 +130,9 @@ export type Database = {
           foto_url?: string | null
           latitude?: number | null
           longitude?: number | null
+          kesesuaian_kib?: string | null
+          rekomendasi_auditor?: string | null
+          lokasi_aktual?: string | null
           created_at?: string
         }
         Relationships: [
