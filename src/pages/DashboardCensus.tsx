@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import * as XLSX from "xlsx";
 import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import {
@@ -412,6 +413,94 @@ export default function DashboardCensus() {
     }
   };
 
+  const handleExportArchiveExcel = () => {
+    const exportData = filteredAssets.filter((a) => auditMap.has(a.id));
+
+    if (exportData.length === 0) {
+      toast.info("Tidak ada aset yang sudah diaudit pada filter ini.");
+      return;
+    }
+
+    let totalNilai = 0;
+
+    const rows = exportData.map((asset, index) => {
+      const cd = getCd(asset) || {};
+      const audit = auditMap.get(asset.id);
+
+      // Sapu Jagat pencarian Nilai Perolehan / Harga
+      let nilaiRaw: any = asset.nilai_perolehan || asset.harga;
+      
+      if (nilaiRaw === undefined || nilaiRaw === null || nilaiRaw === "") {
+        const cdKeys = Object.keys(cd);
+        const matchKey = cdKeys.find(k => {
+          const lower = k.toLowerCase();
+          return lower.includes("nilai") || lower.includes("harga");
+        });
+        if (matchKey) {
+          nilaiRaw = cd[matchKey];
+        }
+      }
+
+      let num = 0;
+      if (nilaiRaw !== undefined && nilaiRaw !== null && nilaiRaw !== "") {
+        let strVal = String(nilaiRaw).split(",")[0];
+        const parsed = Number(strVal.replace(/[^0-9]/g, ""));
+        if (!isNaN(parsed)) {
+          num = parsed;
+        }
+      }
+
+      totalNilai += num;
+      const nilaiFormatted = num === 0 ? "0" : num.toLocaleString("id-ID");
+
+      return {
+        "No": index + 1,
+        "Kode Barang": asset.kode_aset,
+        "Nama Barang": asset.nama_aset,
+        "Lokasi Aktual": audit?.lokasi_aktual || "—",
+        "Kondisi": audit?.kondisi || "—",
+        "Kesesuaian KIB": audit?.kesesuaian_kib || "—",
+        "Rekomendasi": audit?.rekomendasi_auditor || audit?.tindak_lanjut || "—",
+        "Catatan / Keterangan": audit?.catatan || "—",
+        "Nilai Perolehan": nilaiFormatted,
+      };
+    });
+
+    const totalRow = {
+      "No": "",
+      "Kode Barang": "",
+      "Nama Barang": "TOTAL KESELURUHAN",
+      "Lokasi Aktual": "",
+      "Kondisi": "",
+      "Kesesuaian KIB": "",
+      "Rekomendasi": "",
+      "Catatan / Keterangan": "",
+      "Nilai Perolehan": totalNilai > 0 ? totalNilai.toLocaleString("id-ID") : "0",
+    };
+    
+    rows.push(totalRow as any);
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    ws["!cols"] = [
+      { wch: 5 },  // No
+      { wch: 20 }, // Kode Barang
+      { wch: 35 }, // Nama Barang
+      { wch: 25 }, // Lokasi Aktual
+      { wch: 15 }, // Kondisi
+      { wch: 15 }, // Kesesuaian KIB
+      { wch: 25 }, // Rekomendasi
+      { wch: 40 }, // Catatan
+      { wch: 20 }, // Nilai Perolehan
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Arsip Sensus");
+    
+    const dateStr = new Date().toISOString().split("T")[0];
+    XLSX.writeFile(wb, `Arsip_Sensus_Excel_${dateStr}.xlsx`);
+  };
+
   // ─── Helpers ──────────────────────────────────────────
   function assetLocation(a: typeof assets[0]) {
     return getSmartLocation(getCd(a), a.kode_divisi);
@@ -695,6 +784,14 @@ export default function DashboardCensus() {
                 </button>
               ))}
             </div>
+            <Button
+              variant="outline"
+              className="gap-2 self-start bg-background"
+              onClick={handleExportArchiveExcel}
+            >
+              <FileText className="h-4 w-4 text-primary" />
+              Export Arsip (Excel)
+            </Button>
           </div>
 
           <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
