@@ -1,9 +1,11 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCustomColumns } from "@/contexts/CustomColumnsContext";
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   FileSignature, Plus, ArrowLeft, ArrowRight, Check, Upload, Trash2,
   FileText, Download, Loader2, AlertCircle, CheckCircle2, Printer
@@ -25,6 +27,37 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+
+// ─── PDF Generator Helper ───────────────────────────────
+async function generatePDF(page1Id: string, page2Id: string, filename: string) {
+  const el1 = document.getElementById(page1Id);
+  if (!el1) throw new Error("Page 1 element not found");
+
+  const canvas1 = await html2canvas(el1, { scale: 2, useCORS: true, logging: false });
+  const imgData1 = canvas1.toDataURL("image/png");
+
+  // F4 Portrait: 215 x 330 mm
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [215, 330] });
+  const pW = 215, pH = 330;
+  const margin = 15;
+  const contentW = pW - margin * 2;
+  const imgH1 = (canvas1.height * contentW) / canvas1.width;
+  pdf.addImage(imgData1, "PNG", margin, margin, contentW, Math.min(imgH1, pH - margin * 2));
+
+  const el2 = document.getElementById(page2Id);
+  if (el2) {
+    const canvas2 = await html2canvas(el2, { scale: 2, useCORS: true, logging: false });
+    const imgData2 = canvas2.toDataURL("image/png");
+    // F4 Landscape: 330 x 215 mm
+    pdf.addPage([215, 330], "landscape");
+    const lW = 330, lH = 215;
+    const cW2 = lW - margin * 2;
+    const imgH2 = (canvas2.height * cW2) / canvas2.width;
+    pdf.addImage(imgData2, "PNG", margin, margin, cW2, Math.min(imgH2, lH - margin * 2));
+  }
+
+  pdf.save(filename);
+}
 
 // ─── Main Page ──────────────────────────────────────────
 export default function PengajuanSuratPage() {
@@ -279,11 +312,14 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
 
       toast.success("Surat berhasil disimpan & periode ditutup!");
 
-      // 4. Trigger print
-      setTimeout(() => {
-        window.print();
-        onClose();
-      }, 300);
+      // 4. Generate PDF via jsPDF
+      try {
+        await new Promise(r => setTimeout(r, 300));
+        await generatePDF("pdf-page-1", "pdf-page-2", `Surat_Pengajuan_BMD_${nomorSurat.replace(/\//g, "-")}.pdf`);
+      } catch (pdfErr) {
+        console.warn("PDF generation failed:", pdfErr);
+      }
+      onClose();
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Gagal menyimpan surat.");
@@ -421,132 +457,122 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
           </div>
         )}
 
-        {/* Step 4: Preview */}
+        {/* Step 4: Preview & Submit */}
         {step === 4 && (
           <div className="space-y-4">
             <div className="flex items-start gap-2 rounded-lg bg-warning/10 border border-warning/30 p-3">
               <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
               <p className="text-xs text-warning">Setelah menekan tombol di bawah, <strong>{parsedRowCount} aset</strong> akan ditandai "Menunggu Update SIMDA" dan hilang dari Papan Rekonsiliasi.</p>
             </div>
+            <div className="rounded-lg border border-border p-4 space-y-2 bg-muted/20 text-sm">
+              <p><strong>Nomor Surat:</strong> {nomorSurat}</p>
+              <p><strong>Tanggal Surat:</strong> {tglSuratFormatted}</p>
+              <p><strong>Jenis KIB:</strong> {jenisKib}</p>
+              <p><strong>Jumlah Aset:</strong> {parsedRowCount} item</p>
+              <p><strong>Total Nilai:</strong> Rp {parsedTotalNilai.toLocaleString("id-ID")}</p>
+              <p><strong>Kepala Dinas:</strong> {namaKadis} (NIP. {nipKadis})</p>
+              <p><strong>Tembusan:</strong> {tembusan.filter(t => t.trim()).length} pihak</p>
+            </div>
+          </div>
+        )}
 
-            <div id="print-area" ref={printRef} className="border border-border rounded-lg bg-white text-black text-[13px] leading-relaxed" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
-              {/* ═══ PAGE 1: Surat Pernyataan (Portrait) ═══ */}
-              <div className="p-8">
-                {/* Kop Surat */}
-                <div className="flex items-center gap-4 border-b-[3px] border-black pb-3 mb-4">
-                  <div className="w-16 h-16 border border-gray-300 rounded flex items-center justify-center text-[8px] text-gray-400 shrink-0">LOGO</div>
-                  <div className="text-center flex-1">
-                    <p className="font-bold text-[15px] tracking-wide">PEMERINTAH KABUPATEN BANDUNG</p>
-                    <p className="font-bold text-[13px]">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-                    <p className="text-[9px] mt-0.5">Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
-                    <p className="text-[9px]">E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
+        {/* ═══ OFF-SCREEN PDF Containers ═══ */}
+        {step === 4 && (
+          <>
+            {/* Page 1: Portrait Surat */}
+            <div style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "215mm", fontFamily: "'Times New Roman', Times, serif", fontSize: "13px", lineHeight: "1.6", color: "#000", background: "#fff" }}>
+              <div id="pdf-page-1" style={{ padding: "30px 40px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", borderBottom: "3px solid #000", paddingBottom: "12px", marginBottom: "16px" }}>
+                  <div style={{ width: "64px", height: "64px", border: "1px solid #ccc", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", color: "#999", flexShrink: 0 }}>LOGO</div>
+                  <div style={{ textAlign: "center", flex: 1 }}>
+                    <p style={{ fontWeight: "bold", fontSize: "16px", letterSpacing: "1px" }}>PEMERINTAH KABUPATEN BANDUNG</p>
+                    <p style={{ fontWeight: "bold", fontSize: "13px" }}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+                    <p style={{ fontSize: "9px", marginTop: "2px" }}>Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
+                    <p style={{ fontSize: "9px" }}>E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
                   </div>
                 </div>
-
-                {/* Judul Surat */}
-                <div className="text-center mb-4">
-                  <p className="font-bold underline text-[14px]">SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
-                  <p className="text-[13px] mt-1">Nomor : {nomorSurat}</p>
+                <div style={{ textAlign: "center", marginBottom: "16px" }}>
+                  <p style={{ fontWeight: "bold", textDecoration: "underline", fontSize: "14px" }}>SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
+                  <p style={{ fontSize: "13px", marginTop: "4px" }}>Nomor : {nomorSurat}</p>
                 </div>
-
-                {/* Isi Surat */}
-                <p className="text-justify mb-4 indent-8">
-                  Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPenelusuranFormatted}</strong>, yang bertanda tangan di bawah ini :
-                </p>
-
-                <table className="ml-8 mb-4 text-[13px]">
-                  <tbody>
-                    <tr><td className="pr-4 align-top">Nama</td><td className="pr-2 align-top">:</td><td>{namaKadis}</td></tr>
-                    <tr><td className="pr-4 align-top">Nip</td><td className="pr-2 align-top">:</td><td>{nipKadis}</td></tr>
-                    <tr><td className="pr-4 align-top">Jabatan</td><td className="pr-2 align-top">:</td><td>{jabatanKadis}</td></tr>
-                  </tbody>
-                </table>
-
-                <p className="text-justify mb-4">
-                  Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.
-                </p>
-                <p className="text-justify mb-4">
-                  Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.
-                </p>
-                <p className="text-justify mb-8">
-                  Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.
-                </p>
-
-                {/* Tanda Tangan */}
-                <div className="flex justify-end mb-12">
-                  <div className="text-center w-72">
+                <p style={{ textAlign: "justify", marginBottom: "16px", textIndent: "32px" }}>Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPenelusuranFormatted}</strong>, yang bertanda tangan di bawah ini :</p>
+                <table style={{ marginLeft: "32px", marginBottom: "16px", fontSize: "13px" }}><tbody>
+                  <tr><td style={{ paddingRight: "16px" }}>Nama</td><td style={{ paddingRight: "8px" }}>:</td><td>{namaKadis}</td></tr>
+                  <tr><td style={{ paddingRight: "16px" }}>Nip</td><td style={{ paddingRight: "8px" }}>:</td><td>{nipKadis}</td></tr>
+                  <tr><td style={{ paddingRight: "16px" }}>Jabatan</td><td style={{ paddingRight: "8px" }}>:</td><td>{jabatanKadis}</td></tr>
+                </tbody></table>
+                <p style={{ textAlign: "justify", marginBottom: "16px" }}>Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.</p>
+                <p style={{ textAlign: "justify", marginBottom: "16px" }}>Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.</p>
+                <p style={{ textAlign: "justify", marginBottom: "32px" }}>Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.</p>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "48px" }}>
+                  <div style={{ textAlign: "center", width: "280px" }}>
                     <p>Soreang, {tglSuratFormatted}</p>
-                    <p className="mt-1">{jabatanKadis},</p>
+                    <p style={{ marginTop: "4px" }}>{jabatanKadis},</p>
                     <p>Selaku Pengguna BMD,</p>
-                    <div className="h-24" />
-                    <p className="font-bold underline">{namaKadis.toUpperCase()}</p>
+                    <div style={{ height: "96px" }} />
+                    <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{namaKadis.toUpperCase()}</p>
                     <p>Nip. {nipKadis}</p>
                   </div>
                 </div>
-
-                {/* Tembusan */}
-                <div className="text-[11px] mt-4">
+                <div style={{ fontSize: "11px", marginTop: "16px" }}>
                   <p><strong><u>Tembusan</u></strong>, Kepada Yth :</p>
-                  <ol className="list-decimal list-inside space-y-0.5 mt-1">
+                  <ol style={{ listStyleType: "decimal", paddingLeft: "20px", marginTop: "4px" }}>
                     {tembusan.filter(t => t.trim()).map((t, i) => <li key={i}>{t};</li>)}
                   </ol>
                 </div>
               </div>
+            </div>
 
-              {/* ═══ PAGE 2: Lampiran (Landscape) ═══ */}
-              {parsedRows.length > 0 && (
-                <div className="print-landscape p-6">
-                  {/* Header Kiri */}
-                  <div className="mb-2 text-[11px]">
+            {/* Page 2: Landscape Lampiran */}
+            {parsedRows.length > 0 && (
+              <div style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "330mm", fontFamily: "'Times New Roman', Times, serif", fontSize: "11px", lineHeight: "1.4", color: "#000", background: "#fff" }}>
+                <div id="pdf-page-2" style={{ padding: "24px 30px" }}>
+                  <div style={{ marginBottom: "8px", fontSize: "11px" }}>
                     <p>Lampiran I (Rubah Kondisi BMD)</p>
                     <p>Nomor : {nomorSurat}</p>
                     <p>Tanggal : {tglSuratFormatted}</p>
                   </div>
-
-                  <p className="font-bold text-center text-[13px] mb-1">DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
-                  <p className="font-bold text-center text-[12px] mb-4">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-
-                  <table className="w-full border-collapse text-[10px]">
+                  <p style={{ fontWeight: "bold", textAlign: "center", fontSize: "13px", marginBottom: "4px" }}>DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
+                  <p style={{ fontWeight: "bold", textAlign: "center", fontSize: "12px", marginBottom: "16px" }}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
                     <thead>
                       <tr>
-                        <th className="border border-black px-2 py-1 text-center w-8">No</th>
-                        <th className="border border-black px-2 py-1">Kode Barang</th>
-                        <th className="border border-black px-2 py-1">Nama Barang</th>
-                        <th className="border border-black px-2 py-1 text-center">Kondisi</th>
-                        <th className="border border-black px-2 py-1 text-right">Nilai Perolehan (Rp)</th>
+                        <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "center", width: "30px" }}>No</th>
+                        <th style={{ border: "1px solid #000", padding: "4px 8px" }}>Kode Barang</th>
+                        <th style={{ border: "1px solid #000", padding: "4px 8px" }}>Nama Barang</th>
+                        <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "center" }}>Kondisi</th>
+                        <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "right" }}>Nilai Perolehan (Rp)</th>
                       </tr>
                     </thead>
                     <tbody>
                       {parsedRows.map((r, i) => (
                         <tr key={i}>
-                          <td className="border border-black px-2 py-0.5 text-center">{r.no}</td>
-                          <td className="border border-black px-2 py-0.5">{r.kode_barang}</td>
-                          <td className="border border-black px-2 py-0.5">{r.nama_barang}</td>
-                          <td className="border border-black px-2 py-0.5 text-center">{r.kondisi}</td>
-                          <td className="border border-black px-2 py-0.5 text-right">{r.nilai_perolehan > 0 ? r.nilai_perolehan.toLocaleString("id-ID") : "0"}</td>
+                          <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "center" }}>{r.no}</td>
+                          <td style={{ border: "1px solid #000", padding: "2px 8px" }}>{r.kode_barang}</td>
+                          <td style={{ border: "1px solid #000", padding: "2px 8px" }}>{r.nama_barang}</td>
+                          <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "center" }}>{r.kondisi}</td>
+                          <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "right" }}>{r.nilai_perolehan > 0 ? r.nilai_perolehan.toLocaleString("id-ID") : "0"}</td>
                         </tr>
                       ))}
                       <tr>
-                        <td colSpan={4} className="border border-black px-2 py-1 font-bold text-right">TOTAL</td>
-                        <td className="border border-black px-2 py-1 font-bold text-right">{parsedTotalNilai.toLocaleString("id-ID")}</td>
+                        <td colSpan={4} style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", textAlign: "right" }}>TOTAL</td>
+                        <td style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", textAlign: "right" }}>{parsedTotalNilai.toLocaleString("id-ID")}</td>
                       </tr>
                     </tbody>
                   </table>
-
-                  {/* Tanda Tangan Lampiran */}
-                  <div className="flex justify-end mt-6">
-                    <div className="text-center text-[11px] w-64">
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px" }}>
+                    <div style={{ textAlign: "center", fontSize: "11px", width: "250px" }}>
                       <p>Mengetahui,</p>
                       <p>{jabatanKadis},</p>
-                      <div className="h-20" />
-                      <p className="font-bold underline">{namaKadis.toUpperCase()}</p>
+                      <div style={{ height: "80px" }} />
+                      <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{namaKadis.toUpperCase()}</p>
                       <p>Nip. {nipKadis}</p>
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Navigation */}
@@ -577,102 +603,128 @@ function ReprintDialog({ arc, onClose }: { arc: any; onClose: () => void }) {
   const tmb: string[] = (arc.tembusan || []).filter((t: string) => t?.trim());
   const tglSurat = arc.tanggal_surat ? new Date(arc.tanggal_surat).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const tglPen = arc.tanggal_penelusuran ? new Date(arc.tanggal_penelusuran).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
-  const handlePrint = () => { setTimeout(() => window.print(), 200); };
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await new Promise(r => setTimeout(r, 300));
+      await generatePDF("reprint-page-1", "reprint-page-2", `Surat_${arc.nomor_surat?.replace(/\//g, "-") || "BMD"}.pdf`);
+    } catch (err) { console.error(err); toast.error("Gagal generate PDF."); }
+    finally { setDownloading(false); }
+  };
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Printer className="h-5 w-5 text-primary" /> Cetak Ulang Surat</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Download className="h-5 w-5 text-primary" /> Unduh Ulang Surat</DialogTitle>
         </DialogHeader>
-        <div id="print-area" className="border border-border rounded-lg bg-white text-black text-[13px] leading-relaxed" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
-          <div className="p-8">
-            <div className="flex items-center gap-4 border-b-[3px] border-black pb-3 mb-4">
-              <div className="w-16 h-16 border border-gray-300 rounded flex items-center justify-center text-[8px] text-gray-400 shrink-0">LOGO</div>
-              <div className="text-center flex-1">
-                <p className="font-bold text-[15px] tracking-wide">PEMERINTAH KABUPATEN BANDUNG</p>
-                <p className="font-bold text-[13px]">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-                <p className="text-[9px] mt-0.5">Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
-                <p className="text-[9px]">E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
-              </div>
+        <div className="rounded-lg border border-border p-4 space-y-2 bg-muted/20 text-sm">
+          <p><strong>No. Surat:</strong> {arc.nomor_surat}</p>
+          <p><strong>Tanggal:</strong> {tglSurat}</p>
+          <p><strong>Jenis KIB:</strong> {arc.jenis_kib || "—"}</p>
+          <p><strong>Jumlah Aset:</strong> {arc.total_aset} item</p>
+          <p><strong>Total Nilai:</strong> Rp {Number(arc.total_nilai || 0).toLocaleString("id-ID")}</p>
+          <p><strong>Kepala Dinas:</strong> {ot.nama} (NIP. {ot.nip})</p>
+        </div>
+        <div className="flex justify-end pt-3 border-t border-border">
+          <Button onClick={handleDownload} disabled={downloading} className="gap-1.5">
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {downloading ? "Memproses..." : "Unduh PDF"}
+          </Button>
+        </div>
+      </DialogContent>
+
+      {/* Off-screen Page 1 */}
+      <div style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "215mm", fontFamily: "'Times New Roman', Times, serif", fontSize: "13px", lineHeight: "1.6", color: "#000", background: "#fff" }}>
+        <div id="reprint-page-1" style={{ padding: "30px 40px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", borderBottom: "3px solid #000", paddingBottom: "12px", marginBottom: "16px" }}>
+            <div style={{ width: "64px", height: "64px", border: "1px solid #ccc", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", color: "#999", flexShrink: 0 }}>LOGO</div>
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <p style={{ fontWeight: "bold", fontSize: "16px", letterSpacing: "1px" }}>PEMERINTAH KABUPATEN BANDUNG</p>
+              <p style={{ fontWeight: "bold", fontSize: "13px" }}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+              <p style={{ fontSize: "9px", marginTop: "2px" }}>Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
+              <p style={{ fontSize: "9px" }}>E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
             </div>
-            <div className="text-center mb-4">
-              <p className="font-bold underline text-[14px]">SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
-              <p className="text-[13px] mt-1">Nomor : {arc.nomor_surat}</p>
+          </div>
+          <div style={{ textAlign: "center", marginBottom: "16px" }}>
+            <p style={{ fontWeight: "bold", textDecoration: "underline", fontSize: "14px" }}>SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
+            <p style={{ fontSize: "13px", marginTop: "4px" }}>Nomor : {arc.nomor_surat}</p>
+          </div>
+          <p style={{ textAlign: "justify", marginBottom: "16px", textIndent: "32px" }}>Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPen}</strong>, yang bertanda tangan di bawah ini :</p>
+          <table style={{ marginLeft: "32px", marginBottom: "16px", fontSize: "13px" }}><tbody>
+            <tr><td style={{ paddingRight: "16px" }}>Nama</td><td style={{ paddingRight: "8px" }}>:</td><td>{ot.nama}</td></tr>
+            <tr><td style={{ paddingRight: "16px" }}>Nip</td><td style={{ paddingRight: "8px" }}>:</td><td>{ot.nip}</td></tr>
+            <tr><td style={{ paddingRight: "16px" }}>Jabatan</td><td style={{ paddingRight: "8px" }}>:</td><td>{ot.jabatan}</td></tr>
+          </tbody></table>
+          <p style={{ textAlign: "justify", marginBottom: "16px" }}>Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.</p>
+          <p style={{ textAlign: "justify", marginBottom: "16px" }}>Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.</p>
+          <p style={{ textAlign: "justify", marginBottom: "32px" }}>Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.</p>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "48px" }}>
+            <div style={{ textAlign: "center", width: "280px" }}>
+              <p>Soreang, {tglSurat}</p>
+              <p style={{ marginTop: "4px" }}>{ot.jabatan},</p>
+              <p>Selaku Pengguna BMD,</p>
+              <div style={{ height: "96px" }} />
+              <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{(ot.nama || "").toUpperCase()}</p>
+              <p>Nip. {ot.nip}</p>
             </div>
-            <p className="text-justify mb-4 indent-8">Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPen}</strong>, yang bertanda tangan di bawah ini :</p>
-            <table className="ml-8 mb-4 text-[13px]"><tbody>
-              <tr><td className="pr-4 align-top">Nama</td><td className="pr-2 align-top">:</td><td>{ot.nama}</td></tr>
-              <tr><td className="pr-4 align-top">Nip</td><td className="pr-2 align-top">:</td><td>{ot.nip}</td></tr>
-              <tr><td className="pr-4 align-top">Jabatan</td><td className="pr-2 align-top">:</td><td>{ot.jabatan}</td></tr>
-            </tbody></table>
-            <p className="text-justify mb-4">Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.</p>
-            <p className="text-justify mb-4">Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.</p>
-            <p className="text-justify mb-8">Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.</p>
-            <div className="flex justify-end mb-12">
-              <div className="text-center w-72">
-                <p>Soreang, {tglSurat}</p>
-                <p className="mt-1">{ot.jabatan},</p>
-                <p>Selaku Pengguna BMD,</p>
-                <div className="h-24" />
-                <p className="font-bold underline">{(ot.nama || "").toUpperCase()}</p>
+          </div>
+          <div style={{ fontSize: "11px", marginTop: "16px" }}>
+            <p><strong><u>Tembusan</u></strong>, Kepada Yth :</p>
+            <ol style={{ listStyleType: "decimal", paddingLeft: "20px", marginTop: "4px" }}>{tmb.map((t, i) => <li key={i}>{t};</li>)}</ol>
+          </div>
+        </div>
+      </div>
+
+      {/* Off-screen Page 2 */}
+      {lampiran.length > 0 && (
+        <div style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "330mm", fontFamily: "'Times New Roman', Times, serif", fontSize: "11px", lineHeight: "1.4", color: "#000", background: "#fff" }}>
+          <div id="reprint-page-2" style={{ padding: "24px 30px" }}>
+            <div style={{ marginBottom: "8px", fontSize: "11px" }}>
+              <p>Lampiran I (Rubah Kondisi BMD)</p>
+              <p>Nomor : {arc.nomor_surat}</p>
+              <p>Tanggal : {tglSurat}</p>
+            </div>
+            <p style={{ fontWeight: "bold", textAlign: "center", fontSize: "13px", marginBottom: "4px" }}>DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
+            <p style={{ fontWeight: "bold", textAlign: "center", fontSize: "12px", marginBottom: "16px" }}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
+              <thead><tr>
+                <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "center", width: "30px" }}>No</th>
+                <th style={{ border: "1px solid #000", padding: "4px 8px" }}>Kode Barang</th>
+                <th style={{ border: "1px solid #000", padding: "4px 8px" }}>Nama Barang</th>
+                <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "center" }}>Kondisi</th>
+                <th style={{ border: "1px solid #000", padding: "4px 8px", textAlign: "right" }}>Nilai Perolehan (Rp)</th>
+              </tr></thead>
+              <tbody>
+                {lampiran.map((r: any, i: number) => (
+                  <tr key={i}>
+                    <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "center" }}>{r.no}</td>
+                    <td style={{ border: "1px solid #000", padding: "2px 8px" }}>{r.kode_barang}</td>
+                    <td style={{ border: "1px solid #000", padding: "2px 8px" }}>{r.nama_barang}</td>
+                    <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "center" }}>{r.kondisi}</td>
+                    <td style={{ border: "1px solid #000", padding: "2px 8px", textAlign: "right" }}>{(r.nilai_perolehan || 0) > 0 ? Number(r.nilai_perolehan).toLocaleString("id-ID") : "0"}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={4} style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", textAlign: "right" }}>TOTAL</td>
+                  <td style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", textAlign: "right" }}>{Number(arc.total_nilai || 0).toLocaleString("id-ID")}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px" }}>
+              <div style={{ textAlign: "center", fontSize: "11px", width: "250px" }}>
+                <p>Mengetahui,</p>
+                <p>{ot.jabatan},</p>
+                <div style={{ height: "80px" }} />
+                <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{(ot.nama || "").toUpperCase()}</p>
                 <p>Nip. {ot.nip}</p>
               </div>
             </div>
-            <div className="text-[11px] mt-4">
-              <p><strong><u>Tembusan</u></strong>, Kepada Yth :</p>
-              <ol className="list-decimal list-inside space-y-0.5 mt-1">{tmb.map((t, i) => <li key={i}>{t};</li>)}</ol>
-            </div>
           </div>
-          {lampiran.length > 0 && (
-            <div className="print-landscape p-6">
-              <div className="mb-2 text-[11px]">
-                <p>Lampiran I (Rubah Kondisi BMD)</p>
-                <p>Nomor : {arc.nomor_surat}</p>
-                <p>Tanggal : {tglSurat}</p>
-              </div>
-              <p className="font-bold text-center text-[13px] mb-1">DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
-              <p className="font-bold text-center text-[12px] mb-4">DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-              <table className="w-full border-collapse text-[10px]">
-                <thead><tr>
-                  <th className="border border-black px-2 py-1 text-center w-8">No</th>
-                  <th className="border border-black px-2 py-1">Kode Barang</th>
-                  <th className="border border-black px-2 py-1">Nama Barang</th>
-                  <th className="border border-black px-2 py-1 text-center">Kondisi</th>
-                  <th className="border border-black px-2 py-1 text-right">Nilai Perolehan (Rp)</th>
-                </tr></thead>
-                <tbody>
-                  {lampiran.map((r: any, i: number) => (
-                    <tr key={i}>
-                      <td className="border border-black px-2 py-0.5 text-center">{r.no}</td>
-                      <td className="border border-black px-2 py-0.5">{r.kode_barang}</td>
-                      <td className="border border-black px-2 py-0.5">{r.nama_barang}</td>
-                      <td className="border border-black px-2 py-0.5 text-center">{r.kondisi}</td>
-                      <td className="border border-black px-2 py-0.5 text-right">{(r.nilai_perolehan || 0) > 0 ? Number(r.nilai_perolehan).toLocaleString("id-ID") : "0"}</td>
-                    </tr>
-                  ))}
-                  <tr>
-                    <td colSpan={4} className="border border-black px-2 py-1 font-bold text-right">TOTAL</td>
-                    <td className="border border-black px-2 py-1 font-bold text-right">{Number(arc.total_nilai || 0).toLocaleString("id-ID")}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <div className="flex justify-end mt-6">
-                <div className="text-center text-[11px] w-64">
-                  <p>Mengetahui,</p>
-                  <p>{ot.jabatan},</p>
-                  <div className="h-20" />
-                  <p className="font-bold underline">{(ot.nama || "").toUpperCase()}</p>
-                  <p>Nip. {ot.nip}</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
-        <div className="flex justify-end pt-3 border-t border-border">
-          <Button onClick={handlePrint} className="gap-1.5"><Printer className="h-4 w-4" /> Cetak PDF</Button>
-        </div>
-      </DialogContent>
+      )}
     </Dialog>
   );
 }
