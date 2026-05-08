@@ -386,88 +386,8 @@ export default function DashboardCensus() {
     }
   };
 
-  // ─── Cetak Berita Acara PDF ───────────────────────────
-  const handleCetakPDF = async () => {
-    try {
-      const { default: jsPDF } = await import("jspdf");
-      const { default: autoTable } = await import("jspdf-autotable");
 
-      const doc = new jsPDF("p", "mm", "a4");
-      const pageW = doc.internal.pageSize.getWidth();
 
-      // Title
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("BERITA ACARA", pageW / 2, 20, { align: "center" });
-      doc.text("SENSUS BARANG MILIK DAERAH / PERUSAHAAN", pageW / 2, 27, { align: "center" });
-
-      // Periode
-      const periodeText = stats.periodeAwal
-        ? `Periode Sensus: ${formatTanggal(stats.periodeAwal)} s/d ${formatTanggal(stats.periodeAkhir)}`
-        : "Periode Sensus: Belum dimulai";
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(periodeText, pageW / 2, 35, { align: "center" });
-
-      // Summary line
-      doc.setFontSize(9);
-      doc.text(`Total Aset: ${stats.total}  |  Sudah Diaudit: ${stats.audited}  |  Belum Dicek: ${stats.belumDicek}`, pageW / 2, 42, { align: "center" });
-
-      // Table — only audited assets (from asset_audits)
-      const auditedAssets = assets.filter((a) => auditMap.has(a.id));
-
-      const tableBody = auditedAssets.map((a, idx) => {
-        const audit = auditMap.get(a.id);
-        return [
-          (idx + 1).toString(),
-          a.kode_aset,
-          a.nama_aset,
-          audit?.kondisi ?? "—",
-          formatTanggal(audit?.created_at ?? null),
-          audit?.tindak_lanjut ?? "—",
-        ];
-      });
-
-      autoTable(doc, {
-        startY: 48,
-        head: [["No", "Kode Aset", "Nama Aset", "Kondisi", "Tgl Audit", "Tindak Lanjut"]],
-        body: tableBody,
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        columnStyles: {
-          0: { halign: "center", cellWidth: 10 },
-          1: { cellWidth: 30 },
-          3: { cellWidth: 25 },
-          4: { cellWidth: 25 },
-          5: { cellWidth: 28 },
-        },
-      });
-
-      // Signature area
-      const finalY = (doc as any).lastAutoTable?.finalY || 200;
-      const sigY = finalY + 20;
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-
-      // Left signature
-      doc.text("Mengetahui,", 30, sigY, { align: "center" });
-      doc.text("Pimpinan", 30, sigY + 5, { align: "center" });
-      doc.text("(________________________)", 30, sigY + 30, { align: "center" });
-
-      // Right signature
-      doc.text("Auditor Lapangan,", pageW - 30, sigY, { align: "center" });
-      doc.text("", pageW - 30, sigY + 5, { align: "center" });
-      doc.text("(________________________)", pageW - 30, sigY + 30, { align: "center" });
-
-      doc.save("Berita_Acara_Sensus.pdf");
-      toast.success("PDF Berita Acara berhasil di-download!");
-    } catch (err: any) {
-      console.error("PDF generation error:", err);
-      toast.error("Gagal membuat PDF: " + (err.message || "Coba lagi."));
-    }
-  };
 
   const handleExportArchiveExcel = () => {
     const exportData = filteredAssets.filter((a) => auditMap.has(a.id));
@@ -699,28 +619,29 @@ export default function DashboardCensus() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 self-start">
-          <Button
-            className={`gap-2 ${sensusActive ? '' : 'animate-pulse'}`}
-            size="sm"
-            variant={sensusActive ? "outline" : "default"}
-            onClick={handleToggleCensus}
-            disabled={togglingCensus}
-          >
-            <Power className="h-4 w-4" />
-            {sensusActive ? "Nonaktifkan Sensus" : "Aktifkan Sensus"}
-          </Button>
-          <Button className="gap-2" size="sm" onClick={() => setScannerOpen(true)} disabled={!sensusActive}>
-            <Camera className="h-4 w-4" />
-            <span className="hidden sm:inline">Scan</span> QR
-          </Button>
-          <Button className="gap-2" size="sm" variant="outline" onClick={handleCetakPDF} disabled={stats.audited === 0}>
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Cetak</span> Berita Acara
-          </Button>
-          <Button className="gap-2" size="sm" variant="destructive" disabled={resetting || stats.audited === 0} onClick={() => setArchiveOpen(true)}>
-            <Archive className="h-4 w-4" />
-            Tutup & Arsipkan
-          </Button>
+          {/* State Machine: Show one button based on sensus status */}
+          {!sensusActive ? (
+            <Button
+              className="gap-2 animate-pulse"
+              size="sm"
+              onClick={handleToggleCensus}
+              disabled={togglingCensus}
+            >
+              <Power className="h-4 w-4" />
+              Aktifkan Sensus
+            </Button>
+          ) : (
+            <Button
+              className="gap-2"
+              size="sm"
+              variant="destructive"
+              disabled={resetting || stats.audited === 0}
+              onClick={() => setArchiveOpen(true)}
+            >
+              <Archive className="h-4 w-4" />
+              Tutup & Arsipkan
+            </Button>
+          )}
         </div>
       </div>
 

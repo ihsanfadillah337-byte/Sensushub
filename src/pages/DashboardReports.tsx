@@ -269,21 +269,21 @@ export default function DashboardReports() {
     <TooltipProvider>
       <div className="space-y-6">
         <Tabs defaultValue="public_reports" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1 inline-flex w-full sm:w-auto h-auto">
-            <TabsTrigger value="public_reports" className="gap-2 px-6 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Users className="h-4 w-4" />
+          <TabsList className="bg-muted/40 p-0.5 inline-flex h-auto gap-0.5 rounded-lg">
+            <TabsTrigger value="public_reports" className="gap-1.5 px-3 py-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">
+              <Users className="h-3.5 w-3.5" />
               Keluhan Publik
               {counts.Menunggu > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 px-1.5 min-w-[20px] flex items-center justify-center text-[10px] rounded-full">
+                <Badge variant="destructive" className="ml-1 h-4 px-1.5 min-w-[16px] flex items-center justify-center text-[9px] rounded-full">
                   {counts.Menunggu}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="census_audits" className="gap-2 px-6 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <ClipboardCheck className="h-4 w-4" />
+            <TabsTrigger value="census_audits" className="gap-1.5 px-3 py-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">
+              <ClipboardCheck className="h-3.5 w-3.5" />
               Temuan Sensus
               {audits.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 px-1.5 min-w-[20px] flex items-center justify-center text-[10px] rounded-full">
+                <Badge variant="destructive" className="ml-1 h-4 px-1.5 min-w-[16px] flex items-center justify-center text-[9px] rounded-full">
                   {audits.length}
                 </Badge>
               )}
