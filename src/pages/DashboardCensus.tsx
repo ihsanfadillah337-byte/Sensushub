@@ -262,13 +262,34 @@ export default function DashboardCensus() {
 
       // Step A: Build audit snapshot from raw data
       const companyAudits = auditsRaw.filter(a => assetIds.includes(a.asset_id));
-      const auditSnapshot = companyAudits.map(a => ({
-        asset_id: a.asset_id,
-        kondisi: a.kondisi,
-        tindak_lanjut: a.tindak_lanjut,
-        catatan: a.catatan,
-        created_at: a.created_at,
-      }));
+      const auditSnapshot = companyAudits.map(a => {
+        const asset = assets.find(x => x.id === a.asset_id);
+        const cd = getCd(asset) || {};
+        let nilaiRaw: any = asset?.nilai_perolehan || asset?.harga;
+        if (nilaiRaw === undefined || nilaiRaw === null || nilaiRaw === "") {
+          const cdKeys = Object.keys(cd);
+          const matchKey = cdKeys.find(k => {
+            const lower = k.toLowerCase();
+            return lower.includes("nilai") || lower.includes("harga");
+          });
+          if (matchKey) {
+            nilaiRaw = cd[matchKey];
+          }
+        }
+        return {
+          asset_id: a.asset_id,
+          kode_aset: asset?.kode_aset,
+          nama_aset: asset?.nama_aset,
+          kondisi: a.kondisi,
+          tindak_lanjut: a.tindak_lanjut,
+          kesesuaian_kib: a.kesesuaian_kib,
+          lokasi_aktual: a.lokasi_aktual,
+          rekomendasi_auditor: a.rekomendasi_auditor,
+          catatan: a.catatan,
+          nilai_perolehan: nilaiRaw,
+          created_at: a.created_at,
+        };
+      });
 
       // Step B: INSERT archive record
       const { error: archiveErr } = await supabase
@@ -286,6 +307,41 @@ export default function DashboardCensus() {
           audit_snapshot: auditSnapshot as any,
         });
       if (archiveErr) throw archiveErr;
+
+      // Step B.5: Persist Anomaly to Assets
+      const anomalousAudits = companyAudits.filter(a => 
+        a.kondisi === "Rusak Berat" || 
+        a.kondisi === "Rusak Ringan" || 
+        a.kondisi === "Dalam Perbaikan" ||
+        a.kondisi === "Tidak Ditemukan" ||
+        a.tindak_lanjut === "Usul Perbaikan" ||
+        a.tindak_lanjut === "Pengajuan Perubahan Kondisi (Rusak Berat)" ||
+        a.tindak_lanjut === "Perbaikan" ||
+        a.tindak_lanjut === "Mutasi" ||
+        a.tindak_lanjut === "Usul Hapus" ||
+        a.rekomendasi_auditor === "Usul Perbaikan" ||
+        a.rekomendasi_auditor === "Pengajuan Perubahan Kondisi (Rusak Berat)" ||
+        a.kesesuaian_kib === "Tidak Sesuai"
+      );
+      
+      console.log(`[Archive] Persisting ${anomalousAudits.length} anomalies to assets...`);
+      for (const a of anomalousAudits) {
+        const asset = assets.find(x => x.id === a.asset_id);
+        if (!asset) continue;
+        const cd = getCd(asset) || {};
+        const newCd = {
+          ...cd,
+          "Kondisi": a.kondisi,
+          "status_usulan": a.tindak_lanjut || a.rekomendasi_auditor || cd.status_usulan,
+          "lokasi_aktual": a.lokasi_aktual || cd.lokasi_aktual,
+          "kesesuaian_kib": a.kesesuaian_kib || cd.kesesuaian_kib,
+          "catatan_sensus": a.catatan || cd.catatan_sensus
+        };
+        const { error: updErr } = await supabase.from("assets").update({ custom_data: newCd }).eq("id", a.asset_id);
+        if (updErr) {
+          console.error(`[Archive] Failed to persist anomaly for asset ${a.asset_id}:`, updErr);
+        }
+      }
 
       // Step C: DELETE all audit records (robust: fetch IDs first, then delete by ID)
       const auditIdsToDelete = companyAudits.map(a => a.id);
@@ -499,6 +555,76 @@ export default function DashboardCensus() {
     
     const dateStr = new Date().toISOString().split("T")[0];
     XLSX.writeFile(wb, `Arsip_Sensus_Excel_${dateStr}.xlsx`);
+  };
+
+  const exportSpecificArchive = (arc: any) => {
+    const snapshots = arc.audit_snapshot || [];
+    if (snapshots.length === 0) {
+      toast.info("Tidak ada data audit di dalam arsip ini.");
+      return;
+    }
+
+    let totalNilai = 0;
+
+    const rows = snapshots.map((audit: any, index: number) => {
+      let num = 0;
+      let nilaiRaw = audit.nilai_perolehan;
+      if (nilaiRaw !== undefined && nilaiRaw !== null && nilaiRaw !== "") {
+        let strVal = String(nilaiRaw).split(",")[0];
+        const parsed = Number(strVal.replace(/[^0-9]/g, ""));
+        if (!isNaN(parsed)) {
+          num = parsed;
+        }
+      }
+
+      totalNilai += num;
+      const nilaiFormatted = num === 0 ? "0" : num.toLocaleString("id-ID");
+
+      return {
+        "No": index + 1,
+        "Kode Barang": audit.kode_aset || "—",
+        "Nama Barang": audit.nama_aset || "—",
+        "Lokasi Aktual": audit.lokasi_aktual || "—",
+        "Kondisi": audit.kondisi || "—",
+        "Kesesuaian KIB": audit.kesesuaian_kib || "—",
+        "Rekomendasi": audit.rekomendasi_auditor || audit.tindak_lanjut || "—",
+        "Catatan / Keterangan": audit.catatan || "—",
+        "Nilai Perolehan": nilaiFormatted,
+      };
+    });
+
+    const totalRow = {
+      "No": "",
+      "Kode Barang": "",
+      "Nama Barang": "TOTAL KESELURUHAN",
+      "Lokasi Aktual": "",
+      "Kondisi": "",
+      "Kesesuaian KIB": "",
+      "Rekomendasi": "",
+      "Catatan / Keterangan": "",
+      "Nilai Perolehan": totalNilai > 0 ? totalNilai.toLocaleString("id-ID") : "0",
+    };
+    
+    rows.push(totalRow as any);
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    ws["!cols"] = [
+      { wch: 5 },  // No
+      { wch: 20 }, // Kode Barang
+      { wch: 35 }, // Nama Barang
+      { wch: 25 }, // Lokasi Aktual
+      { wch: 15 }, // Kondisi
+      { wch: 15 }, // Kesesuaian KIB
+      { wch: 25 }, // Rekomendasi
+      { wch: 40 }, // Catatan
+      { wch: 20 }, // Nilai Perolehan
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Arsip Sensus");
+    
+    XLSX.writeFile(wb, `Arsip_${arc.period_name}_Excel.xlsx`);
   };
 
   // ─── Helpers ──────────────────────────────────────────
@@ -717,6 +843,7 @@ export default function DashboardCensus() {
                             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center hidden sm:table-cell">Baik</TableHead>
                             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center hidden sm:table-cell">Rusak</TableHead>
                             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">%</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -738,6 +865,11 @@ export default function DashboardCensus() {
                                   <Badge variant="outline" className={pct === 100 ? 'bg-chart-3/10 text-chart-3 border-chart-3/30' : 'bg-warning/10 text-warning border-warning/30'}>
                                     {pct}%
                                   </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button variant="ghost" size="sm" onClick={() => exportSpecificArchive(arc)} title="Unduh Excel">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                  </Button>
                                 </TableCell>
                               </TableRow>
                             );

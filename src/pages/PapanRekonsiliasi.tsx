@@ -85,7 +85,21 @@ export default function PapanRekonsiliasi() {
       // Urutkan laporan dari yang terbaru
       openReports.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      // 2. Jalur Sensus: Ambil audits yang kondisinya Rusak
+      // 2. Jalur Sensus: Ambil audits yang kondisinya Rusak ATAU cek master assets custom_data (untuk arsip)
+      const cd = (typeof asset.custom_data === "object" && asset.custom_data) ? asset.custom_data : {};
+      const statusUsulan = String(cd["status_usulan"] || "");
+      const masterKondisi = String(cd["Kondisi"] || "");
+
+      const hasArchivedAnomaly = 
+        statusUsulan === "Pengajuan Perubahan Kondisi (Rusak Berat)" ||
+        statusUsulan === "Perbaikan" ||
+        statusUsulan === "Usul Perbaikan" ||
+        statusUsulan === "Usul Hapus" ||
+        statusUsulan === "Mutasi" ||
+        masterKondisi === "Rusak Berat" || 
+        masterKondisi === "Rusak Ringan" || 
+        masterKondisi === "Dalam Perbaikan";
+
       const damagedAudits = (asset.asset_audits || []).filter((a: any) =>
         a.kondisi === "Rusak Ringan" || a.kondisi === "Rusak Berat" || a.kondisi === "Dalam Perbaikan"
       );
@@ -93,7 +107,7 @@ export default function PapanRekonsiliasi() {
       damagedAudits.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       const hasReport = openReports?.length > 0;
-      const hasAudit = damagedAudits?.length > 0;
+      const hasAudit = damagedAudits?.length > 0 || hasArchivedAnomaly;
 
       // SYARAT MUTLAK: Harus punya laporan publik ATAU audit bermasalah
       if (!hasReport && !hasAudit) return;
@@ -119,11 +133,16 @@ export default function PapanRekonsiliasi() {
 
       // Prioritas 2: Timpa dengan data audit sensus jika ada (Sensus selalu menang/override)
       if (hasAudit) {
-        const latestAud = damagedAudits[0];
-        kondisi = latestAud.kondisi;
-        if (!deskripsi) deskripsi = latestAud.tindak_lanjut || latestAud.catatan || "";
-        if (!latestDate || new Date(latestAud.created_at) > new Date(latestDate)) {
-          latestDate = latestAud.created_at;
+        if (damagedAudits.length > 0) {
+          const latestAud = damagedAudits[0];
+          kondisi = latestAud.kondisi;
+          if (!deskripsi) deskripsi = latestAud.tindak_lanjut || latestAud.catatan || "";
+          if (!latestDate || new Date(latestAud.created_at) > new Date(latestDate)) {
+            latestDate = latestAud.created_at;
+          }
+        } else if (hasArchivedAnomaly) {
+          kondisi = masterKondisi || "Anomali";
+          if (!deskripsi) deskripsi = cd["catatan_sensus"] || statusUsulan || "Aset anomali (Telah Diarsipkan)";
         }
       }
 
