@@ -509,8 +509,19 @@ export default function DashboardCensus() {
       totalNilai += num;
       const nilaiFormatted = num === 0 ? "0" : num.toLocaleString("id-ID");
 
+      let tglPelaksanaan = "—";
+      let waktu = "—";
+      const createdAt = audit?.waktu_sensus || audit?.created_at;
+      if (createdAt) {
+        const d = new Date(createdAt);
+        tglPelaksanaan = d.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
+        waktu = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(":", ".");
+      }
+
       return {
         "No": index + 1,
+        "Tgl Pelaksanaan": tglPelaksanaan,
+        "Waktu": waktu,
         "Kode Barang": asset.kode_aset,
         "Nama Barang": asset.nama_aset,
         "Lokasi Aktual": audit?.lokasi_aktual || "—",
@@ -524,6 +535,8 @@ export default function DashboardCensus() {
 
     const totalRow = {
       "No": "",
+      "Tgl Pelaksanaan": "",
+      "Waktu": "",
       "Kode Barang": "",
       "Nama Barang": "TOTAL KESELURUHAN",
       "Lokasi Aktual": "",
@@ -540,6 +553,8 @@ export default function DashboardCensus() {
 
     ws["!cols"] = [
       { wch: 5 },  // No
+      { wch: 15 }, // Tgl Pelaksanaan
+      { wch: 10 }, // Waktu
       { wch: 20 }, // Kode Barang
       { wch: 35 }, // Nama Barang
       { wch: 25 }, // Lokasi Aktual
@@ -580,8 +595,19 @@ export default function DashboardCensus() {
       totalNilai += num;
       const nilaiFormatted = num === 0 ? "0" : num.toLocaleString("id-ID");
 
+      let tglPelaksanaan = "—";
+      let waktu = "—";
+      const createdAt = audit.waktu_sensus || audit.created_at;
+      if (createdAt) {
+        const d = new Date(createdAt);
+        tglPelaksanaan = d.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
+        waktu = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(":", ".");
+      }
+
       return {
         "No": index + 1,
+        "Tgl Pelaksanaan": tglPelaksanaan,
+        "Waktu": waktu,
         "Kode Barang": audit.kode_aset || "—",
         "Nama Barang": audit.nama_aset || "—",
         "Lokasi Aktual": audit.lokasi_aktual || "—",
@@ -595,6 +621,8 @@ export default function DashboardCensus() {
 
     const totalRow = {
       "No": "",
+      "Tgl Pelaksanaan": "",
+      "Waktu": "",
       "Kode Barang": "",
       "Nama Barang": "TOTAL KESELURUHAN",
       "Lokasi Aktual": "",
@@ -611,6 +639,8 @@ export default function DashboardCensus() {
 
     ws["!cols"] = [
       { wch: 5 },  // No
+      { wch: 15 }, // Tgl Pelaksanaan
+      { wch: 10 }, // Waktu
       { wch: 20 }, // Kode Barang
       { wch: 35 }, // Nama Barang
       { wch: 25 }, // Lokasi Aktual

@@ -289,8 +289,19 @@ export default function PapanRekonsiliasi() {
         const asset = item.assetData;
         const cd = (asset.custom_data as Record<string, any>) || {};
 
+        let tglPelaksanaan = "—";
+        let waktu = "—";
+        const createdAt = item.latestDate;
+        if (createdAt) {
+          const d = new Date(createdAt);
+          tglPelaksanaan = d.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
+          waktu = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(":", ".");
+        }
+
         const rowData: Record<string, any> = {
           "No": index + 1,
+          "Tgl Pelaksanaan": tglPelaksanaan,
+          "Waktu": waktu,
           "Kode Barang": asset.kode_aset,
           "Nama Barang": asset.nama_aset,
         };
@@ -336,6 +347,8 @@ export default function PapanRekonsiliasi() {
       // Tambahkan baris total di akhir
       const totalRow: Record<string, any> = {
         "No": "",
+        "Tgl Pelaksanaan": "",
+        "Waktu": "",
         "Kode Barang": "",
         "Nama Barang": "TOTAL KESELURUHAN",
       };
