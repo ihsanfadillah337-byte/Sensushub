@@ -387,6 +387,9 @@ export default function DashboardAssets() {
                         <span className="truncate">{asset.nama_aset}</span>
                         {(() => {
                           const cd = typeof asset.custom_data === "object" && asset.custom_data && !Array.isArray(asset.custom_data) ? asset.custom_data as Record<string, unknown> : null;
+                          if (cd?.["status_usulan"] === "Menunggu Update SIMDA") {
+                            return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">⏳ Menunggu SIMDA</Badge>;
+                          }
                           if (cd?.["status_aset"] === "Unit Pengganti") {
                             return <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">Pengganti</Badge>;
                           }

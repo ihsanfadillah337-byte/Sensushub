@@ -112,6 +112,9 @@ export default function PapanRekonsiliasi() {
       // SYARAT MUTLAK: Harus punya laporan publik ATAU audit bermasalah
       if (!hasReport && !hasAudit) return;
 
+      // Skip assets yang sudah "Tutup Periode" (sudah diproses via Pengajuan Surat)
+      if (statusUsulan === "Menunggu Update SIMDA") return;
+
       let source: AnomalyItem["source"] = "keluhan";
       if (hasReport && hasAudit) source = "both";
       else if (hasAudit) source = "sensus";

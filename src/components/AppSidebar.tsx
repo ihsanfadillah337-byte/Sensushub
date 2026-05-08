@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Settings, LogOut, Scale, Users } from "lucide-react";
+import { LayoutDashboard, Package, Settings, LogOut, Scale, Users, FileSignature } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +29,7 @@ const menuItems: MenuItem[] = [
   { title: "Dashboard", url: "/dashboard/overview", icon: LayoutDashboard, roles: ["super_admin", "operator"] },
   { title: "Daftar Aset", url: "/dashboard/assets", icon: Package, roles: ["super_admin", "operator"] },
   { title: "Rekonsiliasi Aset", url: "/dashboard/rekonsiliasi", icon: Scale, roles: ["super_admin", "operator", "auditor"] },
+  { title: "Pengajuan Surat", url: "/dashboard/pengajuan-surat", icon: FileSignature, roles: ["super_admin"] },
   { title: "Manajemen Pengguna", url: "/dashboard/users", icon: Users, roles: ["super_admin"] },
   { title: "Pengaturan", url: "/dashboard/settings", icon: Settings, roles: ["super_admin"] },
 ];

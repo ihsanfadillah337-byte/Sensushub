@@ -145,6 +145,62 @@ export type Database = {
           },
         ]
       }
+      document_archives: {
+        Row: {
+          id: string
+          company_id: string
+          nomor_surat: string
+          tanggal_surat: string
+          tanggal_penelusuran: string | null
+          jenis_kib: string | null
+          total_aset: number
+          total_nilai: number
+          kode_barang_list: Json
+          tembusan: Json
+          data_otorisasi: Json
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          nomor_surat: string
+          tanggal_surat?: string
+          tanggal_penelusuran?: string | null
+          jenis_kib?: string | null
+          total_aset?: number
+          total_nilai?: number
+          kode_barang_list?: Json
+          tembusan?: Json
+          data_otorisasi?: Json
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          nomor_surat?: string
+          tanggal_surat?: string
+          tanggal_penelusuran?: string | null
+          jenis_kib?: string | null
+          total_aset?: number
+          total_nilai?: number
+          kode_barang_list?: Json
+          tembusan?: Json
+          data_otorisasi?: Json
+          status?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_archives_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assets: {
         Row: {
           company_id: string
