@@ -719,7 +719,15 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: ()
         nomorSurat: arc.nomor_surat || "", tglSurat, tglPen,
         nama: ot.nama || "", nip: ot.nip || "", jabatan: ot.jabatan || "",
         tembusan: tmb,
-        headers: savedHeaders.length > 0 ? savedHeaders : (lampiran.length > 0 ? Object.keys(lampiran[0]).filter(k => k.toLowerCase() !== "no") : []),
+        headers: savedHeaders.length > 0 ? savedHeaders : (lampiran.length > 0 ? Object.keys(lampiran[0]).filter(k => k.toLowerCase() !== "no").sort((a, b) => {
+          const order = ["kode barang", "kode_barang", "nama barang", "nama_barang", "spesifikasi nama barang", "merek/type", "bahan", "lokasi", "nomor polisi", "metode perolehan", "bidang pengguna", "keterangan", "kondisi", "nilai perolehan", "harga"];
+          const iA = order.indexOf(a.toLowerCase());
+          const iB = order.indexOf(b.toLowerCase());
+          if (iA !== -1 && iB !== -1) return iA - iB;
+          if (iA !== -1) return -1;
+          if (iB !== -1) return 1;
+          return 0;
+        }) : []),
         rows: lampiran,
         totalNilai: Number(arc.total_nilai || 0),
         nilaiKey: lampiran.length > 0 ? (Object.keys(lampiran[0]).find(k => k.toLowerCase().includes("nilai") || k.toLowerCase().includes("harga")) || "") : "",
