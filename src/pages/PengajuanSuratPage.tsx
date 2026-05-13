@@ -451,7 +451,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         total_nilai: parsedTotalNilai,
         kode_barang_list: parsedKodeBarang as any,
         tembusan: tembusan as any,
-        data_otorisasi: { nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis, lampiran_data: parsedRows } as any,
+        data_otorisasi: { nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis, lampiran_data: parsedRows, lampiran_headers: parsedHeaders } as any,
         status: "Selesai",
       });
       if (insertErr) throw insertErr;
@@ -679,6 +679,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: () => void; tenantSettings?: any }) {
   const ot = arc.data_otorisasi || {};
   const lampiran: any[] = ot.lampiran_data || [];
+  const savedHeaders: string[] = ot.lampiran_headers || [];
   const tmb: string[] = (arc.tembusan || []).filter((t: string) => t?.trim());
   const tglSurat = arc.tanggal_surat ? new Date(arc.tanggal_surat).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
   const tglPen = arc.tanggal_penelusuran ? new Date(arc.tanggal_penelusuran).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
@@ -719,7 +720,7 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: ()
         nomorSurat: arc.nomor_surat || "", tglSurat, tglPen,
         nama: ot.nama || "", nip: ot.nip || "", jabatan: ot.jabatan || "",
         tembusan: tmb,
-        headers: lampiran.length > 0 ? Object.keys(lampiran[0]).filter(k => k.toLowerCase() !== "no") : [],
+        headers: savedHeaders.length > 0 ? savedHeaders : (lampiran.length > 0 ? Object.keys(lampiran[0]).filter(k => k.toLowerCase() !== "no") : []),
         rows: lampiran,
         totalNilai: Number(arc.total_nilai || 0),
         nilaiKey: lampiran.length > 0 ? (Object.keys(lampiran[0]).find(k => k.toLowerCase().includes("nilai") || k.toLowerCase().includes("harga")) || "") : "",
