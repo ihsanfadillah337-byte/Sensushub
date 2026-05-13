@@ -17,9 +17,9 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
     dinas_name: "",
     dinas_address: "",
     dinas_contact: "",
-    font_size_pemda: 32,
-    font_size_dinas: 22,
-    font_size_address: 18,
+    font_size_pemda: 28,
+    font_size_dinas: 20,
+    font_size_address: 14,
     margin_top: 60,
   });
 
@@ -60,9 +60,9 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
         dinas_name: settings.dinas_name || "NAMA DINAS / INSTANSI",
         dinas_address: settings.dinas_address || "Alamat Lengkap Instansi",
         dinas_contact: settings.dinas_contact || "Kontak Instansi (Email/Telepon)",
-        font_size_pemda: settings.font_size_pemda || 32,
-        font_size_dinas: settings.font_size_dinas || 22,
-        font_size_address: settings.font_size_address || 18,
+        font_size_pemda: settings.font_size_pemda || 28,
+        font_size_dinas: settings.font_size_dinas || 20,
+        font_size_address: settings.font_size_address || 14,
         margin_top: settings.margin_top || 60,
       };
 
