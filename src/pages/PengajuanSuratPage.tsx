@@ -317,18 +317,19 @@ export default function PengajuanSuratPage() {
         <WizardDialog
           open={wizardOpen}
           onClose={() => { setWizardOpen(false); queryClient.invalidateQueries({ queryKey: ["document-archives"] }); }}
+          tenantSettings={tenantSettings}
         />
       )}
 
       {reprintArc && (
-        <ReprintDialog arc={reprintArc} onClose={() => setReprintArc(null)} />
+        <ReprintDialog arc={reprintArc} onClose={() => setReprintArc(null)} tenantSettings={tenantSettings} />
       )}
     </div>
   );
 }
 
 // ─── Wizard Dialog ──────────────────────────────────────
-function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClose: () => void; tenantSettings?: any }) {
   const { companyId } = useAuth();
   const { masterKib } = useCustomColumns();
   const queryClient = useQueryClient();
@@ -661,7 +662,7 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
 }
 
 // ─── Reprint Dialog ─────────────────────────────────────
-function ReprintDialog({ arc, onClose }: { arc: any; onClose: () => void }) {
+function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: () => void; tenantSettings?: any }) {
   const ot = arc.data_otorisasi || {};
   const lampiran: any[] = ot.lampiran_data || [];
   const tmb: string[] = (arc.tembusan || []).filter((t: string) => t?.trim());
