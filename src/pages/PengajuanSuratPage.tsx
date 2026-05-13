@@ -61,23 +61,23 @@ async function generatePDF(page1Id: string, page2Id: string, filename: string) {
 
 // ─── Shared PDF Inline Styles ───────────────────────────
 const S = {
-  wrap1: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "900px", fontFamily: "'Times New Roman', Times, serif", color: "#000", background: "#fff" },
+  wrap1: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "900px", fontFamily: "Arial, sans-serif", color: "#000", background: "#fff" },
   page1: { width: "900px", minHeight: "1300px", padding: "60px", backgroundColor: "#fff", color: "#000", fontSize: "22px", lineHeight: "1.6" as const },
-  kopBox: { display: "flex", alignItems: "center", gap: "20px", borderBottom: "5px solid #000", paddingBottom: "16px", marginBottom: "30px" },
-  kopLogo: { width: "80px", height: "80px", border: "1px solid #ccc", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#999", flexShrink: 0 },
-  kopTitle: { fontWeight: "bold" as const, fontSize: "32px", letterSpacing: "1.5px" },
+  kopBox: { display: "flex", alignItems: "center", gap: "20px", borderBottom: "4px solid #000", paddingBottom: "12px" },
+  kopLogo: { width: "100px", flexShrink: 0 },
+  kopTitle: { fontWeight: "bold" as const, fontSize: "32px", letterSpacing: "1px" },
   kopSub: { fontWeight: "bold" as const, fontSize: "22px" },
-  kopAddr: { fontSize: "18px", marginTop: "2px" },
+  kopAddr: { fontSize: "18px", marginTop: "4px" },
   judul: { fontWeight: "bold" as const, textDecoration: "underline" as const, fontSize: "24px", textAlign: "center" as const },
   nomor: { fontSize: "22px", marginTop: "6px", textAlign: "center" as const },
   para: { textAlign: "justify" as const, marginBottom: "24px", fontSize: "22px", lineHeight: "1.6" },
-  paraIndent: { textAlign: "justify" as const, marginBottom: "24px", fontSize: "22px", lineHeight: "1.6", textIndent: "48px" },
-  idTable: { marginLeft: "48px", marginBottom: "24px", fontSize: "22px" },
-  idTd: { paddingRight: "20px", verticalAlign: "top" as const, fontSize: "22px" },
+  paraIndent: { textAlign: "justify" as const, marginBottom: "24px", fontSize: "22px", lineHeight: "1.6", textIndent: "30px" },
+  idTable: { marginLeft: "30px", marginBottom: "24px", fontSize: "22px" },
+  idTd: { paddingRight: "24px", verticalAlign: "top" as const, fontSize: "22px" },
   signBlock: { display: "flex", justifyContent: "flex-end", marginBottom: "60px" },
-  signInner: { textAlign: "center" as const, width: "360px", fontSize: "20px", lineHeight: "1.5" },
+  signInner: { textAlign: "center" as const, width: "420px", fontSize: "20px", lineHeight: "1.5" },
   tembusanBox: { fontSize: "20px", lineHeight: "1.5", marginTop: "20px" },
-  wrap2: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "1400px", fontFamily: "'Times New Roman', Times, serif", color: "#000", background: "#fff" },
+  wrap2: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "1400px", fontFamily: "Arial, sans-serif", color: "#000", background: "#fff" },
   page2: { width: "1400px", minHeight: "900px", padding: "60px", backgroundColor: "#fff", color: "#000" },
   p2Header: { marginBottom: "12px", fontSize: "18px" },
   p2Title: { fontWeight: "bold" as const, textAlign: "center" as const, fontSize: "22px", marginBottom: "6px" },
@@ -86,7 +86,7 @@ const S = {
   th: { border: "1px solid #000", padding: "16px 12px", fontWeight: "bold" as const, verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "16px" },
   td: { border: "1px solid #000", padding: "16px 12px", verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "16px" },
   p2Sign: { display: "flex", justifyContent: "flex-end", marginTop: "30px" },
-  p2SignInner: { textAlign: "center" as const, fontSize: "18px", width: "320px", lineHeight: "1.5" },
+  p2SignInner: { textAlign: "center" as const, fontSize: "18px", width: "360px", lineHeight: "1.5" },
 };
 
 const DEFAULT_SETTINGS = {
@@ -115,7 +115,9 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
       <div style={S.wrap1}>
         <div id={id1} style={{ ...S.page1, paddingTop: `${st.margin_top}px` }}>
           <div style={S.kopBox}>
-            <div style={S.kopLogo}>LOGO</div>
+            <div style={S.kopLogo}>
+              <img src="/logo-bandung.png" alt="Logo" style={{ width: "100%", height: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
+            </div>
             <div style={{ textAlign: "center", flex: 1 }}>
               <p style={{ ...S.kopTitle, fontSize: `${st.font_size_pemda}px` }}>{st.pemda_name}</p>
               <p style={{ ...S.kopSub, fontSize: `${st.font_size_dinas}px` }}>{st.dinas_name}</p>
@@ -123,6 +125,8 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
               <p style={{ fontSize: `${st.font_size_address}px` }}>{st.dinas_contact}</p>
             </div>
           </div>
+          <div style={{ borderBottom: "1px solid #000", marginTop: "2px", marginBottom: "30px" }} />
+
           <div style={{ textAlign: "center", marginBottom: "30px" }}>
             <p style={S.judul}>SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
             <p style={S.nomor}>Nomor : {nomorSurat}</p>
@@ -139,15 +143,17 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
           <div style={S.signBlock}>
             <div style={S.signInner}>
               <p>Soreang, {tglSurat}</p>
-              <p style={{ marginTop: "6px" }}>{jabatan},</p>
-              <p>Selaku Pengguna BMD,</p>
+              <p style={{ marginTop: "6px" }}>{jabatan?.includes(",") ? jabatan.split(",")[0] + "," : jabatan}</p>
+              {jabatan?.includes(",") && <p>{jabatan.split(",").slice(1).join(",").trim()}</p>}
               <div style={{ height: "120px" }} />
-              <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{(nama || "").toUpperCase()}</p>
+              <div style={{ display: "inline-block", borderBottom: "2px solid #000", paddingBottom: "2px", fontWeight: "bold", marginBottom: "4px" }}>
+                {(nama || "").toUpperCase()}
+              </div>
               <p>Nip. {nip}</p>
             </div>
           </div>
           <div style={S.tembusanBox}>
-            <p><strong><u>Tembusan</u></strong>, Kepada Yth :</p>
+            <p><strong>Tembusan</strong>, Kepada Yth :</p>
             <ol style={{ listStyleType: "decimal", paddingLeft: "24px", marginTop: "6px" }}>
               {tembusan.filter(t => t.trim()).map((t, i) => <li key={i} style={{ marginBottom: "4px" }}>{t};</li>)}
             </ol>
@@ -190,10 +196,13 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
             </table>
             <div style={S.p2Sign}>
               <div style={S.p2SignInner}>
-                <p>Mengetahui,</p>
-                <p>{jabatan},</p>
-                <div style={{ height: "100px" }} />
-                <p style={{ fontWeight: "bold", textDecoration: "underline" }}>{(nama || "").toUpperCase()}</p>
+                <p>Soreang, {tglSurat}</p>
+                <p style={{ marginTop: "6px" }}>{jabatan?.includes(",") ? jabatan.split(",")[0] + "," : jabatan}</p>
+                {jabatan?.includes(",") && <p>{jabatan.split(",").slice(1).join(",").trim()}</p>}
+                <div style={{ height: "120px" }} />
+                <div style={{ display: "inline-block", borderBottom: "2px solid #000", paddingBottom: "2px", fontWeight: "bold", marginBottom: "4px" }}>
+                  {(nama || "").toUpperCase()}
+                </div>
                 <p>Nip. {nip}</p>
               </div>
             </div>
