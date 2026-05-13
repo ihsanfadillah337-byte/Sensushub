@@ -64,7 +64,7 @@ const S = {
   wrap1: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "900px", fontFamily: "Arial, sans-serif", color: "#000", background: "#fff" },
   page1: { width: "900px", minHeight: "1300px", padding: "60px", backgroundColor: "#fff", color: "#000", fontSize: "18px", lineHeight: "1.6" as const },
   kopBox: { display: "flex", alignItems: "center", gap: "20px", borderBottom: "4px solid #000", paddingBottom: "12px" },
-  kopLogo: { width: "100px", flexShrink: 0 },
+  kopLogo: { width: "130px", flexShrink: 0 },
   kopTitle: { fontWeight: "bold" as const, fontSize: "28px", letterSpacing: "1px" },
   kopSub: { fontWeight: "bold" as const, fontSize: "20px" },
   kopAddr: { fontSize: "14px", marginTop: "4px" },
@@ -134,7 +134,7 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
           <p style={S.paraIndent}>Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPen}</strong>, yang bertanda tangan di bawah ini :</p>
           <table style={S.idTable}><tbody>
             <tr><td style={S.idTd}>Nama</td><td style={{ paddingRight: "10px" }}>:</td><td>{nama}</td></tr>
-            <tr><td style={S.idTd}>Nip</td><td style={{ paddingRight: "10px" }}>:</td><td>{nip}</td></tr>
+            <tr><td style={S.idTd}>NIP</td><td style={{ paddingRight: "10px" }}>:</td><td>{nip}</td></tr>
             <tr><td style={S.idTd}>Jabatan</td><td style={{ paddingRight: "10px" }}>:</td><td>{jabatan}</td></tr>
           </tbody></table>
           <p style={S.para}>Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.</p>
@@ -149,7 +149,7 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
               <div style={{ display: "inline-block", borderBottom: "2px solid #000", paddingBottom: "2px", fontWeight: "bold", marginBottom: "4px" }}>
                 {(nama || "").toUpperCase()}
               </div>
-              <p>Nip. {nip}</p>
+              <p>NIP. {nip}</p>
             </div>
           </div>
           <div style={S.tembusanBox}>
@@ -203,7 +203,7 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
                 <div style={{ display: "inline-block", borderBottom: "2px solid #000", paddingBottom: "2px", fontWeight: "bold", marginBottom: "4px" }}>
                   {(nama || "").toUpperCase()}
                 </div>
-                <p>Nip. {nip}</p>
+                <p>NIP. {nip}</p>
               </div>
             </div>
           </div>
