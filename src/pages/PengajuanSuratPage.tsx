@@ -153,17 +153,15 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
             </div>
           </div>
           <div style={S.tembusanBox}>
-            <p><strong>Tembusan</strong>, Kepada Yth :</p>
-            <table style={{ borderCollapse: "collapse", border: "none", marginTop: "6px" }}>
-              <tbody>
-                {tembusan.filter(t => t.trim()).map((t, i) => (
-                  <tr key={i}>
-                    <td style={{ verticalAlign: "top", width: "24px", paddingBottom: "4px" }}>{i + 1}.</td>
-                    <td style={{ verticalAlign: "top", paddingBottom: "4px" }}>{t};</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <p style={{ marginBottom: "6px" }}><strong>Tembusan</strong>, Kepada Yth :</p>
+            <div>
+              {tembusan.filter(t => t.trim()).map((t, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", marginBottom: "4px" }}>
+                  <div style={{ width: "24px", flexShrink: 0, paddingTop: "1px" }}>{i + 1}.</div>
+                  <div style={{ flex: 1, paddingTop: "1px" }}>{t};</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
