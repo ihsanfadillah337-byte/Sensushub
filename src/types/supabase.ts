@@ -26,6 +26,21 @@ export interface CompanyUpdate {
   name?: string;
 }
 
+export interface TenantSettings {
+  id: string;
+  company_id: string;
+  pemda_name: string;
+  dinas_name: string;
+  dinas_address: string;
+  dinas_contact: string;
+  font_size_pemda: number;
+  font_size_dinas: number;
+  font_size_address: number;
+  margin_top: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // Tipe untuk custom_data JSONB - mendukung dynamic fields
 export type CustomData = Record<string, string | number | boolean | null>;
 

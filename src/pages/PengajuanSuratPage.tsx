@@ -89,25 +89,38 @@ const S = {
   p2SignInner: { textAlign: "center" as const, fontSize: "18px", width: "320px", lineHeight: "1.5" },
 };
 
+const DEFAULT_SETTINGS = {
+  pemda_name: "PEMERINTAH KABUPATEN BANDUNG",
+  dinas_name: "DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN",
+  dinas_address: "Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,",
+  dinas_contact: "E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id",
+  font_size_pemda: 32,
+  font_size_dinas: 22,
+  font_size_address: 18,
+  margin_top: 60,
+};
+
 // ─── Reusable Off-Screen PDF Pages ──────────────────────
-function PdfPages({ id1, id2, data }: {
+function PdfPages({ id1, id2, data, tenantSettings }: {
   id1: string; id2: string;
   data: { nomorSurat: string; tglSurat: string; tglPen: string; nama: string; nip: string; jabatan: string; tembusan: string[]; headers: string[]; rows: any[]; totalNilai: number; nilaiKey: string };
+  tenantSettings?: any;
 }) {
   const { nomorSurat, tglSurat, tglPen, nama, nip, jabatan, tembusan, headers, rows, totalNilai, nilaiKey } = data;
+  const st = { ...DEFAULT_SETTINGS, ...(tenantSettings || {}) };
   // Determine which column is the "nilai" column for right-align + total row
   const nilaiIdx = headers.findIndex(h => h === nilaiKey);
   return (
     <>
       <div style={S.wrap1}>
-        <div id={id1} style={S.page1}>
+        <div id={id1} style={{ ...S.page1, paddingTop: `${st.margin_top}px` }}>
           <div style={S.kopBox}>
             <div style={S.kopLogo}>LOGO</div>
             <div style={{ textAlign: "center", flex: 1 }}>
-              <p style={S.kopTitle}>PEMERINTAH KABUPATEN BANDUNG</p>
-              <p style={S.kopSub}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
-              <p style={S.kopAddr}>Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung Provinsi Jawa Barat,</p>
-              <p style={{ fontSize: "18px" }}>E-mail : disperkimtan@bandungkab.go.id Website : www.bandungkab.go.id</p>
+              <p style={{ ...S.kopTitle, fontSize: `${st.font_size_pemda}px` }}>{st.pemda_name}</p>
+              <p style={{ ...S.kopSub, fontSize: `${st.font_size_dinas}px` }}>{st.dinas_name}</p>
+              <p style={{ ...S.kopAddr, fontSize: `${st.font_size_address}px` }}>{st.dinas_address}</p>
+              <p style={{ fontSize: `${st.font_size_address}px` }}>{st.dinas_contact}</p>
             </div>
           </div>
           <div style={{ textAlign: "center", marginBottom: "30px" }}>
@@ -143,14 +156,14 @@ function PdfPages({ id1, id2, data }: {
       </div>
       {rows.length > 0 && (
         <div style={S.wrap2}>
-          <div id={id2} style={S.page2}>
+          <div id={id2} style={{ ...S.page2, paddingTop: `${st.margin_top}px` }}>
             <div style={S.p2Header}>
               <p>Lampiran I (Rubah Kondisi BMD)</p>
               <p>Nomor : {nomorSurat}</p>
               <p>Tanggal : {tglSurat}</p>
             </div>
             <p style={S.p2Title}>DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
-            <p style={S.p2Sub}>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</p>
+            <p style={{ ...S.p2Sub, fontSize: `${st.font_size_dinas}px` }}>{st.dinas_name}</p>
             <table style={S.tbl}>
               <thead><tr>
                 <th style={{ ...S.th, textAlign: "center", width: "40px" }}>No</th>
@@ -206,6 +219,20 @@ export default function PengajuanSuratPage() {
         .select("*")
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  const { data: tenantSettings } = useQuery({
+    queryKey: ["tenant-settings", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tenant_settings")
+        .select("*")
+        .eq("company_id", companyId!)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -609,7 +636,7 @@ function WizardDialog({ open, onClose }: { open: boolean; onClose: () => void })
             nomorSurat, tglSurat: tglSuratFormatted, tglPen: tglPenelusuranFormatted,
             nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis,
             tembusan, headers: parsedHeaders, rows: parsedRows, totalNilai: parsedTotalNilai, nilaiKey: parsedNilaiKey,
-          }} />
+          }} tenantSettings={tenantSettings} />
         )}
 
         {/* Navigation */}
@@ -681,7 +708,7 @@ function ReprintDialog({ arc, onClose }: { arc: any; onClose: () => void }) {
         rows: lampiran,
         totalNilai: Number(arc.total_nilai || 0),
         nilaiKey: lampiran.length > 0 ? (Object.keys(lampiran[0]).find(k => k.toLowerCase().includes("nilai") || k.toLowerCase().includes("harga")) || "") : "",
-      }} />
+      }} tenantSettings={tenantSettings} />
     </Dialog>
   );
 }

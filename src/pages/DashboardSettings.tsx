@@ -15,6 +15,7 @@ import { useCustomColumns, type CodedOption, type CustomColumn, type TreeNode } 
 import MasterDataSection from "@/components/settings/MasterDataSection";
 import CodeBuilder from "@/components/settings/CodeBuilder";
 import TreeBuilder from "@/components/settings/TreeBuilder";
+import LetterheadSettings from "@/components/settings/LetterheadSettings";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
@@ -295,6 +296,21 @@ export default function DashboardSettings() {
 
       <MasterDataSection title="Master Divisi / Satuan Kerja" icon={<Building2 className="h-4 w-4 text-primary" />} items={masterDivisi} setItems={setMasterDivisi} labelPlaceholder="cth: Bagian Umum" codePlaceholder="cth: 01" />
       <MasterDataSection title="Master KIB" icon={<FolderOpen className="h-4 w-4 text-primary" />} items={masterKib} setItems={setMasterKib} labelPlaceholder="cth: Peralatan dan Mesin" codePlaceholder="cth: 02" onEditCode={(kibLabel) => setCodeBuilderKib(kibLabel)} />
+
+      {/* Letterhead / PDF Settings */}
+      <section className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden">
+        <div className="border-b border-border bg-muted/20 px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground tracking-tight">Kop Surat PDF</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Konfigurasi identitas instansi untuk dokumen cetak (PDF).
+            </p>
+          </div>
+        </div>
+        <div className="p-6">
+          <LetterheadSettings isLocked={isLocked} />
+        </div>
+      </section>
 
       {/* Custom Columns per KIB */}
       <div className="rounded-lg border border-border bg-card">
