@@ -651,6 +651,7 @@ export default function DashboardReports() {
                   <SelectContent>
                     <SelectItem value="Diperbaiki">Diperbaiki</SelectItem>
                     <SelectItem value="Diganti">Diganti</SelectItem>
+                    <SelectItem value="Diusulkan Rubah Kondisi (Rusak Berat)">Diusulkan Rubah Kondisi (Rusak Berat)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

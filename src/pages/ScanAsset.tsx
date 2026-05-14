@@ -220,6 +220,11 @@ export default function ScanAsset() {
       return getKondisiStyle(kondisi);
     }
 
+    const statusUsulan = cd?.["status_usulan"] ? String(cd["status_usulan"]) : "";
+    if (statusUsulan === "Menunggu Update SIMDA" || kondisi === "Rusak Berat") {
+      return { bg: "bg-warning/10", color: "text-warning", border: "border-warning/30", label: "Diusulkan Rubah Kondisi" };
+    }
+
     // If there are open tickets
     if (openTickets && openTickets.length > 0) {
       return getKondisiStyle("Dalam Perbaikan");
@@ -286,6 +291,9 @@ export default function ScanAsset() {
     : null;
   const statusAset = assetCd?.["status_aset"] ? String(assetCd["status_aset"]) : "";
   const isUsulHapus = statusAset === "Usul Hapus" || statusAset === "Dihapuskan";
+  const statusUsulan = assetCd?.["status_usulan"] ? String(assetCd["status_usulan"]) : "";
+  const kondisiAset = getKondisi(assetCd as any);
+  const isUsulRusakBerat = statusUsulan === "Menunggu Update SIMDA" || kondisiAset === "Rusak Berat";
 
   return (
     <div className="min-h-screen bg-background">
@@ -299,6 +307,19 @@ export default function ScanAsset() {
               <p className="text-sm font-semibold text-destructive">Aset Dalam Proses Penghapusan</p>
               <p className="text-xs text-destructive/80 mt-0.5">
                 Aset ini telah diusulkan untuk dihapuskan dari inventaris. Pelaporan kendala tidak tersedia.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Usul Rubah Kondisi Warning Banner */}
+        {!isUsulHapus && isUsulRusakBerat && (
+          <div className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 flex items-start gap-3">
+            <ShieldAlert className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-warning">Diusulkan Rubah Kondisi (Rusak Berat)</p>
+              <p className="text-xs text-warning/80 mt-0.5">
+                Aset ini sedang dalam proses perubahan status/penghapusan. Mohon untuk tidak digunakan.
               </p>
             </div>
           </div>

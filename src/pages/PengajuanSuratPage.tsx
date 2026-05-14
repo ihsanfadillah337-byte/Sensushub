@@ -464,12 +464,28 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
           .in("kode_aset", parsedKodeBarang);
 
         if (matchedAssets && matchedAssets.length > 0) {
+          const matchedAssetIds: string[] = [];
           for (const asset of matchedAssets) {
+            matchedAssetIds.push(asset.id);
             const cd = (typeof asset.custom_data === "object" && asset.custom_data) ? asset.custom_data as Record<string, any> : {};
             const newCd = { ...cd, status_usulan: "Menunggu Update SIMDA" };
             await supabase.from("assets").update({ custom_data: newCd }).eq("id", asset.id);
           }
           console.log(`[TutupPeriode] Updated ${matchedAssets.length} assets.`);
+
+          // Auto-close public reports (Task 2)
+          if (matchedAssetIds.length > 0) {
+            const { error: reportsErr } = await supabase
+              .from("asset_reports")
+              .update({
+                status: "Selesai",
+                catatan_admin: "Otomatis: Diusulkan Rubah Kondisi (Rusak Berat)"
+              } as any)
+              .in("asset_id", matchedAssetIds)
+              .in("status", ["Menunggu", "Diproses"]);
+              
+            if (reportsErr) console.error("[TutupPeriode] Gagal menutup laporan publik:", reportsErr);
+          }
         }
       }
 
