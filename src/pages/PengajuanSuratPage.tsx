@@ -429,10 +429,21 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         const kodeList: string[] = [];
         let total = 0;
 
-        // Filter out TOTAL row
+        // Filter out TOTAL row and sanitize Nilai
         const dataRows = json.filter(row => {
           const namaVal = String(row["Nama Barang"] || row["nama_barang"] || "");
           return !namaVal.toUpperCase().includes("TOTAL");
+        }).map(row => {
+          if (nilaiKey && row[nilaiKey] !== undefined && row[nilaiKey] !== null) {
+            let nilai = row[nilaiKey];
+            if (typeof nilai === "string") {
+              // Jika string, hapus titik pemisah ribuan sebelum diubah jadi number
+              // Tangani juga kalau ada koma desimal (contoh: 750.000,00 -> 750000)
+              const cleanStr = nilai.split(",")[0].replace(/\./g, "").replace(/[^0-9]/g, "");
+              row[nilaiKey] = parseInt(cleanStr, 10) || 0;
+            }
+          }
+          return row;
         });
 
         // Build header list: skip "No" column from Excel (we auto-generate it)
