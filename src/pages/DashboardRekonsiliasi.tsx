@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Inbox, ClipboardCheck, Scale } from "lucide-react";
 import DashboardReports from "./DashboardReports";
 import DashboardCensus from "./DashboardCensus";
@@ -13,7 +14,23 @@ const mainTabs = [
 type TabKey = (typeof mainTabs)[number]["key"];
 
 export default function DashboardRekonsiliasi() {
-  const [activeTab, setActiveTab] = useState<TabKey>("inbox");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const defaultTab = (searchParams.get("tab") as TabKey) || "inbox";
+  const initialTab = mainTabs.some(t => t.key === defaultTab) ? defaultTab : "inbox";
+  
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab") as TabKey;
+    if (tab && mainTabs.some(t => t.key === tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (key: TabKey) => {
+    setActiveTab(key);
+    setSearchParams({ tab: key }, { replace: true });
+  };
 
   return (
     <div className="space-y-6">
@@ -37,7 +54,7 @@ export default function DashboardRekonsiliasi() {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => handleTabChange(tab.key)}
                 className={`relative flex items-center gap-2 px-4 sm:px-5 py-3 text-sm font-medium transition-colors
                   ${isActive
                     ? "text-primary"

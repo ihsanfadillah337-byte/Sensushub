@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +50,7 @@ function formatTanggal(iso: string | null): string {
 // ─── Component ──────────────────────────────────────────
 export default function DashboardCensus() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -664,7 +665,7 @@ export default function DashboardCensus() {
       </Dialog>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={searchParams.get("sub") === "list" ? "list" : "overview"} onValueChange={(val) => setSearchParams(prev => { prev.set("sub", val); return prev; })} className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="overview" className="gap-1.5">
             <BarChart3 className="h-4 w-4" />

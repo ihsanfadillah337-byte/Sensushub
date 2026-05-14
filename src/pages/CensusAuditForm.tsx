@@ -7,7 +7,7 @@ import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import {
   ClipboardCheck, ArrowLeft, MapPin, Tag, Building2, Camera,
-  Loader2, PackageX, CheckCircle2, MapPinned, AlertTriangle, ShieldAlert
+  Loader2, PackageX, CheckCircle2, MapPinned, AlertTriangle, ShieldAlert, PartyPopper
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +76,8 @@ export default function CensusAuditForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [revisionMode, setRevisionMode] = useState(false);
+  const [findingNext, setFindingNext] = useState(false);
+  const [allDone, setAllDone] = useState(false);
 
   // Photo state (native camera capture)
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
@@ -118,7 +120,7 @@ export default function CensusAuditForm() {
   // Auto-request GPS on mount
   useEffect(() => {
     requestGPS();
-  }, []);
+  }, [id]);
 
   const requestGPS = () => {
     if (!navigator.geolocation) {
@@ -266,12 +268,74 @@ export default function CensusAuditForm() {
           Silakan hubungi Super Admin untuk mengaktifkan kembali periode sensus.
         </p>
         <div className="flex gap-3 mt-6">
-          <Button variant="outline" className="gap-1.5" onClick={() => navigate("/dashboard/census")}>
+          <Button variant="outline" className="gap-1.5" onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>
             <ArrowLeft className="h-4 w-4" />
             Kembali ke Sensus
           </Button>
           <Button variant="outline" className="gap-1.5" onClick={() => navigate(`/scan/${asset.id}`)}>
             Lihat Profil Aset
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleNextAudit = async () => {
+    if (!asset?.company_id) return;
+    setFindingNext(true);
+    try {
+      const { data: companyAssets } = await supabase
+        .from("assets")
+        .select("id")
+        .eq("company_id", asset.company_id);
+      
+      if (!companyAssets || companyAssets.length === 0) {
+        setAllDone(true);
+        return;
+      }
+      
+      const { data: audits } = await supabase
+        .from("asset_audits")
+        .select("asset_id");
+        
+      const auditedIds = new Set(audits?.map(a => a.asset_id) || []);
+      const nextAsset = companyAssets.find(a => !auditedIds.has(a.id));
+      
+      if (nextAsset) {
+        setSubmitted(false);
+        setKondisi("");
+        setKesesuaianKib("");
+        setRekomendasiAuditor("");
+        setLokasiAktual("");
+        setCatatan("");
+        setCapturedPhotos([]);
+        setGpsCoords(null);
+        navigate(`/dashboard/census/audit/${nextAsset.id}`, { replace: true });
+      } else {
+        setAllDone(true);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal mencari aset selanjutnya.");
+    } finally {
+      setFindingNext(false);
+    }
+  };
+
+  if (allDone) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+        <div className="h-20 w-20 rounded-2xl bg-chart-2/10 flex items-center justify-center mb-4">
+          <PartyPopper className="h-10 w-10 text-chart-2" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Selesai!</h2>
+        <p className="text-sm text-muted-foreground mt-2">
+          Semua aset pada periode ini telah selesai disensus!
+        </p>
+        <div className="flex gap-3 mt-6">
+          <Button className="gap-1.5" onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>
+            <ArrowLeft className="h-4 w-4" />
+            Kembali ke Dashboard Sensus
           </Button>
         </div>
       </div>
@@ -295,21 +359,12 @@ export default function CensusAuditForm() {
           </p>
         )}
         <div className="flex gap-3 mt-6">
-          <Button variant="outline" className="gap-1.5" onClick={() => navigate("/dashboard/census")}>
+          <Button variant="outline" className="gap-1.5" onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>
             <ArrowLeft className="h-4 w-4" />
             Kembali ke Daftar
           </Button>
-          <Button className="gap-1.5" onClick={() => {
-            setSubmitted(false);
-            setKondisi("");
-            setKesesuaianKib("");
-            setRekomendasiAuditor("");
-            setLokasiAktual("");
-            setCatatan("");
-            setCapturedPhotos([]);
-            setGpsCoords(null);
-            requestGPS();
-          }}>
+          <Button className="gap-1.5" disabled={findingNext} onClick={handleNextAudit}>
+            {findingNext && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
             Audit Aset Lain
           </Button>
         </div>
@@ -343,7 +398,7 @@ export default function CensusAuditForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => navigate("/dashboard/census")}>Kembali</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>Kembali</AlertDialogCancel>
             <AlertDialogAction onClick={() => setRevisionMode(true)} className="bg-primary text-primary-foreground">
               Revisi Data
             </AlertDialogAction>
