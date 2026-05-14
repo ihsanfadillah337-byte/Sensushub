@@ -195,7 +195,7 @@ export default function DashboardCensus() {
               toast.success("QR Code terbaca!");
               navigate(`/dashboard/census/audit/${match[1]}`);
             } else {
-              toast.error("Format QR tidak valid untuk SensusHub.");
+              toast.error("Format QR tidak valid untuk SIPPA-BMD.");
             }
           }, 100);
         },

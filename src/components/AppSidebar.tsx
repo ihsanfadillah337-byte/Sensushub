@@ -54,7 +54,7 @@ export function AppSidebar() {
               <Package className="h-4 w-4 text-sidebar-primary-foreground" />
             </div>
             <span className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">
-              SensusHub
+              SIPPA-BMD
             </span>
           </div>
         ) : (
