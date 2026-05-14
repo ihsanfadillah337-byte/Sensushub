@@ -29,7 +29,7 @@ import {
 import { toast } from "sonner";
 
 // ─── PDF Generator Helper ───────────────────────────────
-async function generatePDF(page1Id: string, page2Id: string, filename: string) {
+async function generatePDF(page1Id: string, page2BaseId: string, filename: string) {
   const el1 = document.getElementById(page1Id);
   if (!el1) throw new Error("Page 1 element not found");
 
@@ -44,16 +44,23 @@ async function generatePDF(page1Id: string, page2Id: string, filename: string) {
   const imgH1 = (canvas1.height * contentW) / canvas1.width;
   pdf.addImage(imgData1, "PNG", margin, margin, contentW, Math.min(imgH1, pH - margin * 2));
 
-  const el2 = document.getElementById(page2Id);
-  if (el2) {
+  // Loop through all landscape chunks
+  let i = 0;
+  while (true) {
+    const el2 = document.getElementById(`${page2BaseId}-${i}`);
+    if (!el2) break; // No more chunks
+    
     const canvas2 = await html2canvas(el2, { scale: 2, useCORS: true, logging: false });
     const imgData2 = canvas2.toDataURL("image/png");
+    
     // F4 Landscape: 330 x 215 mm
     pdf.addPage([215, 330], "landscape");
     const lW = 330, lH = 215;
     const cW2 = lW - margin * 2;
-    const imgH2 = (canvas2.height * cW2) / canvas2.width;
+    const imgH2 = (canvas2.height * cW2) / canvas2.width; // Kunci Proporsi
     pdf.addImage(imgData2, "PNG", margin, margin, cW2, Math.min(imgH2, lH - margin * 2));
+    
+    i++;
   }
 
   pdf.save(filename);
@@ -77,16 +84,16 @@ const S = {
   signBlock: { display: "flex", justifyContent: "flex-end", marginBottom: "60px" },
   signInner: { textAlign: "center" as const, width: "380px", fontSize: "18px", lineHeight: "1.5" },
   tembusanBox: { fontSize: "16px", lineHeight: "1.5", marginTop: "20px" },
-  wrap2: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "1400px", fontFamily: "Arial, sans-serif", color: "#000", background: "#fff" },
-  page2: { width: "1400px", minHeight: "900px", padding: "60px", backgroundColor: "#fff", color: "#000" },
-  p2Header: { marginBottom: "12px", fontSize: "14px" },
-  p2Title: { fontWeight: "bold" as const, textAlign: "center" as const, fontSize: "18px", marginBottom: "6px" },
-  p2Sub: { fontWeight: "bold" as const, textAlign: "center" as const, fontSize: "16px", marginBottom: "24px" },
-  tbl: { width: "100%", borderCollapse: "collapse" as const, tableLayout: "auto" as const, fontSize: "14px" },
-  th: { border: "1px solid #000", padding: "16px 12px", fontWeight: "bold" as const, verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "14px" },
-  td: { border: "1px solid #000", padding: "16px 12px", verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "14px" },
+  wrap2: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "330mm", fontFamily: "Arial, sans-serif", color: "#000", background: "#fff" },
+  page2: { width: "330mm", minHeight: "215mm", padding: "15mm", backgroundColor: "#fff", color: "#000", boxSizing: "border-box" as const },
+  p2Header: { marginBottom: "12px", fontSize: "12px", lineHeight: "1.15" },
+  p2Title: { fontWeight: "bold" as const, textAlign: "center" as const, fontSize: "13px", marginBottom: "4px", lineHeight: "1.15" },
+  p2Sub: { fontWeight: "bold" as const, textAlign: "center" as const, fontSize: "12px", marginBottom: "16px", lineHeight: "1.15" },
+  tbl: { width: "100%", borderCollapse: "collapse" as const, tableLayout: "auto" as const, fontSize: "11px", lineHeight: "1.15" },
+  th: { border: "1px solid #000", padding: "8px 4px", fontWeight: "bold" as const, verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "11px" },
+  td: { border: "1px solid #000", padding: "8px 4px", verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "11px" },
   p2Sign: { display: "flex", justifyContent: "flex-end", marginTop: "30px" },
-  p2SignInner: { textAlign: "center" as const, fontSize: "18px", width: "360px", lineHeight: "1.5" },
+  p2SignInner: { textAlign: "center" as const, fontSize: "12px", width: "300px", lineHeight: "1.15" },
 };
 
 const DEFAULT_SETTINGS = {
@@ -110,6 +117,13 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
   const st = { ...DEFAULT_SETTINGS, ...(tenantSettings || {}) };
   // Determine which column is the "nilai" column for right-align + total row
   const nilaiIdx = headers.findIndex(h => h === nilaiKey);
+  
+  // LOGIKA CHUNKING MULTI-PAGE
+  const MAX_ROWS_PER_PAGE = 10;
+  const chunks: any[][] = [];
+  for (let i = 0; i < rows.length; i += MAX_ROWS_PER_PAGE) {
+    chunks.push(rows.slice(i, i + MAX_ROWS_PER_PAGE));
+  }
   return (
     <>
       <div style={S.wrap1}>
@@ -164,53 +178,67 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
           </div>
         </div>
       </div>
-      {rows.length > 0 && (
+      {chunks.length > 0 && (
         <div style={S.wrap2}>
-          <div id={id2} style={{ ...S.page2, paddingTop: `${st.margin_top}px` }}>
-            <div style={S.p2Header}>
-              <p>Lampiran I (Rubah Kondisi BMD)</p>
-              <p>Nomor : {nomorSurat}</p>
-              <p>Tanggal : {tglSurat}</p>
-            </div>
-            <p style={S.p2Title}>DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
-            <p style={{ ...S.p2Sub, fontSize: `${st.font_size_dinas}px` }}>{st.dinas_name}</p>
-            <table style={S.tbl}>
-              <thead><tr>
-                <th style={{ ...S.th, textAlign: "center", width: "40px" }}>No</th>
-                {headers.map((h, hi) => (
-                  <th key={hi} style={{ ...S.th, ...(hi === nilaiIdx ? { textAlign: "right" } : {}) }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {rows.map((r: any, i: number) => (
-                  <tr key={i}>
-                    <td style={{ ...S.td, textAlign: "center" }}>{i + 1}</td>
-                    {headers.map((h, hi) => {
-                      const val = r[h] ?? "";
-                      const isNilai = hi === nilaiIdx;
-                      return <td key={hi} style={{ ...S.td, ...(isNilai ? { textAlign: "right" } : {}) }}>{isNilai && Number(val) > 0 ? Number(val).toLocaleString("id-ID") : String(val)}</td>;
-                    })}
-                  </tr>
-                ))}
-                <tr>
-                  <td colSpan={headers.length} style={{ ...S.td, fontWeight: "bold", textAlign: "right" }}>TOTAL</td>
-                  <td style={{ ...S.td, fontWeight: "bold", textAlign: "right" }}>{totalNilai.toLocaleString("id-ID")}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div style={S.p2Sign}>
-              <div style={S.p2SignInner}>
-                <p>Soreang, {tglSurat}</p>
-                <p style={{ marginTop: "6px" }}>{jabatan?.includes(",") ? jabatan.split(",")[0] + "," : jabatan}</p>
-                {jabatan?.includes(",") && <p>{jabatan.split(",").slice(1).join(",").trim()}</p>}
-                <div style={{ height: "120px" }} />
-                <div style={{ display: "inline-block", borderBottom: "2px solid #000", paddingBottom: "2px", fontWeight: "bold", marginBottom: "4px" }}>
-                  {(nama || "").toUpperCase()}
+          {chunks.map((chunkRows, chunkIndex) => {
+            const isLastChunk = chunkIndex === chunks.length - 1;
+            const globalOffset = chunkIndex * MAX_ROWS_PER_PAGE;
+            return (
+              <div key={chunkIndex} id={`${id2}-${chunkIndex}`} style={{ ...S.page2 }}>
+                <div style={S.p2Header}>
+                  <p>Lampiran I (Rubah Kondisi BMD)</p>
+                  <p>Nomor : {nomorSurat}</p>
+                  <p>Tanggal : {tglSurat}</p>
                 </div>
-                <p>NIP. {nip}</p>
+                <p style={S.p2Title}>DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
+                <p style={{ ...S.p2Sub }}>{st.dinas_name}</p>
+                <table style={S.tbl}>
+                  <thead><tr>
+                    <th style={{ ...S.th, textAlign: "center", width: "30px" }}>No</th>
+                    {headers.map((h, hi) => (
+                      <th key={hi} style={{ ...S.th, ...(hi === nilaiIdx ? { textAlign: "right", whiteSpace: "nowrap" } : {}) }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {chunkRows.map((r: any, i: number) => (
+                      <tr key={i}>
+                        <td style={{ ...S.td, textAlign: "center" }}>{globalOffset + i + 1}</td>
+                        {headers.map((h, hi) => {
+                          const val = r[h] ?? "";
+                          const isNilai = hi === nilaiIdx;
+                          return (
+                            <td key={hi} style={{ ...S.td, ...(isNilai ? { textAlign: "right", whiteSpace: "nowrap" } : {}) }}>
+                              {isNilai && Number(val) > 0 ? new Intl.NumberFormat('id-ID').format(Number(val)) : String(val)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                    {isLastChunk && (
+                      <tr>
+                        <td colSpan={headers.length} style={{ ...S.td, fontWeight: "bold", textAlign: "right", paddingRight: "12px" }}>TOTAL</td>
+                        <td style={{ ...S.td, fontWeight: "bold", textAlign: "right", whiteSpace: "nowrap" }}>{new Intl.NumberFormat('id-ID').format(totalNilai)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+                {isLastChunk && (
+                  <div style={S.p2Sign}>
+                    <div style={S.p2SignInner}>
+                      <p>Soreang, {tglSurat}</p>
+                      <p style={{ marginTop: "6px" }}>{jabatan?.includes(",") ? jabatan.split(",")[0] + "," : jabatan}</p>
+                      {jabatan?.includes(",") && <p>{jabatan.split(",").slice(1).join(",").trim()}</p>}
+                      <div style={{ height: "80px" }} />
+                      <div style={{ display: "inline-block", borderBottom: "2px solid #000", paddingBottom: "2px", fontWeight: "bold", marginBottom: "4px" }}>
+                        {(nama || "").toUpperCase()}
+                      </div>
+                      <p>NIP. {nip}</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       )}
     </>
