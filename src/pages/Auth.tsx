@@ -87,7 +87,14 @@ export default function Auth() {
           <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <Package className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">SIPPA-BMD</h1>
+          <div className="flex flex-col items-center gap-0.5">
+            <h1 className="text-2xl font-extrabold tracking-tight text-teal-800 dark:text-teal-300">
+              SIPPA-BMD
+            </h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight font-normal">
+              Inventarisasi, Pengawasan &amp; Pelaporan Aset BMD
+            </p>
+          </div>
           <p className="text-sm text-muted-foreground">
             {isLogin ? "Masuk ke akun Anda" : "Buat akun baru"}
           </p>

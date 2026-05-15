@@ -47,16 +47,21 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="border-r border-slate-200/70 dark:border-sidebar-border">
       <SidebarHeader className="p-4">
         {!collapsed ? (
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm shrink-0">
               <Package className="h-4 w-4 text-sidebar-primary-foreground" />
             </div>
-            <span className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">
-              SIPPA-BMD
-            </span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-base font-extrabold tracking-tight text-teal-800 dark:text-teal-300">
+                SIPPA-BMD
+              </span>
+              <span className="text-[9px] text-slate-500 dark:text-slate-400 leading-tight font-normal">
+                Inventarisasi, Pengawasan &amp; Pelaporan Aset BMD
+              </span>
+            </div>
           </div>
         ) : (
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm mx-auto">
