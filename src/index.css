@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -118,12 +120,14 @@
 
   html {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter numeric variants */
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "tnum" 1; /* tabular numbers for stats */
     /* Safe area for notched phones */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);

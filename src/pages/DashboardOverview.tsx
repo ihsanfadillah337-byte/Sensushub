@@ -15,14 +15,15 @@ import { getKondisi } from "@/lib/kondisi";
 import type { Json } from "@/integrations/supabase/types";
 
 const PIE_COLORS: Record<string, string> = {
-  "Baik": "#10b981",
+  "Baik": "#0d9488",
   "Rusak Ringan": "#f59e0b",
-  "Rusak Berat": "#f97316",
-  "Dalam Perbaikan": "#3b82f6",
+  "Rusak Berat": "#ef4444",
+  "Diusulkan Reklasifikasi (Rusak Berat)": "#f97316",
+  "Dalam Perbaikan": "#6366f1",
   "Usul Hapus": "#f43f5e",
   "Dihapuskan": "#94a3b8",
 };
-const BAR_COLORS = ["#3b82f6", "#6366f1", "#8b5cf6", "#06b6d4", "#14b8a6", "#f59e0b", "#f43f5e", "#ec4899"];
+const BAR_COLORS = ["#0d9488", "#14b8a6", "#2dd4bf", "#0891b2", "#6366f1", "#8b5cf6", "#f59e0b", "#f43f5e"];
 
 function formatRupiah(rawNum: number) {
   const num = Math.round(rawNum);
@@ -286,8 +287,8 @@ export default function DashboardOverview() {
               <AreaChart data={stats.trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradLaporan" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -297,7 +298,7 @@ export default function DashboardOverview() {
                   contentStyle={{ borderRadius: "0.75rem", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
                   formatter={(value: number) => [`${value} laporan`]}
                 />
-                <Area type="monotone" dataKey="laporan" stroke="#3b82f6" strokeWidth={2} fill="url(#gradLaporan)" />
+                <Area type="monotone" dataKey="laporan" stroke="#0d9488" strokeWidth={2} fill="url(#gradLaporan)" />
               </AreaChart>
             </ResponsiveContainer>
           )}

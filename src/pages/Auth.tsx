@@ -81,7 +81,8 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
+      <div className="w-full max-w-sm">
+        <div className="bg-card border border-border shadow-md rounded-2xl p-8 space-y-6">
         <div className="text-center space-y-2">
           <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <Package className="h-6 w-6 text-primary" />
@@ -143,6 +144,7 @@ export default function Auth() {
             {isLogin ? "Daftar" : "Masuk"}
           </button>
         </p>
+        </div>
       </div>
     </div>
   );
