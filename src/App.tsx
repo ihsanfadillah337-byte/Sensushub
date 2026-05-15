@@ -22,6 +22,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ScanAsset from "./pages/ScanAsset";
 import PengajuanSuratPage from "./pages/PengajuanSuratPage";
+import FinalisasiRekon from "./pages/FinalisasiRekon";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,11 @@ const App = () => (
               <Route path="pengajuan-surat" element={
                 <ProtectedRoute allowedRoles={['super_admin']}>
                   <PengajuanSuratPage />
+                </ProtectedRoute>
+              } />
+              <Route path="finalisasi-rekon" element={
+                <ProtectedRoute allowedRoles={['super_admin']}>
+                  <FinalisasiRekon />
                 </ProtectedRoute>
               } />
               <Route path="census/audit/:id" element={
