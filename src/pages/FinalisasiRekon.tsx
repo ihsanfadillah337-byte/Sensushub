@@ -199,7 +199,7 @@ export default function FinalisasiRekon() {
         <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
         <p className="text-sm text-orange-700 dark:text-orange-400 leading-relaxed">
           Halaman ini hanya menampilkan aset berstatus{" "}
-          <span className="font-semibold">🔶 Diusulkan Reklasifikasi (Rusak Berat)</span>. Pastikan Anda telah
+          <span className="font-semibold">Diusulkan Reklasifikasi (Rusak Berat)</span>. Pastikan Anda telah
           melakukan rekonsiliasi manual dengan pihak SIMDA sebelum memfinalisasi. Tindakan ini tidak dapat
           dibatalkan secara otomatis.
         </p>
