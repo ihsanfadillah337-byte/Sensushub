@@ -92,7 +92,7 @@ export default function Auth() {
               SIPPA-BMD
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight font-normal">
-              Inventarisasi, Pengawasan &amp; Pelaporan Aset BMD
+              Sistem Inventarisasi, Pengawasan &amp; Pelaporan Aset - Barang Milik Daerah
             </p>
           </div>
           <p className="text-sm text-muted-foreground">

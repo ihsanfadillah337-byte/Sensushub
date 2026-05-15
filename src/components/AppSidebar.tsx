@@ -47,7 +47,7 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-slate-200/70 dark:border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-r border-slate-200/70 bg-[#f0f9ff] dark:border-sidebar-border dark:bg-sidebar">
       <SidebarHeader className="p-4">
         {!collapsed ? (
           <div className="flex items-center gap-2.5">
@@ -59,7 +59,7 @@ export function AppSidebar() {
                 SIPPA-BMD
               </span>
               <span className="text-[9px] text-slate-500 dark:text-slate-400 leading-tight font-normal">
-                Inventarisasi, Pengawasan &amp; Pelaporan Aset BMD
+                Sistem Inventarisasi, Pengawasan &amp; Pelaporan Aset - Barang Milik Daerah
               </span>
             </div>
           </div>
