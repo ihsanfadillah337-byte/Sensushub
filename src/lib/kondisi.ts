@@ -3,6 +3,7 @@ export const KONDISI_MAP: Record<string, { label: string; color: string; bg: str
   "Baik": { label: "Baik", color: "text-chart-1", bg: "bg-chart-1/10", border: "border-chart-1/30" },
   "Rusak Ringan": { label: "Rusak Ringan", color: "text-warning", bg: "bg-warning/10", border: "border-warning/30" },
   "Rusak Berat": { label: "Rusak Berat", color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/30" },
+  "Diusulkan Reklasifikasi (Rusak Berat)": { label: "Usul Reklasifikasi", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
   "Dalam Perbaikan": { label: "Dalam Perbaikan", color: "text-chart-3", bg: "bg-chart-3/10", border: "border-chart-3/30" },
   "Unit Pengganti": { label: "Unit Pengganti", color: "text-chart-3", bg: "bg-chart-3/10", border: "border-chart-3/30" },
   "Usul Hapus": { label: "Usul Hapus", color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/30" },

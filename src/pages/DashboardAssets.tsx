@@ -415,6 +415,9 @@ export default function DashboardAssets() {
                           if (cd?.["status_usulan"] === "Menunggu Update SIMDA") {
                             return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">⏳ Menunggu SIMDA</Badge>;
                           }
+                          if (cd?.["Kondisi"] === "Diusulkan Reklasifikasi (Rusak Berat)") {
+                            return <Badge variant="outline" className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">🔶 Usul Reklasifikasi</Badge>;
+                          }
                           if (cd?.["status_aset"] === "Unit Pengganti") {
                             return <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">Pengganti</Badge>;
                           }

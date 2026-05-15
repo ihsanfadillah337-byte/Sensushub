@@ -507,7 +507,11 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
           for (const asset of matchedAssets) {
             matchedAssetIds.push(asset.id);
             const cd = (typeof asset.custom_data === "object" && asset.custom_data) ? asset.custom_data as Record<string, any> : {};
-            const newCd = { ...cd, status_usulan: "Menunggu Update SIMDA" };
+            const newCd = {
+              ...cd,
+              status_usulan: "Menunggu Update SIMDA",
+              Kondisi: "Diusulkan Reklasifikasi (Rusak Berat)",
+            };
             await supabase.from("assets").update({ custom_data: newCd }).eq("id", asset.id);
           }
           console.log(`[TutupPeriode] Updated ${matchedAssets.length} assets.`);
