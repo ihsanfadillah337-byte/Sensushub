@@ -289,7 +289,7 @@ export default function FinalisasiRekon() {
                         variant="outline"
                         className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30 text-[10px] px-1.5 py-0.5 leading-4 whitespace-nowrap"
                       >
-                        🔶 Usul Reklasifikasi
+                        Usul Reklasifikasi
                       </Badge>
                     </TableCell>
                   </TableRow>
