@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
-import { Plus, Eye, Trash2, Pencil, Package, Printer, Loader2, Search, X, FileSpreadsheet, FileText } from "lucide-react";
+import { Plus, Eye, Trash2, Pencil, Package, Printer, Loader2, Search, X, FileSpreadsheet, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,8 @@ export default function DashboardAssets() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterKategori, setFilterKategori] = useState("__all__");
   const [filterLokasi, setFilterLokasi] = useState("__all__");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
 
   // Single delete
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nama: string } | null>(null);
@@ -81,6 +83,29 @@ export default function DashboardAssets() {
       return true;
     });
   }, [assets, searchQuery, filterKategori, filterLokasi]);
+
+  // Pagination computed values — derived from filteredAssets
+  const totalItems = filteredAssets.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const indexOfFirstItem = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+  const indexOfLastItem = indexOfFirstItem + ITEMS_PER_PAGE;
+  const currentAssets = filteredAssets.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Page number list with ellipsis logic
+  const pageNumbers = useMemo(() => {
+    const pages: (number | "...")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (safeCurrentPage > 3) pages.push("...");
+      for (let i = Math.max(2, safeCurrentPage - 1); i <= Math.min(totalPages - 1, safeCurrentPage + 1); i++) pages.push(i);
+      if (safeCurrentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  }, [totalPages, safeCurrentPage]);
 
   const allSelected = filteredAssets.length > 0 && filteredAssets.every((a) => selectedIds.has(a.id));
   const someSelected = filteredAssets.some((a) => selectedIds.has(a.id)) && !allSelected;
@@ -271,7 +296,7 @@ export default function DashboardAssets() {
   }, [assets, selectedIds, companyName, getExportData]);
 
   const activeFilterCount = [searchQuery, filterKategori !== "__all__", filterLokasi !== "__all__"].filter(Boolean).length;
-  const clearFilters = () => { setSearchQuery(""); setFilterKategori("__all__"); setFilterLokasi("__all__"); };
+  const clearFilters = () => { setSearchQuery(""); setFilterKategori("__all__"); setFilterLokasi("__all__"); setCurrentPage(1); };
 
   return (
     <div className="space-y-6">
@@ -324,16 +349,16 @@ export default function DashboardAssets() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Cari nama aset..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+          <Input placeholder="Cari nama aset..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} className="pl-9" />
         </div>
-        <Select value={filterKategori} onValueChange={setFilterKategori}>
+        <Select value={filterKategori} onValueChange={(v) => { setFilterKategori(v); setCurrentPage(1); }}>
           <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Semua Kategori" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Semua Kategori</SelectItem>
             {kategoriOptions.map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={filterLokasi} onValueChange={setFilterLokasi}>
+        <Select value={filterLokasi} onValueChange={(v) => { setFilterLokasi(v); setCurrentPage(1); }}>
           <SelectTrigger className="w-full sm:w-[200px]"><SelectValue placeholder="Semua Lokasi" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Semua Lokasi</SelectItem>
@@ -378,7 +403,7 @@ export default function DashboardAssets() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAssets.map((asset) => (
+                {currentAssets.map((asset) => (
                   <TableRow key={asset.id} data-state={selectedIds.has(asset.id) ? "selected" : undefined}>
                     <TableCell><Checkbox checked={selectedIds.has(asset.id)} onCheckedChange={() => toggleOne(asset.id)} /></TableCell>
                     <TableCell className="font-mono text-xs sm:text-sm font-medium text-foreground max-w-[100px] truncate">{asset.kode_aset}</TableCell>
@@ -429,6 +454,65 @@ export default function DashboardAssets() {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {/* ── Pagination Footer ── */}
+        {!isLoading && totalItems > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/60">
+            {/* Left: info text */}
+            <p className="text-xs text-muted-foreground order-2 sm:order-1">
+              Menampilkan{" "}
+              <span className="font-medium text-foreground">{indexOfFirstItem + 1}–{Math.min(indexOfLastItem, totalItems)}</span>
+              {" "}dari{" "}
+              <span className="font-medium text-foreground">{totalItems}</span> aset
+            </p>
+
+            {/* Right: page navigator */}
+            <div className="flex items-center gap-1 order-1 sm:order-2">
+              {/* Prev */}
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safeCurrentPage === 1}
+                className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Halaman sebelumnya"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              {/* Page numbers */}
+              {pageNumbers.map((p, i) =>
+                p === "..." ? (
+                  <span key={`ellipsis-${i}`} className="h-8 w-8 flex items-center justify-center text-xs text-muted-foreground">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setCurrentPage(p as number)}
+                    className={`h-8 w-8 rounded-md text-xs font-medium transition-colors ${
+                      p === safeCurrentPage
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                    aria-label={`Halaman ${p}`}
+                    aria-current={p === safeCurrentPage ? "page" : undefined}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+
+              {/* Next */}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Halaman berikutnya"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
