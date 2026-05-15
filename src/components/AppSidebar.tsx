@@ -78,8 +78,8 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end
-                      className="rounded-lg transition-all duration-150 hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      className="rounded-lg transition-all duration-150 hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-accent-foreground"
+                      activeClassName="bg-teal-50 text-teal-700 font-semibold dark:bg-sidebar-accent dark:text-sidebar-accent-foreground"
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
