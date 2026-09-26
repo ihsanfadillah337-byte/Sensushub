@@ -33,9 +33,14 @@ interface OtorisasiAset {
   id?: string;
   kode_aset?: string;
   nama_aset?: string;
+  nama_barang?: string;
   kode_barang?: string;
   rekon_rekomendasi?: string;
   Kondisi?: string;
+  assetData?: {
+    nama_barang?: string;
+    nama_aset?: string;
+  };
 }
 
 function formatTanggal(iso: string | null): string {
@@ -57,43 +62,43 @@ function getJumlahAset(doc: DocumentArchiveRow): number {
   return 0;
 }
 
-function extractAssetIdsAndRekomendasi(doc: DocumentArchiveRow): Array<{ asset_id: string; rekomendasi: string }> {
-  const results: Array<{ asset_id: string; rekomendasi: string }> = [];
+function extractAssetKodeBarangAndRekomendasi(doc: DocumentArchiveRow): Array<{ kode_barang: string; rekomendasi: string }> {
+  const results: Array<{ kode_barang: string; rekomendasi: string }> = [];
   const seen = new Set<string>();
 
   // Source 1: data_otorisasi (paling lengkap)
   try {
     if (Array.isArray(doc.data_otorisasi)) {
       (doc.data_otorisasi as OtorisasiAset[]).forEach((item) => {
-        const id = item.asset_id || item.id || "";
-        if (id && !seen.has(id)) {
-          seen.add(id);
-          results.push({ asset_id: id, rekomendasi: item.rekon_rekomendasi || "" });
+        const kb = item.kode_barang || item.kode_aset || item.asset_id || item.id || "";
+        if (kb && !seen.has(kb)) {
+          seen.add(kb);
+          results.push({ kode_barang: kb, rekomendasi: item.rekon_rekomendasi || "" });
         }
       });
     } else if (typeof doc.data_otorisasi === "object" && doc.data_otorisasi !== null) {
       const obj = doc.data_otorisasi as any;
       if (Array.isArray(obj.assets)) {
         (obj.assets as OtorisasiAset[]).forEach((item) => {
-          const id = item.asset_id || item.id || "";
-          if (id && !seen.has(id)) {
-            seen.add(id);
-            results.push({ asset_id: id, rekomendasi: item.rekon_rekomendasi || "" });
+          const kb = item.kode_barang || item.kode_aset || item.asset_id || item.id || "";
+          if (kb && !seen.has(kb)) {
+            seen.add(kb);
+            results.push({ kode_barang: kb, rekomendasi: item.rekon_rekomendasi || "" });
           }
         });
       }
     }
   } catch {}
 
-  // Source 2: kode_barang_list (juga bisa berisi asset_id)
+  // Source 2: kode_barang_list
   try {
     if (Array.isArray(doc.kode_barang_list)) {
       (doc.kode_barang_list as any[]).forEach((item) => {
-        const id = typeof item === "string" ? item : (item.asset_id || item.id || "");
-        if (id && !seen.has(id)) {
-          seen.add(id);
+        const kb = typeof item === "string" ? item : (item.kode_barang || item.kode_aset || item.asset_id || item.id || "");
+        if (kb && !seen.has(kb)) {
+          seen.add(kb);
           const rekom = typeof item === "object" ? (item.rekon_rekomendasi || "") : "";
-          results.push({ asset_id: id, rekomendasi: rekom });
+          results.push({ kode_barang: kb, rekomendasi: rekom });
         }
       });
     }
@@ -157,37 +162,33 @@ export default function VerifikasiBKAD() {
     mutationFn: async (doc: DocumentArchiveRow) => {
       if (!user?.id) throw new Error("User tidak terautentikasi");
 
-      const assetList = extractAssetIdsAndRekomendasi(doc);
+      const assetList = extractAssetKodeBarangAndRekomendasi(doc);
       if (assetList.length === 0) throw new Error("Tidak ada aset yang bisa dieksekusi dalam dokumen ini.");
 
-      // Fetch asset one-by-one untuk dapatkan current custom_data
       const { data: assetRows, error: fetchErr } = await supabase
         .from("assets")
-        .select("id, custom_data")
-        .in("id", assetList.map(x => x.asset_id));
+        .select("kode_barang, custom_data")
+        .in("kode_barang", assetList.map(x => x.kode_barang));
 
       if (fetchErr) throw fetchErr;
 
       const timestamp = new Date().toISOString();
 
-      // Build bulk updates
       let updated = 0;
       for (const row of assetRows || []) {
-        const match = assetList.find(x => x.asset_id === row.id);
+        const match = assetList.find(x => x.kode_barang === (row as any).kode_barang);
         if (!match) continue;
 
         const cd = typeof row.custom_data === "object" && row.custom_data && !Array.isArray(row.custom_data)
           ? { ...(row.custom_data as Record<string, unknown>) }
           : {};
 
-        // FINAL EXECUTION — Master Kondisi diubah di sini saja
         const masterKondisi = rekomendasiToKondisi(match.rekomendasi || (cd.rekon_rekomendasi as string) || "");
         cd["Kondisi"] = masterKondisi;
         cd["status_rekon"] = "disetujui";
         cd["rekon_disetujui_at"] = timestamp;
         cd["rekon_disetujui_by"] = user.id;
 
-        // Juga pertahankan legacy field status_usulan agar sinkron
         if (!cd["status_usulan"]) {
           cd["status_usulan"] = match.rekomendasi || cd.rekon_rekomendasi || masterKondisi;
         }
@@ -195,8 +196,8 @@ export default function VerifikasiBKAD() {
         const { error: updErr } = await supabase
           .from("assets")
           .update({ custom_data: cd })
-          .eq("id", row.id);
-        if (updErr) throw new Error(`Gagal update aset ${row.id}: ${updErr.message}`);
+          .eq("kode_barang", (row as any).kode_barang);
+        if (updErr) throw new Error(`Gagal update aset ${(row as any).kode_barang}: ${updErr.message}`);
         updated++;
       }
 
@@ -238,14 +239,14 @@ export default function VerifikasiBKAD() {
       if (!user?.id) throw new Error("User tidak terautentikasi");
       if (!catatan.trim()) throw new Error("Catatan penolakan wajib diisi.");
 
-      const assetList = extractAssetIdsAndRekomendasi(doc);
+      const assetList = extractAssetKodeBarangAndRekomendasi(doc);
       const timestamp = new Date().toISOString();
 
       if (assetList.length > 0) {
         const { data: assetRows, error: fetchErr } = await supabase
           .from("assets")
-          .select("id, custom_data")
-          .in("id", assetList.map(x => x.asset_id));
+          .select("kode_barang, custom_data")
+          .in("kode_barang", assetList.map(x => x.kode_barang));
         if (fetchErr) throw fetchErr;
 
         for (const row of assetRows || []) {
@@ -253,7 +254,6 @@ export default function VerifikasiBKAD() {
             ? { ...(row.custom_data as Record<string, unknown>) }
             : {};
 
-          // MASTER KONDISI TIDAK DIUBAH — hanya tandai status_rekon=ditolak
           cd["status_rekon"] = "ditolak";
           cd["rekon_ditolak_at"] = timestamp;
           cd["rekon_ditolak_by"] = user.id;
@@ -262,8 +262,8 @@ export default function VerifikasiBKAD() {
           const { error: updErr } = await supabase
             .from("assets")
             .update({ custom_data: cd })
-            .eq("id", row.id);
-          if (updErr) throw new Error(`Gagal update status aset ${row.id}: ${updErr.message}`);
+            .eq("kode_barang", (row as any).kode_barang);
+          if (updErr) throw new Error(`Gagal update status aset ${(row as any).kode_barang}: ${updErr.message}`);
         }
       }
 
@@ -329,10 +329,15 @@ export default function VerifikasiBKAD() {
     try {
       if (Array.isArray(selectedDoc.kode_barang_list)) {
         (selectedDoc.kode_barang_list as any[]).forEach((kb) => {
-          if (typeof kb === "object" && kb && !list.find(l => l.kode_aset === kb.kode_aset || l.id === kb.id || l.asset_id === kb.asset_id)) {
-            list.push(kb as OtorisasiAset);
+          if (typeof kb === "object" && kb) {
+            const kbKey = kb.kode_barang || kb.kode_aset || kb.asset_id || kb.id || "";
+            if (!list.find(l => (l.kode_barang || l.kode_aset || l.asset_id || l.id || "") === kbKey)) {
+              list.push(kb as OtorisasiAset);
+            }
           } else if (typeof kb === "string") {
-            if (!list.find(l => l.kode_aset === kb || l.asset_id === kb)) list.push({ kode_aset: kb });
+            if (!list.find(l => (l.kode_barang || l.kode_aset || l.asset_id || "") === kb)) {
+              list.push({ kode_barang: kb });
+            }
           }
         });
       }
@@ -531,12 +536,12 @@ export default function VerifikasiBKAD() {
                         </TableHeader>
                         <TableBody>
                           {detailAsetList.map((item, i) => (
-                            <TableRow key={item.asset_id || item.id || i}>
+                            <TableRow key={item.kode_barang || item.kode_aset || item.asset_id || item.id || i}>
                               <TableCell className="font-mono text-xs">
-                                {item.kode_aset || item.kode_barang || "—"}
+                                {item.kode_barang || item.kode_aset || "—"}
                               </TableCell>
                               <TableCell className="text-xs">
-                                {item.nama_aset || "—"}
+                                {item.nama_barang || item.nama_aset || item.assetData?.nama_barang || item.assetData?.nama_aset || "Nama tidak tersedia"}
                               </TableCell>
                               <TableCell>
                                 <Badge className="text-[11px]" variant="secondary">
