@@ -494,8 +494,9 @@ export default function PengajuanSuratPage() {
                             <Printer className="h-4 w-4 text-primary" />
                           </Button>
                         </TableCell>
-                    </TableRow>
-                  ))}
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
