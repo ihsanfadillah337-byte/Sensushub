@@ -83,6 +83,76 @@ function _psNilai(it: any): number {
   );
 }
 
+function _psField(it: any, keys: string[], fallback = "-"): string {
+  if (!it) return fallback;
+  const candidates: any[] = [it];
+  if (typeof it.assetData === "object" && it.assetData !== null) {
+    candidates.push(it.assetData);
+  }
+  for (const obj of candidates) {
+    for (const k of keys) {
+      const v = obj[k];
+      if (v !== null && v !== undefined && String(v).trim() !== "") {
+        return String(v);
+      }
+    }
+  }
+  return fallback;
+}
+
+function _psSpesifikasi(it: any): string {
+  return _psField(it, ["Spesifikasi Nama Barang", "spesifikasi", "Spesifikasi", "Spesifikasi Barang", "Spesifikasi_Barang"]);
+}
+
+function _psMerek(it: any): string {
+  return _psField(it, ["Merek/Type", "merek", "Merek", "Type", "Tipe", "Merek / Type", "Merek_Type", "merek_type"]);
+}
+
+function _psBahan(it: any): string {
+  return _psField(it, ["Bahan", "bahan"]);
+}
+
+function _psLokasi(it: any): string {
+  return _psField(it, ["Lokasi", "Lokasi Ruangan", "lokasi", "lokasi_ruangan", "Ruangan", "lokasiRuangan"]);
+}
+
+function _psNomorPolisi(it: any): string {
+  return _psField(it, ["Nomor Polisi", "nopol", "nomor_polisi", "No. Polisi", "No Polisi", "no_polisi", "nopolisi"]);
+}
+
+function _psMetodePerolehan(it: any): string {
+  return _psField(it, [
+    "Metode Perolehan",
+    "metode_perolehan",
+    "Cara Perolehan",
+    "Perolehan",
+    "Sumber Perolehan",
+    "cara_perolehan",
+    "sumber_perolehan",
+  ]);
+}
+
+function _psBidangPengguna(it: any): string {
+  return _psField(it, [
+    "Bidang Pengguna",
+    "bidang_pengguna",
+    "Pengguna",
+    "Bidang",
+    "Unit Pengguna",
+    "Unit Kerja",
+    "unit_kerja",
+    "bidangPengguna",
+  ]);
+}
+
+function _psKeterangan(it: any): string {
+  return _psField(it, ["Keterangan", "keterangan", "Catatan", "catatan", "Keterangan_Barang", "Deskripsi", "deskripsi"]);
+}
+
+function _psKondisi(it: any): string {
+  return _psField(it, ["Kondisi", "kondisi", "Kondisi_Barang", "Kondisi Akhir", "kondisi_akhir"], "-");
+}
+
 function _psFlatten(arc: ArchiveRow): any[] {
   const list: any[] = [];
   try {
@@ -136,29 +206,38 @@ function _psBuildLampiranRows(arc: ArchiveRow): { rows: any[]; headers: string[]
     }
   });
 
-  const headers = ["Kode Barang", "Nama Barang", "Kondisi", "Rekomendasi", "Nilai Perolehan"];
+  const headers = [
+    "Kode Barang",
+    "Nama Barang",
+    "Spesifikasi Nama Barang",
+    "Merek/Type",
+    "Bahan",
+    "Lokasi",
+    "Nomor Polisi",
+    "Metode Perolehan",
+    "Bidang Pengguna",
+    "Keterangan",
+    "Kondisi",
+    "Nilai Perolehan",
+  ];
   const nilaiKey = "Nilai Perolehan";
   let total = 0;
   const rows = merged.map((it, idx) => {
-    const kondisi =
-      it.Kondisi ||
-      it.kondisi ||
-      it.assetData?.Kondisi ||
-      it.kondisi_awal ||
-      "";
-    const rekomendasi =
-      it.rekon_rekomendasi ||
-      it.rekomendasi ||
-      it.status_usulan ||
-      "";
     const n = _psNilai(it);
     total += n;
     return {
       "No": idx + 1,
-      "Kode Barang": _psKode(it) || "—",
+      "Kode Barang": _psKode(it) || "-",
       "Nama Barang": _psNama(it),
-      "Kondisi": kondisi || "—",
-      "Rekomendasi": rekomendasi || "—",
+      "Spesifikasi Nama Barang": _psSpesifikasi(it),
+      "Merek/Type": _psMerek(it),
+      "Bahan": _psBahan(it),
+      "Lokasi": _psLokasi(it),
+      "Nomor Polisi": _psNomorPolisi(it),
+      "Metode Perolehan": _psMetodePerolehan(it),
+      "Bidang Pengguna": _psBidangPengguna(it),
+      "Keterangan": _psKeterangan(it),
+      "Kondisi": _psKondisi(it),
       "Nilai Perolehan": n,
     };
   });
@@ -357,7 +436,8 @@ function PdfPages({ id1, id2, data, tenantSettings }: {
                     ))}
                     {isLastChunk && (
                       <tr>
-                        <td colSpan={headers.length} style={{ ...S.td, fontWeight: "bold", textAlign: "right", paddingRight: "12px" }}>TOTAL</td>
+                        <td style={{ ...S.td }} />
+                        <td colSpan={headers.length - 1} style={{ ...S.td, fontWeight: "bold", textAlign: "right", paddingRight: "12px" }}>TOTAL</td>
                         <td style={{ ...S.td, fontWeight: "bold", textAlign: "right", whiteSpace: "nowrap" }}>{new Intl.NumberFormat('id-ID').format(totalNilai)}</td>
                       </tr>
                     )}
@@ -461,7 +541,7 @@ export default function PengajuanSuratPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">No. Surat</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">ID Unik Batch</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Jenis KIB</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Total Aset</TableHead>
@@ -915,7 +995,7 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: ()
           <DialogTitle className="flex items-center gap-2"><Download className="h-5 w-5 text-primary" /> Unduh Ulang Surat</DialogTitle>
         </DialogHeader>
         <div className="rounded-lg border border-border p-4 space-y-2 bg-muted/20 text-sm">
-          <p><strong>No. Surat:</strong> {arc.nomor_surat}</p>
+          <p><strong>ID Unik Batch:</strong> {arc.nomor_surat}</p>
           <p><strong>Tanggal:</strong> {tglSurat}</p>
           <p><strong>Jenis KIB:</strong> {arc.jenis_kib || "—"}</p>
           <p><strong>Jumlah Aset:</strong> {jumlahAsetDisplay} item</p>

@@ -370,7 +370,45 @@ export default function PapanRekonsiliasi() {
 
         kodeBarangList.push(item.kodeAset);
 
+        const _cdGet = (keys: string[], fallback = "-") => {
+          for (const k of keys) {
+            if (cd[k] !== null && cd[k] !== undefined && String(cd[k]).trim() !== "") {
+              return String(cd[k]);
+            }
+          }
+          return fallback;
+        };
+
+        const spesifikasi = _cdGet(["Spesifikasi Nama Barang", "spesifikasi", "Spesifikasi", "Spesifikasi Barang"]);
+        const merek = _cdGet(["Merek/Type", "merek", "Merek", "Type", "Tipe", "Merek / Type"]);
+        const bahan = _cdGet(["Bahan", "bahan"]);
+        const lokasi =
+          (asset.lokasi_ruangan && String(asset.lokasi_ruangan).trim()) ||
+          _cdGet(["Lokasi", "Lokasi Ruangan", "lokasi", "lokasi_ruangan", "Ruangan"], "-");
+        const nopol = _cdGet(["Nomor Polisi", "nopol", "nomor_polisi", "No. Polisi", "No Polisi"]);
+        const metodePerolehan = _cdGet([
+          "Metode Perolehan",
+          "metode_perolehan",
+          "Cara Perolehan",
+          "Perolehan",
+          "Sumber Perolehan",
+        ]);
+        const bidangPengguna = _cdGet([
+          "Bidang Pengguna",
+          "bidang_pengguna",
+          "Pengguna",
+          "Bidang",
+          "Unit Pengguna",
+        ]);
+        const keterangan =
+          (item.deskripsi && String(item.deskripsi).trim() !== "" ? String(item.deskripsi) : "") ||
+          _cdGet(["Keterangan", "keterangan", "Catatan", "catatan"]);
+        const kondisiAkhir = masterKondisi || item.kondisi || "-";
+        const nilaiAsetDisplay =
+          cd["Nilai Aset"] ?? cd["Nilai Perolehan"] ?? asset.nilai_perolehan ?? asset.harga ?? nilaiAngka;
+
         assetSnapshot.push({
+          ...cd,
           id: item.assetId,
           asset_id: item.assetId,
           kode_barang: item.kodeAset,
@@ -379,22 +417,50 @@ export default function PapanRekonsiliasi() {
           nama_aset: item.namaAset,
           kib: assetKib,
           kondisi_awal: item.kondisi,
-          Kondisi: masterKondisi || item.kondisi,
-          kondisi: masterKondisi || item.kondisi,
+          Kondisi: kondisiAkhir,
+          kondisi: kondisiAkhir,
           rekon_rekomendasi: rekonRekomendasi,
           rekomendasi: rekonRekomendasi,
           sumber: item.source,
           sumber_verifikasi: "super_admin / Pengurus Barang",
           nilai_perolehan: nilaiAngka,
+          "Nilai Aset": nilaiAngka,
           "Nilai Perolehan": nilaiAngka,
+          "Spesifikasi Nama Barang": spesifikasi,
+          spesifikasi,
+          "Merek/Type": merek,
+          merek,
+          Bahan: bahan,
+          bahan,
+          Lokasi: lokasi,
+          lokasi_ruangan: asset.lokasi_ruangan || lokasi,
+          "Nomor Polisi": nopol,
+          nopol,
+          nomor_polisi: nopol,
+          "Metode Perolehan": metodePerolehan,
+          metode_perolehan: metodePerolehan,
+          "Bidang Pengguna": bidangPengguna,
+          bidang_pengguna: bidangPengguna,
+          Keterangan: keterangan,
+          keterangan,
           catatan: item.deskripsi || "",
           assetData: {
+            ...cd,
             nama_barang: item.namaAset,
             nama_aset: item.namaAset,
             kode_aset: item.kodeAset,
             kib: assetKib,
             nilai_perolehan: nilaiAngka,
-            Kondisi: masterKondisi || item.kondisi,
+            "Nilai Aset": nilaiAngka,
+            Kondisi: kondisiAkhir,
+            "Spesifikasi Nama Barang": spesifikasi,
+            "Merek/Type": merek,
+            Bahan: bahan,
+            Lokasi: lokasi,
+            "Nomor Polisi": nopol,
+            "Metode Perolehan": metodePerolehan,
+            "Bidang Pengguna": bidangPengguna,
+            Keterangan: keterangan,
           },
         });
       }
