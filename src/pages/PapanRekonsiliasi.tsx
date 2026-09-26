@@ -118,9 +118,22 @@ export default function PapanRekonsiliasi() {
       );
       damagedAudits.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+      // ═══════════════════════════════════════════════════════════════════
+      // SYARAT MUTLAK (BUG FIX): Aset HANYA diproses jika:
+      //   - Punya laporan publik terbuka (hasReport), ATAU
+      //   - Punya temuan sensus rusak / anomali arsip (hasAudit), ATAU
+      //   - Sudah ditandai status_rekon === "draft_pengajuan" (buffer)
+      //
+      // Jika TIDAK ADA kriteria di atas: aset normal (Baik) -> DIABAINKAN
+      // (tidak masuk anomalyResult, tidak masuk draftResult)
+      // ═══════════════════════════════════════════════════════════════════
       const hasReport = openReports?.length > 0;
       const hasAudit = damagedAudits?.length > 0 || hasArchivedAnomaly;
+      const isBuffered = statusRekon === "draft_pengajuan";
 
+      if (!hasReport && !hasAudit && !isBuffered) return;
+
+      // ─── Persiapan field display (hanya jika lolos syarat mutlak) ───
       let source: AnomalyItem["source"] = "keluhan";
       if (hasReport && hasAudit) source = "both";
       else if (hasAudit) source = "sensus";
@@ -152,6 +165,13 @@ export default function PapanRekonsiliasi() {
         }
       }
 
+      // Fallback untuk buffered aset jika field masih kosong
+      if (isBuffered && kondisi === "—") {
+        kondisi = masterKondisi || "Usul Perbaikan";
+        if (!deskripsi) deskripsi = cd.rekon_rekomendasi || cd.status_usulan || "Diverifikasi Pengurus Barang";
+        if (!latestDate) latestDate = cd.rekon_tanggal || asset.created_at || "";
+      }
+
       // ─── BUFFER STATE: draft_pengajuan check ───
       // Jika sudah ditandai draft_pengajuan, masukkan ke buffer tab (Finalisasi Rekon)
       if (statusRekon === "draft_pengajuan") {
@@ -176,6 +196,10 @@ export default function PapanRekonsiliasi() {
 
       // Skip assets yang status_rekon-nya sudah menunggu_bkad / disetujui (sudah diajukan)
       if (statusRekon === "menunggu_bkad" || statusRekon === "disetujui" || statusRekon === "ditolak") return;
+
+      // ─── SYARAT MUTLAK (FINAL): Hanya masuk anomali JIKA punya bukti report / audit ───
+      // (double guard: pastikan tidak ada normal asset yang bocor)
+      if (!hasReport && !hasAudit) return;
 
       anomalyResult.push({
         assetId: asset.id,
