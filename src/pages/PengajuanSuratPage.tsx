@@ -643,25 +643,68 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 
   const steps = ["Administrasi", "Pilih Aset", "Tembusan", "Preview & Cetak"];
 
-  // ─── Dynamic Asset Selector Query ───────────────────────
-  const { data: approvedAssets = [], isFetching: isFetchingApproved } = useQuery({
-    queryKey: ["approved-assets-for-ba", companyId, jenisKib],
+  // ─── Dynamic Asset Selector Query (Hotfix: Company-only pull + stale cache) ──
+  const { data: allCompanyAssets = [], isFetching: isFetchingApproved } = useQuery({
+    queryKey: ["approved-assets-for-ba", companyId],
     queryFn: async () => {
-      if (!companyId || !jenisKib) return [];
+      if (!companyId) return [];
       const { data, error } = await supabase
         .from("assets")
         .select("id, kode_aset, nama_aset, kib, custom_data, nilai_perolehan, harga, lokasi_ruangan")
-        .eq("company_id", companyId)
-        .eq("kib", jenisKib)
-        .eq("custom_data->>status_rekon", "disetujui");
+        .eq("company_id", companyId);
       if (error) throw error;
-      return (data || []).filter((a: any) => {
-        const cd = (typeof a.custom_data === "object" && a.custom_data) ? a.custom_data : {};
-        return String(cd["status_usulan"] || "") !== "Sudah Ditetapkan Dalam Berita Acara";
-      });
+      return data || [];
     },
-    enabled: !!(companyId && jenisKib && open && step >= 2),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!(companyId && open && step >= 2),
   });
+
+  // ─── useMemo: Filter Client-side Tolerant (Hotfix Empty Data & Slow Fetch) ──
+  const filteredAssets = useMemo(() => {
+    return allCompanyAssets.filter((a: any) => {
+      const cd = (typeof a.custom_data === "object" && a.custom_data !== null)
+        ? (a.custom_data as Record<string, any>)
+        : {};
+
+      // 1. Status Rekon: lowercase case-insensitive match
+      const statusRekonRaw = String(cd["status_rekon"] || "").trim().toLowerCase();
+      if (statusRekonRaw !== "disetujui") return false;
+
+      // 2. Pencegah Duplikasi: Jangan ambil aset yang sudah dicetak BA
+      const statusUsulan = String(cd["status_usulan"] || "").trim();
+      if (statusUsulan === "Sudah Ditetapkan Dalam Berita Acara") return false;
+
+      // 3. KIB Match: Tolerant substring check (case-insensitive)
+      //    Misal jenisKib="KIB A - Mesin & Peralatan" / "KIB A"
+      //    asset.kib="KIB A" / "KIB-A" / "KIB.A" / "A"
+      if (jenisKib) {
+        const jenis = jenisKib.trim();
+        const assetKib = String(a.kib || "").trim();
+        if (!jenis || !assetKib) return false;
+
+        // Normalisasi: hilangkan whitespace, strip karakter non-alphanumeric kecuali hyphen/underscore
+        const _norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const jenisNorm = _norm(jenis);
+        const assetNorm = _norm(assetKib);
+
+        // Deduce kode KIB (single letter): A, B, C, D, E, F
+        const kodeJenis = jenisNorm.match(/kib([abcdef])/)?.[1] || jenis.match(/\b([ABCDEF])\b/)?.[1]?.toLowerCase() || jenisNorm.charAt(jenisNorm.length - 1);
+        const kodeAsset = assetNorm.match(/kib([abcdef])/)?.[1] || assetKib.match(/\b([ABCDEF])\b/)?.[1]?.toLowerCase() || assetNorm;
+
+        // Match strategy (OR): salah satu terpenuhi → lolos
+        const matchExact = jenisNorm === assetNorm;
+        const matchAssetContainsJenisNorm = assetNorm.includes(jenisNorm);
+        const matchJenisContainsAssetNorm = jenisNorm.includes(assetNorm);
+        const matchKodeLetter = !!kodeJenis && !!kodeAsset && kodeJenis === kodeAsset;
+
+        if (!(matchExact || matchAssetContainsJenisNorm || matchJenisContainsAssetNorm || matchKodeLetter)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [allCompanyAssets, jenisKib]);
 
   // ─── Helpers untuk display approvedAssets ───────────────
   const _apKondisi = (a: any): string => {
@@ -761,7 +804,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 
   // ─── Bridge: selectedAssetIds → legacy state ────────────
   useEffect(() => {
-    const picked = approvedAssets.filter((a: any) => selectedAssetIds.has(a.id));
+    const picked = filteredAssets.filter((a: any) => selectedAssetIds.has(a.id));
     setSelectedAssets(picked);
 
     const kodeList = picked.map((a: any) => a.kode_aset).filter(Boolean);
@@ -790,7 +833,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
     setParsedRows(snapshotRows);
     setParsedHeaders(headers13);
     setParsedNilaiKey("Nilai Perolehan");
-  }, [selectedAssetIds, approvedAssets]);
+  }, [selectedAssetIds, filteredAssets]);
 
   // Reset pilihan saat jenisKib berubah
   useEffect(() => {
@@ -808,10 +851,10 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
   };
 
   const toggleAll = () => {
-    if (selectedAssetIds.size === approvedAssets.length && approvedAssets.length > 0) {
+    if (selectedAssetIds.size === filteredAssets.length && filteredAssets.length > 0) {
       setSelectedAssetIds(new Set());
     } else {
-      setSelectedAssetIds(new Set(approvedAssets.map((a: any) => a.id)));
+      setSelectedAssetIds(new Set(filteredAssets.map((a: any) => a.id)));
     }
   };
 
@@ -996,7 +1039,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <ListChecks className="h-4 w-4 text-primary" />
                     <span>
-                      {isFetchingApproved ? "Memuat aset disetujui..." : `${approvedAssets.length} aset siap ditetapkan (status_rekon = disetujui)`}
+                      {isFetchingApproved ? "Memuat aset disetujui..." : `${filteredAssets.length} aset siap ditetapkan (status_rekon = disetujui)`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1004,13 +1047,13 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                       variant="outline"
                       size="sm"
                       onClick={toggleAll}
-                      disabled={isFetchingApproved || approvedAssets.length === 0}
+                      disabled={isFetchingApproved || filteredAssets.length === 0}
                       className="gap-1.5 text-xs"
                     >
-                      {selectedAssetIds.size === approvedAssets.length && approvedAssets.length > 0
+                      {selectedAssetIds.size === filteredAssets.length && filteredAssets.length > 0
                         ? <Check className="h-3.5 w-3.5" />
                         : <ListChecks className="h-3.5 w-3.5" />}
-                      {selectedAssetIds.size === approvedAssets.length && approvedAssets.length > 0
+                      {selectedAssetIds.size === filteredAssets.length && filteredAssets.length > 0
                         ? "Batalkan Pilih Semua"
                         : "Pilih Semua"}
                     </Button>
@@ -1045,14 +1088,14 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                               <TableCell><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
                             </TableRow>
                           ))
-                        ) : approvedAssets.length === 0 ? (
+                        ) : filteredAssets.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={5} className="h-32 text-center text-sm text-muted-foreground">
                               Belum ada aset dengan status <span className="font-medium">disetujui BKAD</span> untuk KIB ini, atau semua sudah ditetapkan dalam Berita Acara.
                             </TableCell>
                           </TableRow>
                         ) : (
-                          approvedAssets.map((a: any) => {
+                          filteredAssets.map((a: any) => {
                             const checked = selectedAssetIds.has(a.id);
                             return (
                               <TableRow
