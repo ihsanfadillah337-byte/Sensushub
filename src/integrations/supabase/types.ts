@@ -159,6 +159,10 @@ export type Database = {
           tembusan: Json
           data_otorisasi: Json
           status: string
+          status_approval: "draft" | "menunggu_bkad" | "disetujui" | "ditolak"
+          catatan_bkad: string | null
+          approved_by: string | null
+          approved_at: string | null
           created_at: string
         }
         Insert: {
@@ -174,6 +178,10 @@ export type Database = {
           tembusan?: Json
           data_otorisasi?: Json
           status?: string
+          status_approval?: "draft" | "menunggu_bkad" | "disetujui" | "ditolak"
+          catatan_bkad?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
           created_at?: string
         }
         Update: {
@@ -189,6 +197,10 @@ export type Database = {
           tembusan?: Json
           data_otorisasi?: Json
           status?: string
+          status_approval?: "draft" | "menunggu_bkad" | "disetujui" | "ditolak"
+          catatan_bkad?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
           created_at?: string
         }
         Relationships: [
@@ -197,6 +209,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_archives_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -391,7 +410,7 @@ export type Database = {
       get_auth_company_id: { Args: Record<string, never>; Returns: string }
     }
     Enums: {
-      app_role: "super_admin" | "operator" | "auditor"
+      app_role: "super_admin" | "operator" | "auditor" | "staf_bkad"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -521,3 +540,5 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+export type DocumentApprovalStatus = "draft" | "menunggu_bkad" | "disetujui" | "ditolak";

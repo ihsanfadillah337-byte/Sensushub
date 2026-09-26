@@ -2,7 +2,7 @@
 // Digunakan sebagai referensi tipe di seluruh frontend
 
 // === RBAC Types ===
-export type AppRole = 'super_admin' | 'operator' | 'auditor';
+export type AppRole = 'super_admin' | 'operator' | 'auditor' | 'staf_bkad';
 
 export interface UserProfile {
   id: string;
@@ -128,3 +128,67 @@ export interface AssetReport {
   nama_pelapor: string | null;
   kontak_pelapor: string | null;
 }
+
+// === Document Archives (Rekonsiliasi & Dual-Approval) ===
+export type DocumentApprovalStatus = 'draft' | 'menunggu_bkad' | 'disetujui' | 'ditolak';
+
+export interface DocumentArchive {
+  id: string;
+  company_id: string;
+  nomor_surat: string;
+  tanggal_surat: string;
+  tanggal_penelusuran: string | null;
+  jenis_kib: string | null;
+  total_aset: number;
+  total_nilai: number;
+  kode_barang_list: unknown;
+  tembusan: unknown;
+  data_otorisasi: unknown;
+  status: string;
+  status_approval: DocumentApprovalStatus;
+  catatan_bkad: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string;
+}
+
+export interface DocumentArchiveInsert {
+  id?: string;
+  company_id: string;
+  nomor_surat: string;
+  tanggal_surat?: string;
+  tanggal_penelusuran?: string | null;
+  jenis_kib?: string | null;
+  total_aset?: number;
+  total_nilai?: number;
+  kode_barang_list?: unknown;
+  tembusan?: unknown;
+  data_otorisasi?: unknown;
+  status?: string;
+  status_approval?: DocumentApprovalStatus;
+  catatan_bkad?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  created_at?: string;
+}
+
+export interface DocumentArchiveUpdate {
+  id?: string;
+  company_id?: string;
+  nomor_surat?: string;
+  tanggal_surat?: string;
+  tanggal_penelusuran?: string | null;
+  jenis_kib?: string | null;
+  total_aset?: number;
+  total_nilai?: number;
+  kode_barang_list?: unknown;
+  tembusan?: unknown;
+  data_otorisasi?: unknown;
+  status?: string;
+  status_approval?: DocumentApprovalStatus;
+  catatan_bkad?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  created_at?: string;
+}
+
