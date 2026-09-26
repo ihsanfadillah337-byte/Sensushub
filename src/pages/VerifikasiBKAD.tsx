@@ -36,11 +36,64 @@ interface OtorisasiAset {
   nama_barang?: string;
   kode_barang?: string;
   rekon_rekomendasi?: string;
+  rekomendasi?: string;
   Kondisi?: string;
+  kondisi?: string;
+  nilai_perolehan?: number;
+  "Nilai Perolehan"?: number;
+  kib?: string;
   assetData?: {
     nama_barang?: string;
     nama_aset?: string;
+    kode_aset?: string;
+    kib?: string;
+    nilai_perolehan?: number;
+    Kondisi?: string;
   };
+}
+
+function safeNumber(val: unknown): number {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === "number") return isFinite(val) ? val : 0;
+  const s = String(val).trim();
+  if (!s) return 0;
+  const cleaned = s.split(",")[0].replace(/[^0-9]/g, "");
+  if (!cleaned) return 0;
+  const n = Number(cleaned);
+  return isFinite(n) ? n : 0;
+}
+
+function flattenOtorisasiArray(doc: DocumentArchiveRow): OtorisasiAset[] {
+  const list: OtorisasiAset[] = [];
+  try {
+    if (Array.isArray(doc.data_otorisasi)) {
+      list.push(...(doc.data_otorisasi as OtorisasiAset[]));
+    } else if (typeof doc.data_otorisasi === "object" && doc.data_otorisasi !== null) {
+      const obj = doc.data_otorisasi as any;
+      if (Array.isArray(obj.aset_detail)) list.push(...(obj.aset_detail as OtorisasiAset[]));
+      if (Array.isArray(obj.assets)) list.push(...(obj.assets as OtorisasiAset[]));
+    }
+  } catch {}
+  return list;
+}
+
+function getNamaAset(item: OtorisasiAset): string {
+  return (
+    item.nama_barang ||
+    item.nama_aset ||
+    item.assetData?.nama_barang ||
+    item.assetData?.nama_aset ||
+    "Nama tidak tersedia"
+  );
+}
+
+function getNilaiPerolehan(item: OtorisasiAset): number {
+  return (
+    safeNumber(item["Nilai Perolehan"]) ||
+    safeNumber(item.nilai_perolehan) ||
+    safeNumber(item.assetData?.nilai_perolehan) ||
+    0
+  );
 }
 
 function formatTanggal(iso: string | null): string {
@@ -55,10 +108,30 @@ function getJumlahAset(doc: DocumentArchiveRow): number {
   try {
     if (Array.isArray(doc.kode_barang_list)) return doc.kode_barang_list.length;
     if (Array.isArray(doc.data_otorisasi)) return (doc.data_otorisasi as any[]).length;
-    if (typeof doc.data_otorisasi === "object" && doc.data_otorisasi !== null && Array.isArray((doc.data_otorisasi as any)?.assets)) {
-      return (doc.data_otorisasi as any).assets.length;
+    if (typeof doc.data_otorisasi === "object" && doc.data_otorisasi !== null) {
+      const obj = doc.data_otorisasi as any;
+      if (Array.isArray(obj.aset_detail)) return obj.aset_detail.length;
+      if (Array.isArray(obj.assets)) return obj.assets.length;
     }
   } catch {}
+  return 0;
+}
+
+function getTotalNilai(doc: DocumentArchiveRow): number {
+  if (typeof doc.total_nilai === "number" && doc.total_nilai > 0) return doc.total_nilai;
+  const list = flattenOtorisasiArray(doc);
+  if (list.length > 0) {
+    const sum = list.reduce((acc, it) => acc + getNilaiPerolehan(it), 0);
+    if (sum > 0) return sum;
+  }
+  if (Array.isArray(doc.kode_barang_list)) {
+    return doc.kode_barang_list.reduce((acc, it) => {
+      if (typeof it === "object" && it !== null) {
+        return acc + getNilaiPerolehan(it as OtorisasiAset);
+      }
+      return acc;
+    }, 0);
+  }
   return 0;
 }
 
@@ -66,38 +139,22 @@ function extractAssetKodeBarangAndRekomendasi(doc: DocumentArchiveRow): Array<{ 
   const results: Array<{ kode_barang: string; rekomendasi: string }> = [];
   const seen = new Set<string>();
 
-  // Source 1: data_otorisasi (paling lengkap)
-  try {
-    if (Array.isArray(doc.data_otorisasi)) {
-      (doc.data_otorisasi as OtorisasiAset[]).forEach((item) => {
-        const kb = item.kode_barang || item.kode_aset || item.asset_id || item.id || "";
-        if (kb && !seen.has(kb)) {
-          seen.add(kb);
-          results.push({ kode_barang: kb, rekomendasi: item.rekon_rekomendasi || "" });
-        }
-      });
-    } else if (typeof doc.data_otorisasi === "object" && doc.data_otorisasi !== null) {
-      const obj = doc.data_otorisasi as any;
-      if (Array.isArray(obj.assets)) {
-        (obj.assets as OtorisasiAset[]).forEach((item) => {
-          const kb = item.kode_barang || item.kode_aset || item.asset_id || item.id || "";
-          if (kb && !seen.has(kb)) {
-            seen.add(kb);
-            results.push({ kode_barang: kb, rekomendasi: item.rekon_rekomendasi || "" });
-          }
-        });
-      }
+  const otorList = flattenOtorisasiArray(doc);
+  otorList.forEach((item) => {
+    const kb = item.kode_barang || item.kode_aset || item.assetData?.kode_aset || item.asset_id || item.id || "";
+    if (kb && !seen.has(kb)) {
+      seen.add(kb);
+      results.push({ kode_barang: kb, rekomendasi: item.rekon_rekomendasi || item.rekomendasi || "" });
     }
-  } catch {}
+  });
 
-  // Source 2: kode_barang_list
   try {
     if (Array.isArray(doc.kode_barang_list)) {
       (doc.kode_barang_list as any[]).forEach((item) => {
-        const kb = typeof item === "string" ? item : (item.kode_barang || item.kode_aset || item.asset_id || item.id || "");
+        const kb = typeof item === "string" ? item : (item.kode_barang || item.kode_aset || item.assetData?.kode_aset || item.asset_id || item.id || "");
         if (kb && !seen.has(kb)) {
           seen.add(kb);
-          const rekom = typeof item === "object" ? (item.rekon_rekomendasi || "") : "";
+          const rekom = typeof item === "object" ? (item.rekon_rekomendasi || item.rekomendasi || "") : "";
           results.push({ kode_barang: kb, rekomendasi: rekom });
         }
       });
@@ -317,27 +374,40 @@ export default function VerifikasiBKAD() {
 
   const detailAsetList = (() => {
     if (!selectedDoc) return [];
-    const list: OtorisasiAset[] = [];
-    try {
-      if (Array.isArray(selectedDoc.data_otorisasi)) {
-        list.push(...(selectedDoc.data_otorisasi as OtorisasiAset[]));
-      } else if (typeof selectedDoc.data_otorisasi === "object" && selectedDoc.data_otorisasi !== null) {
-        const obj = selectedDoc.data_otorisasi as any;
-        if (Array.isArray(obj.assets)) list.push(...(obj.assets as OtorisasiAset[]));
-      }
-    } catch {}
+    const list: OtorisasiAset[] = flattenOtorisasiArray(selectedDoc);
     try {
       if (Array.isArray(selectedDoc.kode_barang_list)) {
         (selectedDoc.kode_barang_list as any[]).forEach((kb) => {
           if (typeof kb === "object" && kb) {
-            const kbKey = kb.kode_barang || kb.kode_aset || kb.asset_id || kb.id || "";
-            if (!list.find(l => (l.kode_barang || l.kode_aset || l.asset_id || l.id || "") === kbKey)) {
-              list.push(kb as OtorisasiAset);
-            }
+            const kbKey =
+              kb.kode_barang ||
+              kb.kode_aset ||
+              kb.assetData?.kode_aset ||
+              kb.asset_id ||
+              kb.id ||
+              "";
+            const match = list.find((l) => {
+              const lKey =
+                l.kode_barang ||
+                l.kode_aset ||
+                l.assetData?.kode_aset ||
+                l.asset_id ||
+                l.id ||
+                "";
+              return lKey && kbKey && lKey === kbKey;
+            });
+            if (!match) list.push(kb as OtorisasiAset);
           } else if (typeof kb === "string") {
-            if (!list.find(l => (l.kode_barang || l.kode_aset || l.asset_id || "") === kb)) {
-              list.push({ kode_barang: kb });
-            }
+            const match = list.find((l) => {
+              const lKey =
+                l.kode_barang ||
+                l.kode_aset ||
+                l.assetData?.kode_aset ||
+                l.asset_id ||
+                "";
+              return lKey === kb;
+            });
+            if (!match) list.push({ kode_barang: kb });
           }
         });
       }
@@ -405,7 +475,7 @@ export default function VerifikasiBKAD() {
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
                           {doc.jenis_kib ? `KIB: ${doc.jenis_kib} · ` : ""}
-                          Nilai: {doc.total_nilai?.toLocaleString("id-ID") || "—"}
+                          Nilai: Rp {getTotalNilai(doc).toLocaleString("id-ID")}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm">
@@ -491,7 +561,7 @@ export default function VerifikasiBKAD() {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-[11px] uppercase tracking-wider">Total Nilai</p>
-                    <p className="font-medium">Rp {(selectedDoc.total_nilai || 0).toLocaleString("id-ID")}</p>
+                    <p className="font-medium">Rp {getTotalNilai(selectedDoc).toLocaleString("id-ID")}</p>
                   </div>
                 </div>
 
@@ -532,24 +602,47 @@ export default function VerifikasiBKAD() {
                             <TableHead>Kode Aset</TableHead>
                             <TableHead>Nama Aset</TableHead>
                             <TableHead>Rekomendasi Usulan</TableHead>
+                            <TableHead className="text-right">Nilai Perolehan</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {detailAsetList.map((item, i) => (
-                            <TableRow key={item.kode_barang || item.kode_aset || item.asset_id || item.id || i}>
-                              <TableCell className="font-mono text-xs">
-                                {item.kode_barang || item.kode_aset || "—"}
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {item.nama_barang || item.nama_aset || item.assetData?.nama_barang || item.assetData?.nama_aset || "Nama tidak tersedia"}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className="text-[11px]" variant="secondary">
-                                  {item.rekon_rekomendasi || item.Kondisi || "Usul Perbaikan"}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {detailAsetList.map((item, i) => {
+                            const kodeKey =
+                              item.kode_barang ||
+                              item.kode_aset ||
+                              item.assetData?.kode_aset ||
+                              item.asset_id ||
+                              item.id ||
+                              String(i);
+                            const rekom =
+                              item.rekon_rekomendasi ||
+                              item.rekomendasi ||
+                              item.Kondisi ||
+                              item.kondisi ||
+                              item.assetData?.Kondisi ||
+                              "Usul Perbaikan";
+                            return (
+                              <TableRow key={kodeKey}>
+                                <TableCell className="font-mono text-xs">
+                                  {item.kode_barang ||
+                                    item.kode_aset ||
+                                    item.assetData?.kode_aset ||
+                                    "—"}
+                                </TableCell>
+                                <TableCell className="text-xs">{getNamaAset(item)}</TableCell>
+                                <TableCell>
+                                  <Badge className="text-[11px]" variant="secondary">
+                                    {rekom}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs text-right font-mono text-muted-foreground">
+                                  {getNilaiPerolehan(item) > 0
+                                    ? `Rp ${getNilaiPerolehan(item).toLocaleString("id-ID")}`
+                                    : "—"}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     )}

@@ -336,44 +336,90 @@ export default function PapanRekonsiliasi() {
       const tanggalSurat = today.toISOString().split("T")[0];
       const nomorSuratAuto = `REKON-BKAD/${tanggalSurat.replace(/-/g, "/")}/${Math.floor(Math.random() * 900 + 100)}`;
 
-      // Hitung total nilai & kumpulkan kode barang untuk arsip
       const kodeBarangList: string[] = [];
       let totalNilai = 0;
       const assetSnapshot: any[] = [];
+      const kibSet = new Set<string>();
 
       for (const item of draftPengajuanItems) {
+        const asset = item.assetData || {};
+        const cd = (asset.custom_data as Record<string, any>) || {};
+
+        const nilaiRaw =
+          asset.nilai_perolehan ??
+          asset.harga ??
+          cd["Nilai Perolehan"] ??
+          cd["Harga"] ??
+          cd["nilai_perolehan"] ??
+          0;
+        let nilaiAngka = 0;
+        if (typeof nilaiRaw === "number") {
+          nilaiAngka = nilaiRaw;
+        } else if (nilaiRaw !== null && nilaiRaw !== undefined && String(nilaiRaw).trim() !== "") {
+          const cleaned = String(nilaiRaw).split(",")[0].replace(/[^0-9]/g, "");
+          nilaiAngka = cleaned ? (Number(cleaned) || 0) : 0;
+        }
+        totalNilai += nilaiAngka;
+
+        const assetKib = asset.kib || cd["KIB"] || cd["kib"] || "";
+        if (assetKib) kibSet.add(String(assetKib));
+
+        const masterKondisi = cd["Kondisi"] ?? "";
+        const rekonRekomendasi = cd.rekon_rekomendasi || cd.status_usulan || "Usul Perbaikan";
+
         kodeBarangList.push(item.kodeAset);
-        const cd = (item.assetData.custom_data as Record<string, any>) || {};
-        const nilaiRaw = item.assetData.nilai_perolehan || item.assetData.harga || cd["Nilai Perolehan"] || cd["Harga"] || 0;
-        const parsed = typeof nilaiRaw === "number" ? nilaiRaw : Number(String(nilaiRaw).replace(/[^0-9]/g, "")) || 0;
-        totalNilai += parsed;
+
         assetSnapshot.push({
           id: item.assetId,
+          asset_id: item.assetId,
+          kode_barang: item.kodeAset,
           kode_aset: item.kodeAset,
+          nama_barang: item.namaAset,
           nama_aset: item.namaAset,
-          kondisi: item.kondisi,
-          rekomendasi: cd.rekon_rekomendasi || "Usul Perbaikan",
+          kib: assetKib,
+          kondisi_awal: item.kondisi,
+          Kondisi: masterKondisi || item.kondisi,
+          kondisi: masterKondisi || item.kondisi,
+          rekon_rekomendasi: rekonRekomendasi,
+          rekomendasi: rekonRekomendasi,
           sumber: item.source,
+          sumber_verifikasi: "super_admin / Pengurus Barang",
+          nilai_perolehan: nilaiAngka,
+          "Nilai Perolehan": nilaiAngka,
+          catatan: item.deskripsi || "",
+          assetData: {
+            nama_barang: item.namaAset,
+            nama_aset: item.namaAset,
+            kode_aset: item.kodeAset,
+            kib: assetKib,
+            nilai_perolehan: nilaiAngka,
+            Kondisi: masterKondisi || item.kondisi,
+          },
         });
       }
 
+      const jenisKibFinal =
+        kibSet.size === 1
+          ? Array.from(kibSet)[0]
+          : kibSet.size > 1
+          ? `Campuran: ${Array.from(kibSet).join(", ")}`
+          : "Campuran (Hasil Rekonsiliasi)";
+
       // 1. Buat entry document_archives dengan status_approval = menunggu_bkad
+      //    Perhatikan: data_otorisasi ISI ARRAY (bukan {aset_detail}), biar kompatibel dengan
+      //    extractAssetKodeBarangAndRekomendasi di VerifikasiBKAD dan detailAsetList
       const { error: arcErr, data: newArc } = await supabase
         .from("document_archives")
         .insert({
           company_id: companyId!,
           nomor_surat: nomorSuratAuto,
           tanggal_surat: tanggalSurat,
-          jenis_kib: "Campuran (Hasil Rekonsiliasi)",
+          jenis_kib: jenisKibFinal,
           total_aset: draftPengajuanItems.length,
           total_nilai: totalNilai,
           kode_barang_list: kodeBarangList as any,
           tembusan: ["BKAD", "Pokja Inventarisasi", "Atasan Langsung"] as any,
-          data_otorisasi: {
-            jenis_pengajuan: "Batch Rekonsiliasi Aset Rusak",
-            aset_detail: assetSnapshot,
-            sumber_verifikasi: "super_admin / Pengurus Barang",
-          } as any,
+          data_otorisasi: assetSnapshot as any,
           status: "Menunggu Persetujuan BKAD",
           status_approval: "menunggu_bkad",
         })

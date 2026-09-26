@@ -28,6 +28,144 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
+type ArchiveRow = any;
+
+function _psNumber(v: unknown): number {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).trim();
+  if (!s) return 0;
+  const cleaned = s.split(",")[0].replace(/[^0-9]/g, "");
+  if (!cleaned) return 0;
+  const n = Number(cleaned);
+  return isFinite(n) ? n : 0;
+}
+
+function _psNama(it: any): string {
+  if (!it) return "Nama tidak tersedia";
+  return (
+    it.nama_barang ||
+    it.nama_aset ||
+    it.assetData?.nama_barang ||
+    it.assetData?.nama_aset ||
+    it["Nama Barang"] ||
+    it["Nama Aset"] ||
+    "Nama tidak tersedia"
+  );
+}
+
+function _psKode(it: any): string {
+  if (!it) return "";
+  return (
+    it.kode_barang ||
+    it.kode_aset ||
+    it.assetData?.kode_aset ||
+    it.asset_id ||
+    it.id ||
+    it["Kode Barang"] ||
+    it["Kode Aset"] ||
+    ""
+  );
+}
+
+function _psNilai(it: any): number {
+  if (!it) return 0;
+  return (
+    _psNumber(it["Nilai Perolehan"]) ||
+    _psNumber(it.nilai_perolehan) ||
+    _psNumber(it.assetData?.nilai_perolehan) ||
+    _psNumber(it["Harga"]) ||
+    _psNumber(it.harga) ||
+    0
+  );
+}
+
+function _psFlatten(arc: ArchiveRow): any[] {
+  const list: any[] = [];
+  try {
+    if (Array.isArray(arc.data_otorisasi)) {
+      list.push(...arc.data_otorisasi);
+    } else if (typeof arc.data_otorisasi === "object" && arc.data_otorisasi !== null) {
+      const obj = arc.data_otorisasi;
+      if (Array.isArray(obj.aset_detail)) list.push(...obj.aset_detail);
+      if (Array.isArray(obj.assets)) list.push(...obj.assets);
+      if (Array.isArray(obj.lampiran_data)) list.push(...obj.lampiran_data);
+    }
+  } catch {}
+  return list;
+}
+
+function _psBuildLampiranRows(arc: ArchiveRow): { rows: any[]; headers: string[]; nilaiKey: string; total: number } {
+  const legacyOtor = typeof arc.data_otorisasi === "object" && arc.data_otorisasi !== null ? arc.data_otorisasi : {};
+  if (Array.isArray(legacyOtor.lampiran_data) && legacyOtor.lampiran_data.length > 0) {
+    const rows = legacyOtor.lampiran_data;
+    const headers = Array.isArray(legacyOtor.lampiran_headers) && legacyOtor.lampiran_headers.length > 0
+      ? legacyOtor.lampiran_headers
+      : Object.keys(rows[0]).filter(k => k.toLowerCase() !== "no");
+    const nilaiKey = headers.find((h: string) => h.toLowerCase().includes("nilai") || h.toLowerCase().includes("harga")) || "";
+    let total = 0;
+    if (typeof arc.total_nilai === "number" && arc.total_nilai > 0) total = arc.total_nilai;
+    else if (nilaiKey) rows.forEach((r: any) => { total += _psNumber(r[nilaiKey]); });
+    return { rows, headers, nilaiKey, total };
+  }
+
+  const flat = _psFlatten(arc);
+  const kbList: any[] = Array.isArray(arc.kode_barang_list) ? arc.kode_barang_list : [];
+  const merged: any[] = [];
+  const seenKode = new Set<string>();
+  flat.forEach(it => {
+    const k = _psKode(it);
+    if (k) seenKode.add(k);
+    merged.push(it);
+  });
+  kbList.forEach(kb => {
+    if (typeof kb === "string") {
+      if (!seenKode.has(kb)) {
+        seenKode.add(kb);
+        merged.push({ kode_barang: kb });
+      }
+    } else if (kb && typeof kb === "object") {
+      const k = _psKode(kb);
+      if (k && !seenKode.has(k)) {
+        seenKode.add(k);
+        merged.push(kb);
+      }
+    }
+  });
+
+  const headers = ["Kode Barang", "Nama Barang", "Kondisi", "Rekomendasi", "Nilai Perolehan"];
+  const nilaiKey = "Nilai Perolehan";
+  let total = 0;
+  const rows = merged.map((it, idx) => {
+    const kondisi =
+      it.Kondisi ||
+      it.kondisi ||
+      it.assetData?.Kondisi ||
+      it.kondisi_awal ||
+      "";
+    const rekomendasi =
+      it.rekon_rekomendasi ||
+      it.rekomendasi ||
+      it.status_usulan ||
+      "";
+    const n = _psNilai(it);
+    total += n;
+    return {
+      "No": idx + 1,
+      "Kode Barang": _psKode(it) || "—",
+      "Nama Barang": _psNama(it),
+      "Kondisi": kondisi || "—",
+      "Rekomendasi": rekomendasi || "—",
+      "Nilai Perolehan": n,
+    };
+  });
+
+  if (typeof arc.total_nilai === "number" && arc.total_nilai > 0 && total === 0) {
+    total = arc.total_nilai;
+  }
+  return { rows, headers, nilaiKey, total };
+}
+
 // ─── PDF Generator Helper ───────────────────────────────
 async function generatePDF(page1Id: string, page2BaseId: string, filename: string) {
   const el1 = document.getElementById(page1Id);
@@ -330,21 +468,32 @@ export default function PengajuanSuratPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {archives.map((arc: any) => (
-                    <TableRow key={arc.id}>
-                      <TableCell className="text-sm font-medium">{arc.nomor_surat}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{formatTgl(arc.tanggal_surat)}</TableCell>
-                      <TableCell className="text-sm">{arc.jenis_kib || "—"}</TableCell>
-                      <TableCell className="text-center text-sm">{arc.total_aset}</TableCell>
-                      <TableCell className="text-right text-sm font-medium">Rp {Number(arc.total_nilai || 0).toLocaleString("id-ID")}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30">{arc.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setReprintArc(arc)} title="Cetak Ulang">
-                          <Printer className="h-4 w-4 text-primary" />
-                        </Button>
-                      </TableCell>
+                  {archives.map((arc: any) => {
+                    const jumlahAset =
+                      (typeof arc.total_aset === "number" && arc.total_aset > 0)
+                        ? arc.total_aset
+                        : (Array.isArray(arc.kode_barang_list)
+                          ? arc.kode_barang_list.length
+                          : _psFlatten(arc).length);
+                    const totalNilai =
+                      (typeof arc.total_nilai === "number" && arc.total_nilai > 0)
+                        ? arc.total_nilai
+                        : _psFlatten(arc).reduce((acc, it) => acc + _psNilai(it), 0);
+                    return (
+                      <TableRow key={arc.id}>
+                        <TableCell className="text-sm font-medium">{arc.nomor_surat}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{formatTgl(arc.tanggal_surat)}</TableCell>
+                        <TableCell className="text-sm">{arc.jenis_kib || "—"}</TableCell>
+                        <TableCell className="text-center text-sm">{jumlahAset}</TableCell>
+                        <TableCell className="text-right text-sm font-medium">Rp {totalNilai.toLocaleString("id-ID")}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30">{arc.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => setReprintArc(arc)} title="Cetak Ulang">
+                            <Printer className="h-4 w-4 text-primary" />
+                          </Button>
+                        </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -736,12 +885,15 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 // ─── Reprint Dialog ─────────────────────────────────────
 function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: () => void; tenantSettings?: any }) {
   const ot = arc.data_otorisasi || {};
-  const lampiran: any[] = ot.lampiran_data || [];
-  const savedHeaders: string[] = ot.lampiran_headers || [];
   const tmb: string[] = (arc.tembusan || []).filter((t: string) => t?.trim());
   const tglSurat = arc.tanggal_surat ? new Date(arc.tanggal_surat).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
-  const tglPen = arc.tanggal_penelusuran ? new Date(arc.tanggal_penelusuran).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
+  const tglPen = arc.tanggal_penelusuran ? new Date(arc.tanggal_penelusuran).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : tglSurat;
   const [downloading, setDownloading] = useState(false);
+
+  const built = _psBuildLampiranRows(arc);
+  const totalNilaiDisplay = built.total > 0 ? built.total : (typeof arc.total_nilai === "number" ? arc.total_nilai : 0);
+  const jumlahAsetDisplay =
+    (typeof arc.total_aset === "number" && arc.total_aset > 0) ? arc.total_aset : built.rows.length;
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -762,9 +914,9 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: ()
           <p><strong>No. Surat:</strong> {arc.nomor_surat}</p>
           <p><strong>Tanggal:</strong> {tglSurat}</p>
           <p><strong>Jenis KIB:</strong> {arc.jenis_kib || "—"}</p>
-          <p><strong>Jumlah Aset:</strong> {arc.total_aset} item</p>
-          <p><strong>Total Nilai:</strong> Rp {Number(arc.total_nilai || 0).toLocaleString("id-ID")}</p>
-          <p><strong>Kepala Dinas:</strong> {ot.nama} (NIP. {ot.nip})</p>
+          <p><strong>Jumlah Aset:</strong> {jumlahAsetDisplay} item</p>
+          <p><strong>Total Nilai:</strong> Rp {totalNilaiDisplay.toLocaleString("id-ID")}</p>
+          <p><strong>Kepala Dinas:</strong> {ot.nama || "—"} (NIP. {ot.nip || "—"})</p>
         </div>
         <div className="flex justify-end pt-3 border-t border-border">
           <Button onClick={handleDownload} disabled={downloading} className="gap-1.5">
@@ -778,18 +930,10 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: ()
         nomorSurat: arc.nomor_surat || "", tglSurat, tglPen,
         nama: ot.nama || "", nip: ot.nip || "", jabatan: ot.jabatan || "",
         tembusan: tmb,
-        headers: savedHeaders.length > 0 ? savedHeaders : (lampiran.length > 0 ? Object.keys(lampiran[0]).filter(k => k.toLowerCase() !== "no").sort((a, b) => {
-          const order = ["kode barang", "kode_barang", "nama barang", "nama_barang", "spesifikasi nama barang", "merek/type", "bahan", "lokasi", "nomor polisi", "metode perolehan", "bidang pengguna", "keterangan", "kondisi", "nilai perolehan", "harga"];
-          const iA = order.indexOf(a.toLowerCase());
-          const iB = order.indexOf(b.toLowerCase());
-          if (iA !== -1 && iB !== -1) return iA - iB;
-          if (iA !== -1) return -1;
-          if (iB !== -1) return 1;
-          return 0;
-        }) : []),
-        rows: lampiran,
-        totalNilai: Number(arc.total_nilai || 0),
-        nilaiKey: lampiran.length > 0 ? (Object.keys(lampiran[0]).find(k => k.toLowerCase().includes("nilai") || k.toLowerCase().includes("harga")) || "") : "",
+        headers: built.headers,
+        rows: built.rows,
+        totalNilai: totalNilaiDisplay,
+        nilaiKey: built.nilaiKey,
       }} tenantSettings={tenantSettings} />
     </Dialog>
   );
