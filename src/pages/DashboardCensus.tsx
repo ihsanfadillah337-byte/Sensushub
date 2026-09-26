@@ -309,7 +309,18 @@ export default function DashboardCensus() {
         });
       if (archiveErr) throw archiveErr;
 
-      // Step B.5: Persist Anomaly to Assets
+      // Step B.5: Persist Anomaly Metadata & Auto-Buffer Injection (DUAL-APPROVAL COMPLIANT)
+      // ──────────────────────────────────────────────────────────────────────────────────
+      // DUAL-APPROVAL RULE: Master asset Kondisi (assets.custom_data.Kondisi) TIDAK BOLEH
+      // di-overwrite langsung dari hasil sensus — hanya boleh berubah setelah disetujui BKAD.
+      //
+      // Yang DILAKUKAN pada step ini:
+      // 1. Tetap simpan metadata non-state: lokasi_aktual, kesesuaian_kib, catatan_sensus,
+      //    status_usulan (legacy tracking field, tidak mempengaruhi master kondisi)
+      // 2. JIKA audit hasilnya RUSAK (Berat/Ringan): INJECT BUFFER STATE (draft_pengajuan)
+      //    agar otomatis masuk Tab "Finalisasi Rekon" siap di-batch ke BKAD.
+      // 3. JIKA audit hasilnya BAIK: TIDAK suntik buffer (normal flow).
+      // ──────────────────────────────────────────────────────────────────────────────────
       const anomalousAudits = companyAudits.filter(a => 
         a.kondisi === "Rusak Berat" || 
         a.kondisi === "Rusak Ringan" || 
@@ -325,22 +336,40 @@ export default function DashboardCensus() {
         a.kesesuaian_kib === "Tidak Sesuai"
       );
       
-      console.log(`[Archive] Persisting ${anomalousAudits.length} anomalies to assets...`);
+      console.log(`[Archive] Persisting ${anomalousAudits.length} anomalies metadata + buffer injection...`);
       for (const a of anomalousAudits) {
         const asset = assets.find(x => x.id === a.asset_id);
         if (!asset) continue;
         const cd = getCd(asset) || {};
-        const newCd = {
+
+        // ✅ Metadata non-state TETAP disimpan (bukan perubahan status kondisional)
+        const newCd: Record<string, unknown> = {
           ...cd,
-          "Kondisi": a.kondisi,
+          // ❌ "Kondisi": a.kondisi  —  DIHAPUS: DILARANG overwrite master Kondisi sebelum BKAD approve
           "status_usulan": a.tindak_lanjut || a.rekomendasi_auditor || cd.status_usulan,
           "lokasi_aktual": a.lokasi_aktual || cd.lokasi_aktual,
           "kesesuaian_kib": a.kesesuaian_kib || cd.kesesuaian_kib,
-          "catatan_sensus": a.catatan || cd.catatan_sensus
+          "catatan_sensus": a.catatan || cd.catatan_sensus,
         };
+
+        // ═══════════════════════════════════════════════════════════════════
+        // AUTO-BUFFER INJECTION (sesuai hasil sensus kondisi)
+        // ═══════════════════════════════════════════════════════════════════
+        if (a.kondisi === "Rusak Berat" || a.kondisi === "Rusak Ringan") {
+          // Skip jika aset SUDAH pernah diajukan (menunggu_bkad / disetujui)
+          const currentRekon = String(cd["status_rekon"] || "");
+          if (currentRekon === "menunggu_bkad" || currentRekon === "disetujui") continue;
+
+          newCd["status_rekon"] = "draft_pengajuan";
+          newCd["rekon_rekomendasi"] = a.kondisi === "Rusak Berat"
+            ? "Pengajuan Perubahan Kondisi"
+            : "Usul Perbaikan";
+          newCd["rekon_tanggal"] = new Date().toISOString();
+        }
+
         const { error: updErr } = await supabase.from("assets").update({ custom_data: newCd }).eq("id", a.asset_id);
         if (updErr) {
-          console.error(`[Archive] Failed to persist anomaly for asset ${a.asset_id}:`, updErr);
+          console.error(`[Archive] Failed to persist metadata for asset ${a.asset_id}:`, updErr);
         }
       }
 

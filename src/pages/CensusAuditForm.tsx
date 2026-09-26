@@ -65,7 +65,7 @@ export default function CensusAuditForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
 
   // Form state
   const [kondisi, setKondisi] = useState("");
@@ -210,14 +210,59 @@ export default function CensusAuditForm() {
 
       if (insertError) throw insertError;
 
-      // Anti-Override: Census audit data is stored exclusively in asset_audits.
-      // Master asset condition (assets.custom_data.Kondisi) is NOT updated here.
-      // Reconciliation to master data requires Super Admin approval via the Reports dashboard.
+      // ═══════════════════════════════════════════════════════════════════
+      // DUAL-APPROVAL AUTO-BUFFER INJECTION (Super Admin only)
+      //
+      // Audit result is stored in asset_audits (Step 1 above — history, always kept).
+      // Master asset.kondisi is NEVER directly changed here — enforces dual-approval
+      // BKAD required for actual state change.
+      //
+      // Namun JIKA audit dilakukan OLEH Super Admin (Pengurus Barang) sendiri:
+      // Hasil sensus dianggap "diverifikasi sendiri" — langsung inject ke Buffer Finalisasi.
+      // Aset muncul di Tab "Finalisasi Rekon" siap di-batch ke BKAD, tanpa lewat anomali.
+      // ═══════════════════════════════════════════════════════════════════
+      const isSuperAdmin = hasRole("super_admin");
+      if (isSuperAdmin && (kondisi === "Rusak Berat" || kondisi === "Rusak Ringan")) {
+        // Map kondisi → rekon_rekomendasi sesuai aturan mutlak
+        let rekomendasi = "Usul Perbaikan";
+        if (kondisi === "Rusak Berat") rekomendasi = "Pengajuan Perubahan Kondisi";
+
+        // Ambil current custom_data aset untuk merge (tidak overwrite field lain)
+        const currentCd = typeof asset!.custom_data === "object" && asset!.custom_data && !Array.isArray(asset!.custom_data)
+          ? { ...(asset!.custom_data as Record<string, unknown>) }
+          : {};
+
+        const bufferedCd = {
+          ...currentCd,
+          status_rekon: "draft_pengajuan",
+          rekon_rekomendasi: rekomendasi,
+          rekon_tanggal: new Date().toISOString(),
+        };
+
+        const { error: bufferErr } = await supabase
+          .from("assets")
+          .update({ custom_data: bufferedCd })
+          .eq("id", asset!.id);
+
+        if (bufferErr) {
+          console.error("[AutoBuffer] Gagal inject draft_pengajuan:", bufferErr);
+          toast.warning("Audit tersimpan, namun gagal memasukkan ke Finalisasi Rekon.");
+        } else {
+          toast.message(
+            kondisi === "Rusak Berat"
+              ? "💼 Masuk Finalisasi Rekon — Rekomendasi: Pengajuan Perubahan Kondisi"
+              : "🔧 Masuk Finalisasi Rekon — Rekomendasi: Usul Perbaikan",
+            { duration: 3200 }
+          );
+        }
+      }
 
       // 3. Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ["census-assets"] });
       queryClient.invalidateQueries({ queryKey: ["census-audit-asset", id] });
       queryClient.invalidateQueries({ queryKey: ["assets"] });
+      queryClient.invalidateQueries({ queryKey: ["rekon-assets-joined"] });
+      queryClient.invalidateQueries({ queryKey: ["rekon-assets-anomaly"] });
 
       setSubmitted(true);
       toast.success("Audit berhasil disimpan!");
