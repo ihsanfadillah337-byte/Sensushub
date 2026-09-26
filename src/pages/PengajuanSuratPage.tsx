@@ -650,7 +650,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
       if (!companyId) return [];
       const { data, error } = await supabase
         .from("assets")
-        .select("id, kode_aset, nama_aset, kib, status_rekon, custom_data, nilai_perolehan, harga, lokasi_ruangan")
+        .select("id, kode_aset, nama_aset, kib, custom_data, nilai_perolehan, harga, lokasi_ruangan")
         .eq("company_id", companyId);
       if (error) throw error;
       return data || [];
