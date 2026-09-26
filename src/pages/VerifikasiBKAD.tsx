@@ -89,9 +89,13 @@ function getNamaAset(item: OtorisasiAset): string {
 
 function getNilaiPerolehan(item: OtorisasiAset): number {
   return (
+    safeNumber(item["Nilai Aset"]) ||
     safeNumber(item["Nilai Perolehan"]) ||
     safeNumber(item.nilai_perolehan) ||
+    safeNumber(item.harga) ||
     safeNumber(item.assetData?.nilai_perolehan) ||
+    safeNumber(item.assetData?.["Nilai Aset"]) ||
+    safeNumber(item.assetData?.["Nilai Perolehan"]) ||
     0
   );
 }

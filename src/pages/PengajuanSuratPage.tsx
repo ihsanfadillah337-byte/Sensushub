@@ -71,11 +71,14 @@ function _psKode(it: any): string {
 function _psNilai(it: any): number {
   if (!it) return 0;
   return (
+    _psNumber(it["Nilai Aset"]) ||
     _psNumber(it["Nilai Perolehan"]) ||
     _psNumber(it.nilai_perolehan) ||
-    _psNumber(it.assetData?.nilai_perolehan) ||
-    _psNumber(it["Harga"]) ||
     _psNumber(it.harga) ||
+    _psNumber(it["Harga"]) ||
+    _psNumber(it.assetData?.["Nilai Aset"]) ||
+    _psNumber(it.assetData?.["Nilai Perolehan"]) ||
+    _psNumber(it.assetData?.nilai_perolehan) ||
     0
   );
 }

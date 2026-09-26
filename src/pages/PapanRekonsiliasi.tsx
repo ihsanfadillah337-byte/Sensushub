@@ -346,6 +346,7 @@ export default function PapanRekonsiliasi() {
         const cd = (asset.custom_data as Record<string, any>) || {};
 
         const nilaiRaw =
+          cd["Nilai Aset"] ??
           asset.nilai_perolehan ??
           asset.harga ??
           cd["Nilai Perolehan"] ??
