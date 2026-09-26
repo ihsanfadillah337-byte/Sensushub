@@ -228,13 +228,14 @@ export default function VerifikasiBKAD() {
 
       const { data: assetRows, error: fetchErr } = await supabase
         .from("assets")
-        .select("kode_aset, custom_data")
+        .select("id, kode_aset, status_rekon, custom_data")
         .in("kode_aset", assetList.map(x => x.kode_barang));
 
       if (fetchErr) throw fetchErr;
 
       const timestamp = new Date().toISOString();
 
+      const updatePromises: Promise<any>[] = [];
       let updated = 0;
       for (const row of assetRows || []) {
         const match = assetList.find(x => x.kode_barang === (row as any).kode_aset);
@@ -254,12 +255,27 @@ export default function VerifikasiBKAD() {
           cd["status_usulan"] = match.rekomendasi || cd.rekon_rekomendasi || masterKondisi;
         }
 
-        const { error: updErr } = await supabase
-          .from("assets")
-          .update({ custom_data: cd })
-          .eq("kode_aset", (row as any).kode_aset);
-        if (updErr) throw new Error(`Gagal update aset ${(row as any).kode_aset}: ${updErr.message}`);
+        const primaryKey = (row as any).id;
+        updatePromises.push(
+          supabase
+            .from("assets")
+            .update({
+              status_rekon: "disetujui",
+              custom_data: cd,
+            } as any)
+            .eq("id", primaryKey)
+            .then((r) => {
+              if (r.error) throw new Error(`Gagal update aset ${(row as any).kode_aset}: ${r.error.message}`);
+              return r;
+            })
+        );
         updated++;
+      }
+
+      if (updatePromises.length > 0) {
+        const results = await Promise.all(updatePromises);
+        const _failed = (results as any[]).find((r: any) => r && r.error);
+        if (_failed?.error) throw _failed.error;
       }
 
       // Akhir: update document_archives
@@ -306,10 +322,11 @@ export default function VerifikasiBKAD() {
       if (assetList.length > 0) {
         const { data: assetRows, error: fetchErr } = await supabase
           .from("assets")
-          .select("kode_aset, custom_data")
+          .select("id, kode_aset, status_rekon, custom_data")
           .in("kode_aset", assetList.map(x => x.kode_barang));
         if (fetchErr) throw fetchErr;
 
+        const updatePromises: Promise<any>[] = [];
         for (const row of assetRows || []) {
           const cd = typeof row.custom_data === "object" && row.custom_data && !Array.isArray(row.custom_data)
             ? { ...(row.custom_data as Record<string, unknown>) }
@@ -320,11 +337,26 @@ export default function VerifikasiBKAD() {
           cd["rekon_ditolak_by"] = user.id;
           cd["rekon_catatan_bkad"] = catatan;
 
-          const { error: updErr } = await supabase
-            .from("assets")
-            .update({ custom_data: cd })
-            .eq("kode_aset", (row as any).kode_aset);
-          if (updErr) throw new Error(`Gagal update status aset ${(row as any).kode_aset}: ${updErr.message}`);
+          const primaryKey = (row as any).id;
+          updatePromises.push(
+            supabase
+              .from("assets")
+              .update({
+                status_rekon: "ditolak",
+                custom_data: cd,
+              } as any)
+              .eq("id", primaryKey)
+              .then((r) => {
+                if (r.error) throw new Error(`Gagal update status aset ${(row as any).kode_aset}: ${r.error.message}`);
+                return r;
+              })
+          );
+        }
+
+        if (updatePromises.length > 0) {
+          const results = await Promise.all(updatePromises);
+          const _failed = (results as any[]).find((r: any) => r && r.error);
+          if (_failed?.error) throw _failed.error;
         }
       }
 
