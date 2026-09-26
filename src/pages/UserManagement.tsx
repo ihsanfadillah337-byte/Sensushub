@@ -66,6 +66,7 @@ export default function UserManagement() {
   const getRoleBadge = (role: AppRole) => {
     if (role === "super_admin") return <Badge className="bg-primary/20 text-primary border-primary/30">Super Admin</Badge>;
     if (role === "auditor") return <Badge className="bg-chart-3/20 text-chart-3 border-chart-3/30">Auditor Lapangan</Badge>;
+    if (role === "staf_bkad") return <Badge className="bg-chart-4/15 text-chart-4 border-chart-4/30">Staf BKAD (Pengelola Barang)</Badge>;
     return <Badge className="bg-muted text-foreground border-border">Operator</Badge>;
   };
 
@@ -213,6 +214,7 @@ export default function UserManagement() {
                   <SelectContent>
                     <SelectItem value="operator">Operator (Cetak Label, Input Data)</SelectItem>
                     <SelectItem value="auditor">Auditor (Sensus Lapangan)</SelectItem>
+                    <SelectItem value="staf_bkad">Staf BKAD (Pengelola Barang)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

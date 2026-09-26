@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Settings, LogOut, Scale, Users, FileSignature, FileCheck2 } from "lucide-react";
+import { LayoutDashboard, Package, Settings, LogOut, Scale, Users, FileSignature, FileCheck2, ShieldCheck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,8 +26,9 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { title: "Dashboard", url: "/dashboard/overview", icon: LayoutDashboard, roles: ["super_admin", "operator"] },
-  { title: "Daftar Aset", url: "/dashboard/assets", icon: Package, roles: ["super_admin", "operator"] },
+  { title: "Dashboard", url: "/dashboard/overview", icon: LayoutDashboard, roles: ["super_admin", "operator", "staf_bkad"] },
+  { title: "Daftar Aset", url: "/dashboard/assets", icon: Package, roles: ["super_admin", "operator", "staf_bkad"] },
+  { title: "Verifikasi BKAD", url: "/dashboard/verifikasi-bkad", icon: ShieldCheck, roles: ["staf_bkad"] },
   { title: "Rekonsiliasi Aset", url: "/dashboard/rekonsiliasi", icon: Scale, roles: ["super_admin", "operator", "auditor"] },
   { title: "Pengajuan Surat", url: "/dashboard/pengajuan-surat", icon: FileSignature, roles: ["super_admin"] },
   { title: "Finalisasi Rekon", url: "/dashboard/finalisasi-rekon", icon: FileCheck2, roles: ["super_admin"] },

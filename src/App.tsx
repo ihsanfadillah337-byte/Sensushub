@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 import ScanAsset from "./pages/ScanAsset";
 import PengajuanSuratPage from "./pages/PengajuanSuratPage";
 import FinalisasiRekon from "./pages/FinalisasiRekon";
+import VerifikasiBKAD from "./pages/VerifikasiBKAD";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,11 @@ const App = () => (
               <Route path="census/audit/:id" element={
                 <ProtectedRoute allowedRoles={['super_admin', 'auditor']}>
                   <CensusAuditForm />
+                </ProtectedRoute>
+              } />
+              <Route path="verifikasi-bkad" element={
+                <ProtectedRoute allowedRoles={['staf_bkad', 'super_admin']}>
+                  <VerifikasiBKAD />
                 </ProtectedRoute>
               } />
               <Route index element={<Navigate to="overview" replace />} />
