@@ -167,8 +167,8 @@ export default function VerifikasiBKAD() {
 
       const { data: assetRows, error: fetchErr } = await supabase
         .from("assets")
-        .select("kode_barang, custom_data")
-        .in("kode_barang", assetList.map(x => x.kode_barang));
+        .select("kode_aset, custom_data")
+        .in("kode_aset", assetList.map(x => x.kode_barang));
 
       if (fetchErr) throw fetchErr;
 
@@ -176,7 +176,7 @@ export default function VerifikasiBKAD() {
 
       let updated = 0;
       for (const row of assetRows || []) {
-        const match = assetList.find(x => x.kode_barang === (row as any).kode_barang);
+        const match = assetList.find(x => x.kode_barang === (row as any).kode_aset);
         if (!match) continue;
 
         const cd = typeof row.custom_data === "object" && row.custom_data && !Array.isArray(row.custom_data)
@@ -196,8 +196,8 @@ export default function VerifikasiBKAD() {
         const { error: updErr } = await supabase
           .from("assets")
           .update({ custom_data: cd })
-          .eq("kode_barang", (row as any).kode_barang);
-        if (updErr) throw new Error(`Gagal update aset ${(row as any).kode_barang}: ${updErr.message}`);
+          .eq("kode_aset", (row as any).kode_aset);
+        if (updErr) throw new Error(`Gagal update aset ${(row as any).kode_aset}: ${updErr.message}`);
         updated++;
       }
 
@@ -245,8 +245,8 @@ export default function VerifikasiBKAD() {
       if (assetList.length > 0) {
         const { data: assetRows, error: fetchErr } = await supabase
           .from("assets")
-          .select("kode_barang, custom_data")
-          .in("kode_barang", assetList.map(x => x.kode_barang));
+          .select("kode_aset, custom_data")
+          .in("kode_aset", assetList.map(x => x.kode_barang));
         if (fetchErr) throw fetchErr;
 
         for (const row of assetRows || []) {
@@ -262,8 +262,8 @@ export default function VerifikasiBKAD() {
           const { error: updErr } = await supabase
             .from("assets")
             .update({ custom_data: cd })
-            .eq("kode_barang", (row as any).kode_barang);
-          if (updErr) throw new Error(`Gagal update status aset ${(row as any).kode_barang}: ${updErr.message}`);
+            .eq("kode_aset", (row as any).kode_aset);
+          if (updErr) throw new Error(`Gagal update status aset ${(row as any).kode_aset}: ${updErr.message}`);
         }
       }
 
