@@ -650,7 +650,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
       if (!companyId) return [];
       const { data, error } = await supabase
         .from("assets")
-        .select("id, kode_aset, nama_aset, kib, custom_data, nilai_perolehan, harga, lokasi_ruangan")
+        .select("id, kode_aset, nama_aset, kib, status_rekon, custom_data, nilai_perolehan, harga, lokasi_ruangan")
         .eq("company_id", companyId);
       if (error) throw error;
       return data || [];
@@ -667,7 +667,9 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         : {};
 
       // 1. Status Rekon: lowercase case-insensitive match
-      const statusRekonRaw = String(cd["status_rekon"] || "").trim().toLowerCase();
+      //    Fallback chain: Cek kolom utama tabel dulu, lalu ke JSON custom_data
+      const rawStatus = a.status_rekon || cd["status_rekon"] || "";
+      const statusRekonRaw = String(rawStatus).trim().toLowerCase();
       if (statusRekonRaw !== "disetujui") return false;
 
       // 2. Pencegah Duplikasi: Jangan ambil aset yang sudah dicetak BA
