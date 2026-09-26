@@ -3,12 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCustomColumns } from "@/contexts/CustomColumnsContext";
-import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import {
-  FileSignature, Plus, ArrowLeft, ArrowRight, Check, Upload, Trash2,
-  FileText, Download, Loader2, AlertCircle, CheckCircle2, Printer
+  FileSignature, Plus, ArrowLeft, ArrowRight, Check, Trash2,
+  FileText, Download, Loader2, AlertCircle, CheckCircle2, Printer,
+  ListChecks
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -513,20 +513,20 @@ export default function PengajuanSuratPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
             <FileSignature className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-            Pengajuan Surat
+            Penerbitan Berita Acara
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Generate surat pernyataan pengajuan perubahan kondisi BMD.
+            Tetapkan dan cetak dokumen Berita Acara Hasil Akhir untuk aset BMD yang telah disetujui BKAD.
           </p>
         </div>
         <Button className="gap-2 shrink-0" onClick={() => setWizardOpen(true)}>
-          <Plus className="h-4 w-4" /> Buat Surat Pengajuan Baru
+          <Plus className="h-4 w-4" /> Terbitkan Berita Acara Baru
         </Button>
       </div>
 
       <Card className="border-border/60">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Riwayat Surat</CardTitle>
+          <CardTitle className="text-base font-semibold">Riwayat Arsip Dokumen</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -534,7 +534,7 @@ export default function PengajuanSuratPage() {
           ) : archives.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm font-medium">Belum ada surat pengajuan.</p>
+              <p className="text-sm font-medium">Belum ada arsip Berita Acara.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -628,7 +628,10 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
   const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
   const [parsedNilaiKey, setParsedNilaiKey] = useState("");
-  const [excelFileName, setExcelFileName] = useState("");
+
+  // Step 2: Dynamic Asset Selector state
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
+  const [selectedAssets, setSelectedAssets] = useState<any[]>([]);
 
   // Step 3
   const [tembusan, setTembusan] = useState([
@@ -638,80 +641,196 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
     "Inspektur Kabupaten Bandung",
   ]);
 
-  const steps = ["Administrasi", "Lampiran Excel", "Tembusan", "Preview & Cetak"];
+  const steps = ["Administrasi", "Pilih Aset", "Tembusan", "Preview & Cetak"];
 
-  // Excel Parser
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setExcelFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const json: any[] = XLSX.utils.sheet_to_json(ws);
-        if (json.length === 0) { toast.error("File Excel kosong."); return; }
+  // ─── Dynamic Asset Selector Query ───────────────────────
+  const { data: approvedAssets = [], isFetching: isFetchingApproved } = useQuery({
+    queryKey: ["approved-assets-for-ba", companyId, jenisKib],
+    queryFn: async () => {
+      if (!companyId || !jenisKib) return [];
+      const { data, error } = await supabase
+        .from("assets")
+        .select("id, kode_aset, nama_aset, kib, custom_data, nilai_perolehan, harga, lokasi_ruangan")
+        .eq("company_id", companyId)
+        .eq("kib", jenisKib)
+        .eq("custom_data->>status_rekon", "disetujui");
+      if (error) throw error;
+      return (data || []).filter((a: any) => {
+        const cd = (typeof a.custom_data === "object" && a.custom_data) ? a.custom_data : {};
+        return String(cd["status_usulan"] || "") !== "Sudah Ditetapkan Dalam Berita Acara";
+      });
+    },
+    enabled: !!(companyId && jenisKib && open && step >= 2),
+  });
 
-        // Find kode_barang column
-        const keys = Object.keys(json[0]);
-        const kodeKey = keys.find(k => k.toLowerCase().includes("kode barang") || k.toLowerCase().includes("kode_barang")) || "";
-        const nilaiKey = keys.find(k => k.toLowerCase().includes("nilai") || k.toLowerCase().includes("harga")) || "";
-
-        const kodeList: string[] = [];
-        let total = 0;
-
-        // Filter out TOTAL row and sanitize Nilai
-        const dataRows = json.filter(row => {
-          const namaVal = String(row["Nama Barang"] || row["nama_barang"] || "");
-          return !namaVal.toUpperCase().includes("TOTAL");
-        }).map(row => {
-          if (nilaiKey && row[nilaiKey] !== undefined && row[nilaiKey] !== null) {
-            let nilai = row[nilaiKey];
-            if (typeof nilai === "string") {
-              // Jika string, hapus titik pemisah ribuan sebelum diubah jadi number
-              // Tangani juga kalau ada koma desimal (contoh: 750.000,00 -> 750000)
-              const cleanStr = nilai.split(",")[0].replace(/\./g, "").replace(/[^0-9]/g, "");
-              row[nilaiKey] = parseInt(cleanStr, 10) || 0;
-            }
-          }
-          return row;
-        });
-
-        // Build header list: skip "No" column from Excel (we auto-generate it)
-        const noKey = keys.find(k => k.toLowerCase() === "no") || "";
-        const displayHeaders = keys.filter(k => k !== noKey);
-
-        dataRows.forEach((row) => {
-          if (kodeKey && row[kodeKey]) kodeList.push(String(row[kodeKey]).trim());
-          if (nilaiKey && row[nilaiKey]) {
-            const raw = String(row[nilaiKey]).split(",")[0];
-            total += Number(raw.replace(/[^0-9]/g, "")) || 0;
-          }
-        });
-
-        setParsedKodeBarang(kodeList);
-        setParsedTotalNilai(total);
-        setParsedRowCount(dataRows.length);
-        setParsedHeaders(displayHeaders);
-        setParsedNilaiKey(nilaiKey);
-        setParsedRows(dataRows);
-        toast.success(`Berhasil membaca ${dataRows.length} baris data.`);
-      } catch (err) {
-        console.error(err);
-        toast.error("Gagal membaca file Excel.");
-      }
-    };
-    reader.readAsArrayBuffer(file);
+  // ─── Helpers untuk display approvedAssets ───────────────
+  const _apKondisi = (a: any): string => {
+    const cd = (typeof a.custom_data === "object" && a.custom_data) ? a.custom_data : {};
+    return String(cd["Kondisi"] || cd["kondisi"] || cd.rekon_rekomendasi || cd.status_usulan || "-");
   };
 
-  // Tutup Periode & Save
+  const _apNilai = (a: any): number => {
+    const cd = (typeof a.custom_data === "object" && a.custom_data) ? a.custom_data : {};
+    const raw =
+      cd["Nilai Aset"] ?? cd["Nilai Perolehan"] ?? cd["nilai_perolehan"] ??
+      a.nilai_perolehan ?? a.harga ?? cd["Harga"] ?? 0;
+    if (typeof raw === "number") return isFinite(raw) ? raw : 0;
+    if (raw === null || raw === undefined) return 0;
+    const s = String(raw).trim();
+    if (!s) return 0;
+    const cleaned = s.split(",")[0].replace(/[^0-9]/g, "");
+    if (!cleaned) return 0;
+    const n = Number(cleaned);
+    return isFinite(n) ? n : 0;
+  };
+
+  // ─── Build Snapshot payload (mirip PapanRekonsiliasi) ───
+  const _buildAssetSnapshot = (asset: any): any => {
+    const cd = (typeof asset.custom_data === "object" && asset.custom_data) ? asset.custom_data : {};
+    const _cdGet = (keys: string[], fallback = "-") => {
+      for (const k of keys) {
+        if (cd[k] !== null && cd[k] !== undefined && String(cd[k]).trim() !== "") return String(cd[k]);
+      }
+      return fallback;
+    };
+    const nilaiAngka = _apNilai(asset);
+    const spesifikasi = _cdGet(["Spesifikasi Nama Barang", "spesifikasi", "Spesifikasi", "Spesifikasi Barang"]);
+    const merek = _cdGet(["Merek/Type", "merek", "Merek", "Type", "Tipe", "Merek / Type"]);
+    const bahan = _cdGet(["Bahan", "bahan"]);
+    const lokasi =
+      (asset.lokasi_ruangan && String(asset.lokasi_ruangan).trim()) ||
+      _cdGet(["Lokasi", "Lokasi Ruangan", "lokasi", "lokasi_ruangan", "Ruangan"], "-");
+    const nopol = _cdGet(["Nomor Polisi", "nopol", "nomor_polisi", "No. Polisi", "No Polisi"]);
+    const metodePerolehan = _cdGet(["Metode Perolehan", "metode_perolehan", "Cara Perolehan", "Perolehan", "Sumber Perolehan"]);
+    const bidangPengguna = _cdGet(["Bidang Pengguna", "bidang_pengguna", "Pengguna", "Bidang", "Unit Pengguna", "Unit Kerja"]);
+    const keterangan = _cdGet(["Keterangan", "keterangan", "Catatan", "catatan", "Deskripsi", "deskripsi"]);
+    const kondisiAkhir = _apKondisi(asset);
+    return {
+      ...cd,
+      id: asset.id,
+      asset_id: asset.id,
+      kode_barang: asset.kode_aset,
+      kode_aset: asset.kode_aset,
+      nama_barang: asset.nama_aset,
+      nama_aset: asset.nama_aset,
+      kib: asset.kib,
+      Kondisi: kondisiAkhir,
+      kondisi: kondisiAkhir,
+      rekon_rekomendasi: cd.rekon_rekomendasi || cd.status_usulan || "",
+      rekomendasi: cd.rekon_rekomendasi || cd.status_usulan || "",
+      nilai_perolehan: nilaiAngka,
+      "Nilai Aset": nilaiAngka,
+      "Nilai Perolehan": nilaiAngka,
+      "Spesifikasi Nama Barang": spesifikasi,
+      spesifikasi,
+      "Merek/Type": merek,
+      merek,
+      Bahan: bahan,
+      bahan,
+      Lokasi: lokasi,
+      lokasi_ruangan: asset.lokasi_ruangan || lokasi,
+      "Nomor Polisi": nopol,
+      nopol,
+      nomor_polisi: nopol,
+      "Metode Perolehan": metodePerolehan,
+      metode_perolehan: metodePerolehan,
+      "Bidang Pengguna": bidangPengguna,
+      bidang_pengguna: bidangPengguna,
+      Keterangan: keterangan,
+      keterangan,
+      assetData: {
+        ...cd,
+        nama_barang: asset.nama_aset,
+        nama_aset: asset.nama_aset,
+        kode_aset: asset.kode_aset,
+        kib: asset.kib,
+        nilai_perolehan: nilaiAngka,
+        "Nilai Aset": nilaiAngka,
+        Kondisi: kondisiAkhir,
+        "Spesifikasi Nama Barang": spesifikasi,
+        "Merek/Type": merek,
+        Bahan: bahan,
+        Lokasi: lokasi,
+        "Nomor Polisi": nopol,
+        "Metode Perolehan": metodePerolehan,
+        "Bidang Pengguna": bidangPengguna,
+        Keterangan: keterangan,
+      },
+    };
+  };
+
+  // ─── Bridge: selectedAssetIds → legacy state ────────────
+  useEffect(() => {
+    const picked = approvedAssets.filter((a: any) => selectedAssetIds.has(a.id));
+    setSelectedAssets(picked);
+
+    const kodeList = picked.map((a: any) => a.kode_aset).filter(Boolean);
+    let total = 0;
+    picked.forEach((a: any) => { total += _apNilai(a); });
+
+    const snapshotRows = picked.map((a: any) => _buildAssetSnapshot(a));
+    const headers13 = [
+      "Kode Barang",
+      "Nama Barang",
+      "Spesifikasi Nama Barang",
+      "Merek/Type",
+      "Bahan",
+      "Lokasi",
+      "Nomor Polisi",
+      "Metode Perolehan",
+      "Bidang Pengguna",
+      "Keterangan",
+      "Kondisi",
+      "Nilai Perolehan",
+    ];
+
+    setParsedKodeBarang(kodeList);
+    setParsedTotalNilai(total);
+    setParsedRowCount(picked.length);
+    setParsedRows(snapshotRows);
+    setParsedHeaders(headers13);
+    setParsedNilaiKey("Nilai Perolehan");
+  }, [selectedAssetIds, approvedAssets]);
+
+  // Reset pilihan saat jenisKib berubah
+  useEffect(() => {
+    setSelectedAssetIds(new Set());
+  }, [jenisKib]);
+
+  // ─── Checkbox handlers ──────────────────────────────────
+  const toggleAsset = (id: string) => {
+    setSelectedAssetIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedAssetIds.size === approvedAssets.length && approvedAssets.length > 0) {
+      setSelectedAssetIds(new Set());
+    } else {
+      setSelectedAssetIds(new Set(approvedAssets.map((a: any) => a.id)));
+    }
+  };
+
+  // Tutup Periode & Save (Finalisasi Berita Acara)
   const handleSubmit = async () => {
     if (!companyId) return;
     setSubmitting(true);
     try {
-      // 1. Save document archive
+      // Build payload snapshot full aset terpilih
+      const assetSnapshotFull = selectedAssets.map((a: any) => _buildAssetSnapshot(a));
+
+      // 1. Save document archive — status: "Berita Acara Ditetapkan"
+      //    data_otorisasi adalah ARRAY aset (mirip payload PapanRekonsiliasi) + metadata otorisasi
+      const otorisasiPayload: any = {
+        nama: namaKadis,
+        nip: nipKadis,
+        jabatan: jabatanKadis,
+      };
+      Object.assign(otorisasiPayload, { aset_detail: assetSnapshotFull });
       const { error: insertErr } = await supabase.from("document_archives").insert({
         company_id: companyId,
         nomor_surat: nomorSurat,
@@ -722,46 +841,39 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         total_nilai: parsedTotalNilai,
         kode_barang_list: parsedKodeBarang as any,
         tembusan: tembusan as any,
-        data_otorisasi: { nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis, lampiran_data: parsedRows, lampiran_headers: parsedHeaders } as any,
-        status: "Selesai",
+        data_otorisasi: otorisasiPayload as any,
+        status: "Berita Acara Ditetapkan",
       });
       if (insertErr) throw insertErr;
 
-      // 2. Bulk update assets — set status_usulan to "Menunggu Update SIMDA"
-      if (parsedKodeBarang.length > 0) {
-        const { data: matchedAssets } = await supabase
-          .from("assets")
-          .select("id, custom_data")
-          .eq("company_id", companyId)
-          .in("kode_aset", parsedKodeBarang);
+      // 2. Bulk update assets — TAMBAHKAN FLAG Berita Acara, JANGAN UBAH KONDISI
+      if (parsedKodeBarang.length > 0 && selectedAssets.length > 0) {
+        const updates = selectedAssets.map((asset: any) => {
+          const cd = (typeof asset.custom_data === "object" && asset.custom_data) ? asset.custom_data as Record<string, any> : {};
+          const newCd = {
+            ...cd,
+            status_usulan: "Sudah Ditetapkan Dalam Berita Acara",
+            no_berita_acara: nomorSurat,
+            tanggal_berita_acara: tglSurat,
+          };
+          return supabase.from("assets").update({ custom_data: newCd }).eq("id", asset.id);
+        });
+        const results = await Promise.all(updates);
+        const firstErr = results.find((r: any) => r.error);
+        if (firstErr?.error) throw firstErr.error;
 
-        if (matchedAssets && matchedAssets.length > 0) {
-          const matchedAssetIds: string[] = [];
-          for (const asset of matchedAssets) {
-            matchedAssetIds.push(asset.id);
-            const cd = (typeof asset.custom_data === "object" && asset.custom_data) ? asset.custom_data as Record<string, any> : {};
-            const newCd = {
-              ...cd,
-              status_usulan: "Menunggu Update SIMDA",
-              Kondisi: "Diusulkan Reklasifikasi (Rusak Berat)",
-            };
-            await supabase.from("assets").update({ custom_data: newCd }).eq("id", asset.id);
-          }
-          console.log(`[TutupPeriode] Updated ${matchedAssets.length} assets.`);
-
-          // Auto-close public reports (Task 2)
-          if (matchedAssetIds.length > 0) {
-            const { error: reportsErr } = await supabase
-              .from("asset_reports")
-              .update({
-                status: "Selesai",
-                catatan_admin: "Otomatis: Diusulkan Rubah Kondisi (Rusak Berat)"
-              } as any)
-              .in("asset_id", matchedAssetIds)
-              .in("status", ["Menunggu", "Diproses"]);
-              
-            if (reportsErr) console.error("[TutupPeriode] Gagal menutup laporan publik:", reportsErr);
-          }
+        // Auto-close public reports terkait (status ke Selesai — karena sudah final BA)
+        const matchedIds = selectedAssets.map((a: any) => a.id);
+        if (matchedIds.length > 0) {
+          const { error: reportsErr } = await supabase
+            .from("asset_reports")
+            .update({
+              status: "Selesai",
+              catatan_admin: "Otomatis: Sudah ditetapkan dalam Berita Acara"
+            } as any)
+            .in("asset_id", matchedIds)
+            .in("status", ["Menunggu", "Diproses"]);
+          if (reportsErr) console.error("[FinalisasiBA] Gagal menutup laporan publik:", reportsErr);
         }
       }
 
@@ -769,20 +881,21 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
       queryClient.invalidateQueries({ queryKey: ["document-archives"] });
       queryClient.invalidateQueries({ queryKey: ["assets"] });
       queryClient.invalidateQueries({ queryKey: ["rekon-assets-joined"] });
+      queryClient.invalidateQueries({ queryKey: ["approved-assets-for-ba"] });
 
-      toast.success("Surat berhasil disimpan & periode ditutup!");
+      toast.success("Berita Acara berhasil ditetapkan & disimpan!");
 
       // 4. Generate PDF via jsPDF
       try {
         await new Promise(r => setTimeout(r, 300));
-        await generatePDF("pdf-page-1", "pdf-page-2", `Surat_Pengajuan_BMD_${nomorSurat.replace(/\//g, "-")}.pdf`);
+        await generatePDF("pdf-page-1", "pdf-page-2", `Berita_Acara_BMD_${nomorSurat.replace(/\//g, "-")}.pdf`);
       } catch (pdfErr) {
         console.warn("PDF generation failed:", pdfErr);
       }
       onClose();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Gagal menyimpan surat.");
+      toast.error(err.message || "Gagal menetapkan Berita Acara.");
     } finally {
       setSubmitting(false);
     }
@@ -804,7 +917,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSignature className="h-5 w-5 text-primary" />
-            Buat Surat Pengajuan Baru
+            Terbitkan Berita Acara
           </DialogTitle>
         </DialogHeader>
 
@@ -860,7 +973,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
           </div>
         )}
 
-        {/* Step 2: Excel Parser */}
+        {/* Step 2: Dynamic Asset Selector */}
         {step === 2 && (
           <div className="space-y-4">
             <div className="space-y-1.5">
@@ -876,23 +989,127 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Upload Lampiran Excel (.xlsx) <span className="text-destructive">*</span></Label>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors flex-1">
-                  <Upload className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">{excelFileName || "Klik untuk pilih file..."}</span>
-                  <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileUpload} />
-                </label>
-              </div>
-            </div>
-            {parsedRowCount > 0 && (
-              <div className="flex items-start gap-3 rounded-lg bg-chart-3/10 border border-chart-3/30 p-4">
-                <CheckCircle2 className="h-5 w-5 text-chart-3 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-chart-3">Berhasil membaca {parsedRowCount} Aset</p>
-                  <p className="text-xs text-chart-3/80 mt-0.5">Total Nilai Perolehan: <strong>Rp {parsedTotalNilai.toLocaleString("id-ID")}</strong></p>
+
+            {jenisKib ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <ListChecks className="h-4 w-4 text-primary" />
+                    <span>
+                      {isFetchingApproved ? "Memuat aset disetujui..." : `${approvedAssets.length} aset siap ditetapkan (status_rekon = disetujui)`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleAll}
+                      disabled={isFetchingApproved || approvedAssets.length === 0}
+                      className="gap-1.5 text-xs"
+                    >
+                      {selectedAssetIds.size === approvedAssets.length && approvedAssets.length > 0
+                        ? <Check className="h-3.5 w-3.5" />
+                        : <ListChecks className="h-3.5 w-3.5" />}
+                      {selectedAssetIds.size === approvedAssets.length && approvedAssets.length > 0
+                        ? "Batalkan Pilih Semua"
+                        : "Pilih Semua"}
+                    </Button>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[11px] px-2 py-1">
+                      {selectedAssetIds.size} dipilih
+                    </Badge>
+                  </div>
                 </div>
+
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="max-h-[360px] overflow-y-auto overflow-x-auto">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-card z-10 shadow-[0_1px_0_0_hsl(var(--border))]">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="w-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">
+                            <span className="sr-only">Select</span>
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Kode Barang</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nama Barang</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Kondisi</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap text-right">Nilai Perolehan</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {isFetchingApproved ? (
+                          Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i}>
+                              <TableCell><Skeleton className="h-4 w-4 mx-auto" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-full max-w-[280px]" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
+                            </TableRow>
+                          ))
+                        ) : approvedAssets.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="h-32 text-center text-sm text-muted-foreground">
+                              Belum ada aset dengan status <span className="font-medium">disetujui BKAD</span> untuk KIB ini, atau semua sudah ditetapkan dalam Berita Acara.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          approvedAssets.map((a: any) => {
+                            const checked = selectedAssetIds.has(a.id);
+                            return (
+                              <TableRow
+                                key={a.id}
+                                onClick={() => toggleAsset(a.id)}
+                                className={`cursor-pointer transition-colors ${checked ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/50"}`}
+                              >
+                                <TableCell className="text-center py-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleAsset(a.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                  />
+                                </TableCell>
+                                <TableCell className="py-3">
+                                  <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{a.kode_aset || "-"}</span>
+                                </TableCell>
+                                <TableCell className="py-3">
+                                  <div className="max-w-[320px]">
+                                    <p className="text-sm font-medium text-foreground truncate">{a.nama_aset || _psNama(a)}</p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-3 whitespace-nowrap">
+                                  <Badge variant="outline" className="bg-muted/50 border-border text-[11px] px-2 py-0.5">
+                                    {_apKondisi(a)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="py-3 text-right whitespace-nowrap font-mono text-sm">
+                                  Rp {_apNilai(a).toLocaleString("id-ID")}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                {parsedRowCount > 0 && (
+                  <div className="flex items-start gap-3 rounded-lg bg-chart-3/10 border border-chart-3/30 p-4">
+                    <CheckCircle2 className="h-5 w-5 text-chart-3 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-chart-3">{parsedRowCount} Aset Terpilih</p>
+                      <p className="text-xs text-chart-3/80 mt-0.5">
+                        Total Nilai Perolehan: <strong>Rp {parsedTotalNilai.toLocaleString("id-ID")}</strong>
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground bg-muted/20">
+                <ListChecks className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                Pilih Jenis KIB terlebih dahulu untuk melihat daftar aset yang telah disetujui BKAD.
               </div>
             )}
           </div>
@@ -920,17 +1137,23 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         {/* Step 4: Preview & Submit */}
         {step === 4 && (
           <div className="space-y-4">
-            <div className="flex items-start gap-2 rounded-lg bg-warning/10 border border-warning/30 p-3">
-              <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-              <p className="text-xs text-warning">Setelah menekan tombol di bawah, <strong>{parsedRowCount} aset</strong> akan ditandai "Menunggu Update SIMDA" dan hilang dari Papan Rekonsiliasi.</p>
+            <div className="flex items-start gap-2 rounded-lg bg-chart-3/10 border border-chart-3/30 p-3">
+              <AlertCircle className="h-4 w-4 text-chart-6 shrink-0 mt-0.5" />
+              <p className="text-xs text-chart-7">
+                Setelah menekan tombol di bawah, <strong>{parsedRowCount} aset</strong> akan ditandai
+                <span className="font-medium"> "Sudah Ditetapkan Dalam Berita Acara"</span> dan diberi cap
+                <code className="mx-1 px-1.5 py-0.5 bg-chart-3/20 rounded text-[10px] font-mono">no_berita_acara</code>
+                serta <code className="mx-1 px-1.5 py-0.5 bg-chart-3/20 rounded text-[10px] font-mono">tanggal_berita_acara</code>
+                pada metadata aset. Aset ini otomatis hilang dari selector Berita Acara selanjutnya (pencegah duplikasi).
+              </p>
             </div>
             <div className="rounded-lg border border-border p-4 space-y-2 bg-muted/20 text-sm">
-              <p><strong>Nomor Surat:</strong> {nomorSurat}</p>
-              <p><strong>Tanggal Surat:</strong> {tglSuratFormatted}</p>
+              <p><strong>Nomor Berita Acara:</strong> {nomorSurat}</p>
+              <p><strong>Tanggal Berita Acara:</strong> {tglSuratFormatted}</p>
               <p><strong>Jenis KIB:</strong> {jenisKib}</p>
               <p><strong>Jumlah Aset:</strong> {parsedRowCount} item</p>
               <p><strong>Total Nilai:</strong> Rp {parsedTotalNilai.toLocaleString("id-ID")}</p>
-              <p><strong>Kepala Dinas:</strong> {namaKadis} (NIP. {nipKadis})</p>
+              <p><strong>Pejabat Otorisasi:</strong> {namaKadis} (NIP. {nipKadis})</p>
               <p><strong>Tembusan:</strong> {tembusan.filter(t => t.trim()).length} pihak</p>
             </div>
           </div>
@@ -957,7 +1180,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
           ) : (
             <Button onClick={handleSubmit} disabled={submitting} className="gap-1.5 bg-chart-3 hover:bg-chart-3/90 text-white">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-              {submitting ? "Memproses..." : "Generate PDF & Tutup Periode"}
+              {submitting ? "Memproses..." : "Tetapkan & Cetak Berita Acara"}
             </Button>
           )}
         </div>
