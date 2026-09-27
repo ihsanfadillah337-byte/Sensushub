@@ -644,7 +644,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
   const steps = ["Administrasi", "Pilih Aset", "Tembusan", "Preview & Cetak"];
 
   // ─── Dynamic Asset Selector Query (Hotfix: Company-only pull + stale cache) ──
-  const { data: allCompanyAssets = [], isFetching: isFetchingApproved } = useQuery({
+  const { data: allCompanyAssets = [], isFetching: isFetchingApproved, error: queryError } = useQuery({
     queryKey: ["approved-assets-for-ba", companyId],
     queryFn: async () => {
       if (!companyId) return [];
@@ -661,7 +661,8 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 
   console.log("1. HASIL API SUPABASE:", { 
     jumlahData: allCompanyAssets?.length,
-    sampleData: allCompanyAssets?.[0] 
+    sampleData: allCompanyAssets?.[0],
+    error: queryError 
   });
 
   // ─── useMemo: Filter Client-side Tolerant (Hotfix Empty Data & Slow Fetch) ──
