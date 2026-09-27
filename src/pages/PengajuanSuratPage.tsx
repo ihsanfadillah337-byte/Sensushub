@@ -479,7 +479,7 @@ export default function PengajuanSuratPage() {
   const [reprintArc, setReprintArc] = useState<any>(null);
 
   const { data: archives = [], isLoading } = useQuery({
-    queryKey: ["document-archives", companyId],
+    queryKey: ["document-archives-verifikasi", companyId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("document_archives")
@@ -487,7 +487,9 @@ export default function PengajuanSuratPage() {
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return (data ?? []).filter((arc: any) =>
+        String(arc.status || "").includes("Disetujui BKAD")
+      );
     },
     enabled: !!companyId,
   });
@@ -965,8 +967,10 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         }
       }
 
-      // 3. Invalidate caches
+      // 3. Invalidate caches (refresh kedua halaman arsip: verifikasi & BA final)
       queryClient.invalidateQueries({ queryKey: ["document-archives"] });
+      queryClient.invalidateQueries({ queryKey: ["document-archives-verifikasi"] });
+      queryClient.invalidateQueries({ queryKey: ["document-archives-ba"] });
       queryClient.invalidateQueries({ queryKey: ["assets"] });
       queryClient.invalidateQueries({ queryKey: ["rekon-assets-joined"] });
       queryClient.invalidateQueries({ queryKey: ["approved-assets-for-ba"] });

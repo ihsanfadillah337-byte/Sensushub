@@ -447,9 +447,9 @@ export default function FinalisasiRekon() {
   const [currentPage, setCurrentPage] = useState(1);
   const [reprintArc, setReprintArc] = useState<ArchiveRow | null>(null);
 
-  // Fetch document_archives (sorted newest first)
+  // Fetch document_archives (hanya Berita Acara Ditetapkan — sorted newest first)
   const { data: archives = [], isLoading } = useQuery({
-    queryKey: ["document-archives", companyId],
+    queryKey: ["document-archives-ba", companyId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("document_archives")
@@ -457,7 +457,9 @@ export default function FinalisasiRekon() {
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as ArchiveRow[];
+      return (data ?? []).filter((arc: any) =>
+        String(arc.status || "").includes("Berita Acara Ditetapkan")
+      ) as ArchiveRow[];
     },
     enabled: !!companyId,
     staleTime: 1000 * 60 * 2,
