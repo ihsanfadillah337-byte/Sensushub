@@ -648,11 +648,10 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
     queryKey: ["approved-assets-for-ba", companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      console.log("3. CEK VARIABEL ID:", { companyId });
       const { data, error } = await supabase
         .from("assets")
-        .select("id, kode_aset, nama_aset, kib, custom_data, nilai_perolehan, harga, lokasi_ruangan");
-        // .eq("company_id", companyId) — BYPASS UNTUK DEBUGGING
+        .select("id, kode_aset, nama_aset, kib, custom_data")
+        .eq("company_id", companyId);
       if (error) throw error;
       return data || [];
     },
