@@ -487,9 +487,14 @@ export default function PengajuanSuratPage() {
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []).filter((arc: any) =>
-        String(arc.status || "").includes("Disetujui BKAD")
-      );
+      return (data ?? []).filter((arc: any) => {
+        const status = String(arc.status || "").trim();
+        // HANYA terima status murni "Disetujui BKAD"
+        // TOLAK keras apapun yang sudah menapak ke ranah Berita Acara / Ditetapkan
+        if (status.includes("Berita Acara")) return false;
+        if (status.includes("Ditetapkan")) return false;
+        return status === "Disetujui BKAD";
+      });
     },
     enabled: !!companyId,
   });
