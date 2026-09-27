@@ -31,7 +31,7 @@ const menuItems: MenuItem[] = [
   { title: "Verifikasi BKAD", url: "/dashboard/verifikasi-bkad", icon: ShieldCheck, roles: ["staf_bkad"] },
   { title: "Rekonsiliasi Aset", url: "/dashboard/rekonsiliasi", icon: Scale, roles: ["super_admin", "operator", "auditor"] },
   { title: "Pengajuan Surat", url: "/dashboard/pengajuan-surat", icon: FileSignature, roles: ["super_admin"] },
-  { title: "Finalisasi Rekon", url: "/dashboard/finalisasi-rekon", icon: FileCheck2, roles: ["super_admin"] },
+  { title: "Arsip Berita Acara", url: "/dashboard/finalisasi-rekon", icon: FileCheck2, roles: ["super_admin"] },
   { title: "Manajemen Pengguna", url: "/dashboard/users", icon: Users, roles: ["super_admin"] },
   { title: "Pengaturan", url: "/dashboard/settings", icon: Settings, roles: ["super_admin"] },
 ];

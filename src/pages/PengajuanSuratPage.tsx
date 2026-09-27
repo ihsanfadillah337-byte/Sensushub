@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +24,10 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -607,10 +612,12 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
   const { companyId } = useAuth();
   const { masterKib } = useCustomColumns();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
 
   // Step 1
   const [nomorSurat, setNomorSurat] = useState("");
@@ -964,29 +971,11 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
       queryClient.invalidateQueries({ queryKey: ["rekon-assets-joined"] });
       queryClient.invalidateQueries({ queryKey: ["approved-assets-for-ba"] });
 
-      toast.success("Berita Acara berhasil ditetapkan & disimpan!");
+      toast.success("Berita Acara berhasil diterbitkan dan diarsipkan!");
 
-      // 4. Generate PDF via jsPDF
-      try {
-        // Tunggu + polling sampai DOM kontainer page2 (lampiran) benar-benar ter-mount,
-        // sehingga generatePDF yang membaca via getElementById tidak kosong.
-        const page1El = document.getElementById("pdf-page-1");
-        console.log("[PDF PRECHECK] page1:", !!page1El);
-        const MAX_ATTEMPTS = 10;
-        let attempt = 0;
-        while (attempt < MAX_ATTEMPTS) {
-          const page2First = document.getElementById("pdf-page-2-0");
-          console.log(`[PDF PRECHECK] attempt ${attempt + 1}/${MAX_ATTEMPTS} -> pdf-page-2-0:`, !!page2First);
-          if (page2First) break;
-          await new Promise(r => setTimeout(r, 150));
-          attempt++;
-        }
-        await new Promise(r => setTimeout(r, 400));
-        await generatePDF("pdf-page-1", "pdf-page-2", `Berita_Acara_BMD_${nomorSurat.replace(/\//g, "-")}.pdf`);
-      } catch (pdfErr) {
-        console.warn("PDF generation failed:", pdfErr);
-      }
-      onClose();
+      // 4. Tampilkan pop-up sukses — JANGAN otomatis download PDF dari wizard
+      //    (download via Pusat Arsip Berita Acara lebih reliabel)
+      setSuccessOpen(true);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Gagal menetapkan Berita Acara.");
@@ -1289,12 +1278,40 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
             </Button>
           ) : (
             <Button onClick={handleSubmit} disabled={submitting} className="gap-1.5 bg-chart-3 hover:bg-chart-3/90 text-white">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-              {submitting ? "Memproses..." : "Tetapkan & Cetak Berita Acara"}
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {submitting ? "Memproses..." : "Tetapkan & Arsipkan Berita Acara"}
             </Button>
           )}
         </div>
       </DialogContent>
+
+      <AlertDialog open={successOpen} onOpenChange={(o) => { if (!o) setSuccessOpen(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-chart-3">
+              <CheckCircle2 className="h-5 w-5" /> Berita Acara Berhasil Diterbitkan
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-relaxed pt-2">
+              Berita Acara berhasil diterbitkan dan diarsipkan! Silakan unduh dokumen lengkap dengan lampirannya melalui
+              menu <strong>Pusat Arsip Berita Acara</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <AlertDialogAction
+              onClick={() => { setSuccessOpen(false); onClose(); }}
+              className="bg-transparent text-foreground hover:bg-muted border border-border shadow-none"
+            >
+              Tetap di Halaman Ini
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => { setSuccessOpen(false); onClose(); navigate("/dashboard/finalisasi-rekon"); }}
+              className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Buka Pusat Arsip <ArrowRight className="h-4 w-4" />
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
