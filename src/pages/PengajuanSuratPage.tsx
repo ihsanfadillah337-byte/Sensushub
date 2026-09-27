@@ -881,6 +881,26 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
     if (!companyId) return;
     setSubmitting(true);
     try {
+      // Debug: pastikan state parsedRows/selectedAssets terisi sebelum PDF di-generate
+      console.log("ISI PARSED ROWS:", parsedRows.length);
+      console.log("  -> selectedAssets:", selectedAssets.length);
+      console.log("  -> parsedHeaders:", parsedHeaders);
+      console.log("  -> parsedNilaiKey:", parsedNilaiKey);
+      console.log("  -> parsedTotalNilai:", parsedTotalNilai);
+
+      // Build pseudoArc + _psBuildLampiranRows SAMA PERSIS dengan render <PdfPages>
+      // agar kita bisa debug & pastikan data source untuk PDF 100% konsisten
+      const pseudoArc: any = {
+        data_otorisasi: { aset_detail: parsedRows },
+        kode_barang_list: parsedKodeBarang,
+        total_nilai: parsedTotalNilai,
+        total_aset: parsedRowCount,
+      };
+      const built = _psBuildLampiranRows(pseudoArc);
+      console.log("  -> built.rows (untuk PDF):", built.rows.length);
+      console.log("  -> built.headers:", built.headers);
+      console.log("  -> sample built row:", built.rows[0]);
+
       // Build payload snapshot full aset terpilih
       const assetSnapshotFull = selectedAssets.map((a: any) => _buildAssetSnapshot(a));
 
@@ -948,7 +968,20 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 
       // 4. Generate PDF via jsPDF
       try {
-        await new Promise(r => setTimeout(r, 300));
+        // Tunggu + polling sampai DOM kontainer page2 (lampiran) benar-benar ter-mount,
+        // sehingga generatePDF yang membaca via getElementById tidak kosong.
+        const page1El = document.getElementById("pdf-page-1");
+        console.log("[PDF PRECHECK] page1:", !!page1El);
+        const MAX_ATTEMPTS = 10;
+        let attempt = 0;
+        while (attempt < MAX_ATTEMPTS) {
+          const page2First = document.getElementById("pdf-page-2-0");
+          console.log(`[PDF PRECHECK] attempt ${attempt + 1}/${MAX_ATTEMPTS} -> pdf-page-2-0:`, !!page2First);
+          if (page2First) break;
+          await new Promise(r => setTimeout(r, 150));
+          attempt++;
+        }
+        await new Promise(r => setTimeout(r, 400));
         await generatePDF("pdf-page-1", "pdf-page-2", `Berita_Acara_BMD_${nomorSurat.replace(/\//g, "-")}.pdf`);
       } catch (pdfErr) {
         console.warn("PDF generation failed:", pdfErr);
