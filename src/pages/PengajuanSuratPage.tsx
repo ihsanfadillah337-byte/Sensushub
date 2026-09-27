@@ -1222,11 +1222,27 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 
         {/* ═══ OFF-SCREEN PDF Containers ═══ */}
         {step === 4 && (
-          <PdfPages id1="pdf-page-1" id2="pdf-page-2" data={{
-            nomorSurat, tglSurat: tglSuratFormatted, tglPen: tglPenelusuranFormatted,
-            nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis,
-            tembusan, headers: parsedHeaders, rows: parsedRows, totalNilai: parsedTotalNilai, nilaiKey: parsedNilaiKey,
-          }} tenantSettings={tenantSettings} />
+          (() => {
+            const pseudoArc: any = {
+              data_otorisasi: { aset_detail: parsedRows },
+              kode_barang_list: parsedKodeBarang,
+              total_nilai: parsedTotalNilai,
+              total_aset: parsedRowCount,
+            };
+            const built = _psBuildLampiranRows(pseudoArc);
+            const totalNilaiDisplay = built.total > 0 ? built.total : parsedTotalNilai;
+            return (
+              <PdfPages id1="pdf-page-1" id2="pdf-page-2" data={{
+                nomorSurat, tglSurat: tglSuratFormatted, tglPen: tglPenelusuranFormatted,
+                nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis,
+                tembusan,
+                headers: built.headers,
+                rows: built.rows,
+                totalNilai: totalNilaiDisplay,
+                nilaiKey: built.nilaiKey,
+              }} tenantSettings={tenantSettings} />
+            );
+          })()
         )}
 
         {/* Navigation */}
