@@ -659,12 +659,25 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
     enabled: !!(companyId && open && step >= 2),
   });
 
+  console.log("1. HASIL API SUPABASE:", { 
+    jumlahData: allCompanyAssets?.length,
+    sampleData: allCompanyAssets?.[0] 
+  });
+
   // ─── useMemo: Filter Client-side Tolerant (Hotfix Empty Data & Slow Fetch) ──
   const filteredAssets = useMemo(() => {
     return allCompanyAssets.filter((a: any) => {
       const cd = (typeof a.custom_data === "object" && a.custom_data !== null)
         ? (a.custom_data as Record<string, any>)
         : {};
+
+      console.log("2. UJI FILTER ASET (ID: " + a.kode_aset + "):", {
+        kib_di_database: a.kib,
+        kib_di_dropdown: jenisKib,
+        status_native: a.status_rekon,
+        status_cd: cd["status_rekon"],
+        status_usulan: cd["status_usulan"]
+      });
 
       // 1. Status Rekon: lowercase case-insensitive match
       //    Fallback chain: Cek kolom utama tabel dulu, lalu ke JSON custom_data
