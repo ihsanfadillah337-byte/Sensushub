@@ -43,8 +43,8 @@ const typeLabels: Record<string, string> = {
   text: "Text", number: "Number", date: "Date", dropdown: "Dropdown", coded_dropdown: "Dropdown Berkode",
 };
 const typeBadgeClass: Record<string, string> = {
-  text: "bg-accent text-accent-foreground", number: "bg-secondary text-secondary-foreground",
-  date: "bg-muted text-muted-foreground", dropdown: "bg-chart-3/10 text-chart-3", coded_dropdown: "bg-primary/10 text-primary",
+  text: "bg-slate-100 text-slate-700 border-slate-200", number: "bg-slate-100 text-slate-700 border-slate-200",
+  date: "bg-slate-100 text-slate-700 border-slate-200", dropdown: "bg-blue-50 text-blue-700 border-blue-200", coded_dropdown: "bg-blue-50 text-blue-700 border-blue-200",
 };
 
 function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol, onRemove, onEdit }: {
@@ -58,7 +58,7 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
 
   return (
     <li ref={setNodeRef} style={style} className="group">
-      <div className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 transition-colors cursor-pointer"
+      <div className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 transition-colors cursor-pointer"
         onClick={() => (col.type === "coded_dropdown" || col.type === "dropdown") && setExpandedCol(expandedCol === col.id ? null : col.id)}>
         <div className="flex items-center gap-2">
           {!isLocked && (
@@ -68,7 +68,7 @@ function SortableColumnItem({ col, index, isLocked, expandedCol, setExpandedCol,
           )}
           <span className="text-xs text-muted-foreground tabular-nums w-5">{index + 1}.</span>
           <span className="text-sm font-medium text-foreground">{col.name}</span>
-          <Badge variant="secondary" className={`text-[10px] ${typeBadgeClass[col.type]}`}>{typeLabels[col.type]}</Badge>
+          <Badge variant="secondary" className={`text-[11px] ${typeBadgeClass[col.type]}`}>{typeLabels[col.type]}</Badge>
           {col.type === "coded_dropdown" && col.options && !col.options_tree && (
             <span className="text-[10px] text-muted-foreground">({col.options.length} opsi)</span>
           )}
@@ -290,18 +290,18 @@ export default function DashboardSettings() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Pengaturan</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Konfigurasi master data dan kolom custom untuk data aset Anda.</p>
+        <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Pengaturan</h1>
+        <p className="text-xs text-gray-500 mt-0.5">Konfigurasi master data dan kolom custom untuk data aset Anda.</p>
       </div>
 
       <MasterDataSection title="Master Divisi / Satuan Kerja" icon={<Building2 className="h-4 w-4 text-primary" />} items={masterDivisi} setItems={setMasterDivisi} labelPlaceholder="cth: Bagian Umum" codePlaceholder="cth: 01" />
       <MasterDataSection title="Master KIB" icon={<FolderOpen className="h-4 w-4 text-primary" />} items={masterKib} setItems={setMasterKib} labelPlaceholder="cth: Peralatan dan Mesin" codePlaceholder="cth: 02" onEditCode={(kibLabel) => setCodeBuilderKib(kibLabel)} />
 
       {/* Letterhead / PDF Settings */}
-      <section className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden">
-        <div className="border-b border-border bg-muted/20 px-6 py-4 flex items-center justify-between">
+      <section className="bg-white rounded-md border border-gray-200 overflow-hidden">
+        <div className="border-b border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-foreground tracking-tight">Kop Surat PDF</h2>
+            <h2 className="text-lg font-semibold text-gray-900 tracking-tight">Kop Surat PDF</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Konfigurasi identitas instansi untuk dokumen cetak (PDF).
             </p>
@@ -313,10 +313,10 @@ export default function DashboardSettings() {
       </section>
 
       {/* Custom Columns per KIB */}
-      <div className="rounded-lg border border-border bg-card">
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
+      <div className="rounded-md border border-gray-200 bg-white">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-200">
           <Columns3 className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">Pengaturan Kolom Custom</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Pengaturan Kolom Custom</h2>
           <div className="ml-auto flex items-center gap-2">
             <Badge variant="outline" className="text-xs tabular-nums">{currentColumns.length}/{MAX_COLUMNS}</Badge>
             {!isLocked && (
@@ -384,7 +384,7 @@ export default function DashboardSettings() {
               </div>
 
               {newType === "dropdown" && (
-                <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-4">
+                <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-4">
                   <Label className="text-xs font-medium text-muted-foreground">Kelola Opsi Dropdown</Label>
                   {simpleOptions.map((opt, idx) => (
                     <div key={idx} className="flex items-center gap-2">
@@ -415,7 +415,7 @@ export default function DashboardSettings() {
               )}
 
               {isMaxReached && (
-                <div className="flex items-center gap-2 text-xs text-warning rounded-md bg-warning/10 px-3 py-2">
+                <div className="flex items-center gap-2 text-xs text-amber-700 rounded-md bg-amber-50 px-3 py-2">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" />Batas maksimal {MAX_COLUMNS} kolom custom telah tercapai.
                 </div>
               )}

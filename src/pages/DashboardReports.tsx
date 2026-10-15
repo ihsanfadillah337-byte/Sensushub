@@ -28,9 +28,9 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 const statusConfig: Record<string, { label: string; class: string }> = {
-  Menunggu: { label: "Menunggu", class: "bg-warning/15 text-warning border-warning/30" },
-  Diproses: { label: "Diproses", class: "bg-chart-3/15 text-chart-3 border-chart-3/30" },
-  Selesai: { label: "Selesai", class: "bg-chart-1/15 text-chart-1 border-chart-1/30" },
+  Menunggu: { label: "Menunggu", class: "bg-amber-50 text-amber-700 border-amber-200" },
+  Diproses: { label: "Diproses", class: "bg-amber-50 text-amber-700 border-amber-200" },
+  Selesai: { label: "Selesai", class: "bg-green-50 text-green-700 border-green-200" },
 };
 
 interface ResolusiForm {
@@ -269,8 +269,8 @@ export default function DashboardReports() {
     <TooltipProvider>
       <div className="space-y-6">
         <Tabs defaultValue="public_reports" className="space-y-6">
-          <TabsList className="bg-muted/40 p-0.5 inline-flex h-auto gap-0.5 rounded-lg">
-            <TabsTrigger value="public_reports" className="gap-1.5 px-3 py-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">
+          <TabsList className="bg-slate-100 p-0.5 inline-flex h-auto gap-0.5 rounded-md">
+            <TabsTrigger value="public_reports" className="gap-1.5 px-3 py-1.5 text-xs data-[state=active]:bg-background rounded-md">
               <Users className="h-3.5 w-3.5" />
               Keluhan Publik
               {counts.Menunggu > 0 && (
@@ -279,7 +279,7 @@ export default function DashboardReports() {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="census_audits" className="gap-1.5 px-3 py-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">
+            <TabsTrigger value="census_audits" className="gap-1.5 px-3 py-1.5 text-xs data-[state=active]:bg-background rounded-md">
               <ClipboardCheck className="h-3.5 w-3.5" />
               Temuan Sensus
               {audits.length > 0 && (
@@ -292,7 +292,7 @@ export default function DashboardReports() {
 
           {/* TAB 1: KELUHAN PUBLIK */}
           <TabsContent value="public_reports" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
-            <div className="flex justify-between items-center bg-card p-3 rounded-lg border border-border/60">
+            <div className="flex justify-between items-center bg-white p-3 rounded-md border border-gray-200">
               <div className="flex items-center gap-2">
                 {Object.entries(counts).map(([status, count]) => (
                   <Badge key={status} variant="outline" className={statusConfig[status]?.class}>
@@ -302,7 +302,7 @@ export default function DashboardReports() {
               </div>
               <div className="flex items-center gap-2">
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[160px] h-9">
+                  <SelectTrigger className="w-[160px] h-8 text-xs">
                     <SelectValue placeholder="Semua Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -312,22 +312,22 @@ export default function DashboardReports() {
                     <SelectItem value="Selesai">Selesai</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => handleExportExcel(filtered)} disabled={filtered.length === 0}>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => handleExportExcel(filtered)} disabled={filtered.length === 0}>
                   <Download className="h-4 w-4" />
                   Export
                 </Button>
               </div>
             </div>
 
-        <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
           {isLoading ? (
-            <div className="p-6 space-y-3">
+            <div className="p-4 space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
               <AlertCircle className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm font-medium">
                 {reports.length === 0 ? "Belum ada laporan masuk" : "Tidak ada laporan dengan status ini"}
@@ -338,15 +338,15 @@ export default function DashboardReports() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Aset</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Pelapor</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kendala</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Kategori & Kondisi</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Lokasi</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Bukti</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tanggal</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Aset</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Pelapor</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kendala</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden lg:table-cell">Kategori & Kondisi</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden xl:table-cell">Lokasi</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Bukti</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Status</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -362,51 +362,51 @@ export default function DashboardReports() {
                     const currentLoc = (report as any).current_location || "";
                     const imageUrl = (report as any).image_url as string | null;
                     return (
-                      <TableRow key={report.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailReport(report)}>
-                        <TableCell className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                      <TableRow key={report.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setDetailReport(report)}>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 whitespace-nowrap">
                           {new Date(report.created_at).toLocaleDateString("id-ID", {
                             day: "2-digit", month: "short", year: "numeric",
                           })}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">
                           <div className="max-w-[120px] sm:max-w-[150px]">
                             <p className="text-sm font-medium text-foreground truncate">{assetData?.nama_aset ?? "—"}</p>
                             <p className="text-xs font-mono text-muted-foreground truncate">{assetData?.kode_aset ?? ""}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell">
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 hidden sm:table-cell">
                           <div className="max-w-[120px]">
                             <p className="text-sm font-medium text-foreground truncate">{reporterName}</p>
                             <p className="text-xs text-muted-foreground truncate">{reporterContact}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="max-w-[150px] sm:max-w-[200px]">
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 max-w-[150px] sm:max-w-[200px]">
                           <p className="text-sm font-medium text-foreground truncate">{report.judul}</p>
                           {report.deskripsi && <p className="text-xs text-muted-foreground truncate mt-0.5">{report.deskripsi}</p>}
                           {report.status === "Selesai" && resolusi?.aksi && (
-                            <p className="text-xs mt-1 text-chart-1">
+                            <p className="text-xs mt-1 text-blue-700">
                               ✓ {resolusi.aksi} — Rp{Math.round(Number(resolusi.biaya || 0)).toLocaleString("id-ID")}
                             </p>
                           )}
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 hidden lg:table-cell">
                           <div className="space-y-1">
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">{kategori}</Badge>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 block w-fit ${
-                              kondisiAktual === 'Rusak Berat' ? 'bg-destructive/10 text-destructive border-destructive/30' :
-                              kondisiAktual === 'Rusak Ringan' ? 'bg-warning/10 text-warning border-warning/30' :
-                              kondisiAktual === 'Baik' ? 'bg-chart-1/10 text-chart-1 border-chart-1/30' : ''
+                            <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center">{kategori}</Badge>
+                            <Badge variant="outline" className={`px-2 py-0.5 text-[11px] font-semibold rounded border block w-fit ${
+                              kondisiAktual === 'Rusak Berat' ? 'bg-red-50 text-red-700 border-red-200' :
+                              kondisiAktual === 'Rusak Ringan' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                              kondisiAktual === 'Baik' ? 'bg-green-50 text-green-700 border-green-200' : ''
                             }`}>{kondisiAktual}</Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="hidden xl:table-cell">
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 hidden xl:table-cell">
                           <div className="max-w-[130px]">
                             {originDept && <p className="text-xs text-foreground truncate">{originDept}</p>}
                             {currentLoc && <p className="text-xs text-muted-foreground truncate">{currentLoc}</p>}
                             {!originDept && !currentLoc && <span className="text-xs text-muted-foreground">—</span>}
                           </div>
                         </TableCell>
-                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center" onClick={(e) => e.stopPropagation()}>
                           {imageUrl ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -425,7 +425,7 @@ export default function DashboardReports() {
                             </Tooltip>
                           )}
                         </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800" onClick={(e) => e.stopPropagation()}>
                           {updatingId === report.id ? (
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                           ) : (
@@ -444,7 +444,7 @@ export default function DashboardReports() {
                             </Select>
                           )}
                         </TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -465,7 +465,7 @@ export default function DashboardReports() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-chart-1 hover:text-primary hover:bg-accent"
+                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                     onClick={() => window.open(`https://wa.me/${formatPhone(reporterContact)}`, "_blank")}
                                   >
                                     <MessageCircle className="h-4 w-4" />
@@ -516,15 +516,15 @@ export default function DashboardReports() {
 
         {/* TAB 2: TEMUAN SENSUS */}
         <TabsContent value="census_audits" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
-          <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+          <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
             {isLoadingAudits ? (
-              <div className="p-6 space-y-3">
+              <div className="p-4 space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="h-10 w-full" />
                 ))}
               </div>
             ) : audits.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                 <ClipboardCheck className="h-10 w-10 mb-3 opacity-40" />
                 <p className="text-sm font-medium">Tidak ada temuan aset rusak dari sensus.</p>
               </div>
@@ -533,13 +533,13 @@ export default function DashboardReports() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tgl Sensus</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Auditor</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informasi Aset</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kondisi</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Rekomendasi</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Bukti</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tgl Sensus</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Auditor</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Informasi Aset</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kondisi</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden md:table-cell">Rekomendasi</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Bukti</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -549,32 +549,32 @@ export default function DashboardReports() {
                        const auditorName = customData["Auditor"] || "—";
                        return (
                          <TableRow key={audit.id}>
-                           <TableCell className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                           <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 whitespace-nowrap">
                              {new Date(audit.created_at).toLocaleDateString("id-ID", {
                                day: "2-digit", month: "short", year: "numeric",
                              })}
                            </TableCell>
-                           <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
+                           <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 hidden sm:table-cell text-gray-500">
                               {auditorName}
                            </TableCell>
-                           <TableCell>
+                           <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">
                              <div className="max-w-[120px] sm:max-w-[180px]">
                                <p className="text-sm font-medium text-foreground truncate">{assetData?.nama_aset || "—"}</p>
                                <p className="text-xs font-mono text-muted-foreground truncate">{assetData?.kode_aset || ""}</p>
                              </div>
                            </TableCell>
-                           <TableCell>
-                              <Badge variant="outline" className={audit.kondisi === "Rusak Berat" ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-warning/15 text-warning border-warning/30"}>
+                           <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">
+                              <Badge variant="outline" className={audit.kondisi === "Rusak Berat" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}>
                                 {audit.kondisi}
                               </Badge>
                            </TableCell>
-                           <TableCell className="hidden md:table-cell">
+                           <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 hidden md:table-cell">
                               <div className="max-w-[150px]">
                                 <p className="text-sm font-medium truncate">{audit.tindak_lanjut || "—"}</p>
                                 {audit.catatan && <p className="text-xs text-muted-foreground mt-0.5 truncate" title={audit.catatan}>"{audit.catatan}"</p>}
                               </div>
                            </TableCell>
-                           <TableCell className="text-center">
+                           <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center">
                               <div className="flex items-center justify-center gap-2">
                                 {audit.latitude && audit.longitude ? (
                                    <Tooltip>
@@ -612,11 +612,11 @@ export default function DashboardReports() {
                                 )}
                               </div>
                            </TableCell>
-                           <TableCell className="text-right">
+                           <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-right">
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="h-8 gap-1.5"
+                                className="h-8 gap-1.5 text-xs"
                                 onClick={() => toast("Fitur eksekusi SPK & Disposal segera hadir.")}
                               >
                                 <Wrench className="h-3.5 w-3.5" />
@@ -705,7 +705,7 @@ export default function DashboardReports() {
               return (
                 <div className="space-y-5 py-2">
                   {/* Asset Info */}
-                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informasi Aset</p>
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -745,15 +745,15 @@ export default function DashboardReports() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <p className="text-[11px] text-muted-foreground font-medium mb-1">Kategori Masalah</p>
-                        <Badge variant="outline">{detailReport.issue_category || "—"}</Badge>
+                        <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-slate-100 text-slate-700 border-slate-200">{detailReport.issue_category || "—"}</Badge>
                       </div>
                       <div>
                         <p className="text-[11px] text-muted-foreground font-medium mb-1">Kondisi Aktual</p>
-                        <Badge variant="outline" className={
-                          detailReport.actual_condition === 'Rusak Berat' ? 'bg-destructive/10 text-destructive border-destructive/30' :
-                          detailReport.actual_condition === 'Rusak Ringan' ? 'bg-warning/10 text-warning border-warning/30' :
-                          detailReport.actual_condition === 'Baik' ? 'bg-chart-1/10 text-chart-1 border-chart-1/30' : ''
-                        }>{detailReport.actual_condition || "—"}</Badge>
+                        <Badge variant="outline" className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${
+                          detailReport.actual_condition === 'Rusak Berat' ? 'bg-red-50 text-red-700 border-red-200' :
+                          detailReport.actual_condition === 'Rusak Ringan' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          detailReport.actual_condition === 'Baik' ? 'bg-green-50 text-green-700 border-green-200' : ''
+                        }`}>{detailReport.actual_condition || "—"}</Badge>
                       </div>
                     </div>
                     {detailReport.deskripsi && (
@@ -768,7 +768,7 @@ export default function DashboardReports() {
                   {detailReport.image_url && (
                     <div>
                       <p className="text-[11px] text-muted-foreground font-medium mb-1.5">Foto Bukti</p>
-                      <div className="rounded-lg border border-border overflow-hidden bg-muted/30">
+                      <div className="rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
                         <img
                           src={detailReport.image_url}
                           alt="Bukti Laporan"
@@ -780,8 +780,8 @@ export default function DashboardReports() {
 
                   {/* Resolusi (if resolved) */}
                   {resolusi?.aksi && (
-                    <div className="rounded-lg border border-chart-1/20 bg-chart-1/5 p-4 space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-chart-1">Resolusi</p>
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Resolusi</p>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <p className="text-[11px] text-muted-foreground mb-0.5">Tindakan</p>
@@ -815,7 +815,7 @@ export default function DashboardReports() {
             <DialogHeader>
               <DialogTitle>Foto Bukti Temuan Sensus</DialogTitle>
             </DialogHeader>
-            <div className="p-2 border border-border rounded-lg bg-muted/40">
+            <div className="p-2 border border-gray-200 rounded-lg bg-gray-50">
               {selectedPhoto && (
                 <img 
                   src={selectedPhoto} 

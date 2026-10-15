@@ -36,17 +36,17 @@ export default function DashboardRekonsiliasi() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
+        <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
           <Scale className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           Rekonsiliasi Aset
         </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+        <p className="text-xs text-gray-500 mt-0.5">
           Kelola tiket laporan publik, sensus lapangan, dan proses rekonsiliasi data aset.
         </p>
       </div>
 
       {/* ── Main Tab Bar (Vercel / GitHub underline style) ── */}
-      <div className="border-b border-border">
+      <div className="border-b border-gray-200">
         <nav className="flex gap-0 -mb-px">
           {mainTabs.map((tab) => {
             const isActive = activeTab === tab.key;
@@ -57,8 +57,8 @@ export default function DashboardRekonsiliasi() {
                 onClick={() => handleTabChange(tab.key)}
                 className={`relative flex items-center gap-2 px-4 sm:px-5 py-3 text-sm font-medium transition-colors
                   ${isActive
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-blue-700"
+                    : "text-gray-500 hover:text-gray-900"
                   }`}
               >
                 <tab.icon className="h-4 w-4" />

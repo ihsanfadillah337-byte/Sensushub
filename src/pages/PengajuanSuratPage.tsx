@@ -523,28 +523,28 @@ export default function PengajuanSuratPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <FileSignature className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+          <h1 className="text-xl font-semibold text-gray-900 tracking-tight flex items-center gap-2">
+            <FileSignature className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700" />
             Penerbitan Berita Acara
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Tetapkan dan cetak dokumen Berita Acara Hasil Akhir untuk aset BMD yang telah disetujui BKAD.
           </p>
         </div>
-        <Button className="gap-2 shrink-0" onClick={() => setWizardOpen(true)}>
+        <Button className="gap-2 shrink-0 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium px-3 py-2" onClick={() => setWizardOpen(true)}>
           <Plus className="h-4 w-4" /> Terbitkan Berita Acara Baru
         </Button>
       </div>
 
-      <Card className="border-border/60">
+      <Card className="bg-white border border-gray-200 rounded-md">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Riwayat Arsip Dokumen</CardTitle>
+          <CardTitle className="text-base font-semibold text-gray-900">Riwayat Arsip Dokumen</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
           ) : archives.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
+            <div className="py-12 text-center text-gray-500">
               <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm font-medium">Belum ada arsip Berita Acara.</p>
             </div>
@@ -553,13 +553,13 @@ export default function PengajuanSuratPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">ID Unik Batch</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Jenis KIB</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Total Aset</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Total Nilai</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">ID Unik Batch</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tanggal</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Jenis KIB</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Total Aset</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Total Nilai</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Status</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -575,18 +575,18 @@ export default function PengajuanSuratPage() {
                         ? arc.total_nilai
                         : _psFlatten(arc).reduce((acc, it) => acc + _psNilai(it), 0);
                     return (
-                      <TableRow key={arc.id}>
-                        <TableCell className="text-sm font-medium">{arc.nomor_surat}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{formatTgl(arc.tanggal_surat)}</TableCell>
-                        <TableCell className="text-sm">{arc.jenis_kib || "—"}</TableCell>
-                        <TableCell className="text-center text-sm">{jumlahAset}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">Rp {totalNilai.toLocaleString("id-ID")}</TableCell>
+                      <TableRow key={arc.id} className="hover:bg-gray-50">
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{arc.nomor_surat}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{formatTgl(arc.tanggal_surat)}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{arc.jenis_kib || "—"}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center">{jumlahAset}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-right font-semibold">Rp {totalNilai.toLocaleString("id-ID")}</TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30">{arc.status}</Badge>
+                          <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-green-50 text-green-700 border-green-200">{arc.status}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => setReprintArc(arc)} title="Cetak Ulang">
-                            <Printer className="h-4 w-4 text-primary" />
+                            <Printer className="h-4 w-4 text-blue-700" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -1008,7 +1008,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSignature className="h-5 w-5 text-primary" />
+            <FileSignature className="h-5 w-5 text-blue-700" />
             Terbitkan Berita Acara
           </DialogTitle>
         </DialogHeader>
@@ -1018,12 +1018,12 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
           {steps.map((label, i) => (
             <div key={i} className="flex-1 flex items-center gap-1">
               <div className={`flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold shrink-0 transition-colors ${
-                step > i + 1 ? "bg-chart-3 text-white" : step === i + 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                step > i + 1 ? "bg-blue-600 text-white" : step === i + 1 ? "bg-primary text-primary-foreground" : "bg-gray-100 text-gray-500"
               }`}>
                 {step > i + 1 ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </div>
-              <span className={`text-[11px] font-medium truncate hidden sm:inline ${step === i + 1 ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
-              {i < steps.length - 1 && <div className={`flex-1 h-0.5 mx-1 rounded ${step > i + 1 ? "bg-chart-3" : "bg-border"}`} />}
+              <span className={`text-[11px] font-medium truncate hidden sm:inline ${step === i + 1 ? "text-gray-900" : "text-gray-500"}`}>{label}</span>
+              {i < steps.length - 1 && <div className={`flex-1 h-0.5 mx-1 rounded ${step > i + 1 ? "bg-blue-600" : "bg-gray-200"}`} />}
             </div>
           ))}
         </div>
@@ -1045,8 +1045,8 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
               <Label className="text-xs font-medium">Tanggal Penelusuran Fisik</Label>
               <Input type="date" value={tglPenelusuran} onChange={e => setTglPenelusuran(e.target.value)} />
             </div>
-            <div className="rounded-lg border border-border p-4 space-y-3 bg-muted/20">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data Otorisasi (Kepala Dinas)</p>
+            <div className="rounded-md border border-gray-200 p-4 space-y-3 bg-gray-50">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Data Otorisasi (Kepala Dinas)</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Nama Lengkap <span className="text-destructive">*</span></Label>
@@ -1086,7 +1086,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <ListChecks className="h-4 w-4 text-primary" />
+                    <ListChecks className="h-4 w-4 text-blue-700" />
                     <span>
                       {isFetchingApproved ? "Memuat aset disetujui..." : `${filteredAssets.length} aset siap ditetapkan (status_rekon = disetujui)`}
                     </span>
@@ -1112,18 +1112,18 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border overflow-hidden">
+                <div className="rounded-md border border-gray-200 overflow-hidden">
                   <div className="max-h-[360px] overflow-y-auto overflow-x-auto">
                     <Table>
-                      <TableHeader className="sticky top-0 bg-card z-10 shadow-[0_1px_0_0_hsl(var(--border))]">
+                      <TableHeader className="sticky top-0 bg-gray-50 z-10 border-b border-gray-200">
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">
+                          <TableHead className="w-12 bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">
                             <span className="sr-only">Select</span>
                           </TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Kode Barang</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nama Barang</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Kondisi</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap text-right">Nilai Perolehan</TableHead>
+                          <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 whitespace-nowrap">Kode Barang</TableHead>
+                          <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Nama Barang</TableHead>
+                          <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 whitespace-nowrap">Kondisi</TableHead>
+                          <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 whitespace-nowrap text-right">Nilai Perolehan</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1139,7 +1139,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                           ))
                         ) : filteredAssets.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="h-32 text-center text-sm text-muted-foreground">
+                            <TableCell colSpan={5} className="h-32 text-center text-[13px] text-gray-500">
                               Belum ada aset dengan status <span className="font-medium">disetujui BKAD</span> untuk KIB ini, atau semua sudah ditetapkan dalam Berita Acara.
                             </TableCell>
                           </TableRow>
@@ -1150,31 +1150,31 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                               <TableRow
                                 key={a.id}
                                 onClick={() => toggleAsset(a.id)}
-                                className={`cursor-pointer transition-colors ${checked ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/50"}`}
+                                className={`cursor-pointer transition-colors ${checked ? "bg-blue-50 hover:bg-blue-100" : "hover:bg-gray-50"}`}
                               >
-                                <TableCell className="text-center py-3">
+                                <TableCell className="text-center py-1.5 px-2.5">
                                   <input
                                     type="checkbox"
                                     checked={checked}
                                     onChange={() => toggleAsset(a.id)}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
                                   />
                                 </TableCell>
-                                <TableCell className="py-3">
-                                  <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{a.kode_aset || "-"}</span>
+                                <TableCell className="py-1.5 px-2.5">
+                                  <span className="text-xs font-mono text-gray-500 whitespace-nowrap">{a.kode_aset || "-"}</span>
                                 </TableCell>
-                                <TableCell className="py-3">
+                                <TableCell className="py-1.5 px-2.5">
                                   <div className="max-w-[320px]">
-                                    <p className="text-sm font-medium text-foreground truncate">{a.nama_aset || _psNama(a)}</p>
+                                    <p className="text-[13px] font-medium text-gray-800 truncate">{a.nama_aset || _psNama(a)}</p>
                                   </div>
                                 </TableCell>
-                                <TableCell className="py-3 whitespace-nowrap">
-                                  <Badge variant="outline" className="bg-muted/50 border-border text-[11px] px-2 py-0.5">
+                                <TableCell className="py-1.5 px-2.5 whitespace-nowrap">
+                                  <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-slate-100 text-slate-700 border-slate-200">
                                     {_apKondisi(a)}
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="py-3 text-right whitespace-nowrap font-mono text-sm">
+                                <TableCell className="py-1.5 px-2.5 text-right whitespace-nowrap font-mono text-[13px] text-gray-800">
                                   Rp {_apNilai(a).toLocaleString("id-ID")}
                                 </TableCell>
                               </TableRow>
@@ -1187,11 +1187,11 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                 </div>
 
                 {parsedRowCount > 0 && (
-                  <div className="flex items-start gap-3 rounded-lg bg-chart-3/10 border border-chart-3/30 p-4">
-                    <CheckCircle2 className="h-5 w-5 text-chart-3 shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-3 rounded-md bg-blue-50 border border-blue-200 p-4">
+                    <CheckCircle2 className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-chart-3">{parsedRowCount} Aset Terpilih</p>
-                      <p className="text-xs text-chart-3/80 mt-0.5">
+                      <p className="text-[13px] font-semibold text-blue-700">{parsedRowCount} Aset Terpilih</p>
+                      <p className="text-xs text-blue-700 mt-0.5">
                         Total Nilai Perolehan: <strong>Rp {parsedTotalNilai.toLocaleString("id-ID")}</strong>
                       </p>
                     </div>
@@ -1199,7 +1199,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                 )}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground bg-muted/20">
+              <div className="rounded-md border border-dashed border-gray-300 p-8 text-center text-[13px] text-gray-500 bg-gray-50">
                 <ListChecks className="h-8 w-8 mx-auto mb-2 opacity-40" />
                 Pilih Jenis KIB terlebih dahulu untuk melihat daftar aset yang telah disetujui BKAD.
               </div>
@@ -1229,17 +1229,17 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         {/* Step 4: Preview & Submit */}
         {step === 4 && (
           <div className="space-y-4">
-            <div className="flex items-start gap-2 rounded-lg bg-chart-3/10 border border-chart-3/30 p-3">
-              <AlertCircle className="h-4 w-4 text-chart-6 shrink-0 mt-0.5" />
-              <p className="text-xs text-chart-7">
+            <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 p-3">
+              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800">
                 Setelah menekan tombol di bawah, <strong>{parsedRowCount} aset</strong> akan ditandai
                 <span className="font-medium"> "Sudah Ditetapkan Dalam Berita Acara"</span> dan diberi cap
-                <code className="mx-1 px-1.5 py-0.5 bg-chart-3/20 rounded text-[10px] font-mono">no_berita_acara</code>
-                serta <code className="mx-1 px-1.5 py-0.5 bg-chart-3/20 rounded text-[10px] font-mono">tanggal_berita_acara</code>
+                <code className="mx-1 px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-mono">no_berita_acara</code>
+                serta <code className="mx-1 px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-mono">tanggal_berita_acara</code>
                 pada metadata aset. Aset ini otomatis hilang dari selector Berita Acara selanjutnya (pencegah duplikasi).
               </p>
             </div>
-            <div className="rounded-lg border border-border p-4 space-y-2 bg-muted/20 text-sm">
+            <div className="rounded-md border border-gray-200 p-4 space-y-2 bg-gray-50 text-[13px]">
               <p><strong>Nomor Berita Acara:</strong> {nomorSurat}</p>
               <p><strong>Tanggal Berita Acara:</strong> {tglSuratFormatted}</p>
               <p><strong>Jenis KIB:</strong> {jenisKib}</p>
@@ -1286,7 +1286,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
               Lanjut <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={submitting} className="gap-1.5 bg-chart-3 hover:bg-chart-3/90 text-white">
+            <Button onClick={handleSubmit} disabled={submitting} className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               {submitting ? "Memproses..." : "Tetapkan & Arsipkan Berita Acara"}
             </Button>
@@ -1297,7 +1297,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
       <AlertDialog open={successOpen} onOpenChange={(o) => { if (!o) setSuccessOpen(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-chart-3">
+            <AlertDialogTitle className="flex items-center gap-2 text-blue-700">
               <CheckCircle2 className="h-5 w-5" /> Berita Acara Berhasil Diterbitkan
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm leading-relaxed pt-2">
@@ -1308,7 +1308,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
           <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <AlertDialogAction
               onClick={() => { setSuccessOpen(false); onClose(); }}
-              className="bg-transparent text-foreground hover:bg-muted border border-border shadow-none"
+              className="bg-transparent text-gray-700 hover:bg-gray-50 border border-gray-300 shadow-none"
             >
               Tetap di Halaman Ini
             </AlertDialogAction>
@@ -1351,9 +1351,9 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: ()
     <Dialog open onOpenChange={() => onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Download className="h-5 w-5 text-primary" /> Unduh Ulang Surat</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Download className="h-5 w-5 text-blue-700" /> Unduh Ulang Surat</DialogTitle>
         </DialogHeader>
-        <div className="rounded-lg border border-border p-4 space-y-2 bg-muted/20 text-sm">
+        <div className="rounded-md border border-gray-200 p-4 space-y-2 bg-gray-50 text-[13px]">
           <p><strong>ID Unik Batch:</strong> {arc.nomor_surat}</p>
           <p><strong>Tanggal:</strong> {tglSurat}</p>
           <p><strong>Jenis KIB:</strong> {arc.jenis_kib || "—"}</p>

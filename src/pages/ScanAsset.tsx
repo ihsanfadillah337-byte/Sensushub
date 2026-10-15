@@ -238,7 +238,7 @@ export default function ScanAsset() {
     return (
       <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-md px-4 py-6 space-y-5">
-          <Skeleton className="aspect-[4/3] w-full rounded-xl" />
+          <Skeleton className="aspect-[4/3] w-full rounded-md" />
           <Skeleton className="h-6 w-2/3" />
           <Skeleton className="h-4 w-1/3" />
           <div className="grid grid-cols-2 gap-3">
@@ -254,20 +254,20 @@ export default function ScanAsset() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-5 px-6 max-w-sm mx-auto">
-          <div className="mx-auto h-20 w-20 rounded-2xl bg-muted flex items-center justify-center">
+          <div className="mx-auto h-20 w-20 rounded-md bg-muted flex items-center justify-center">
             <PackageX className="h-10 w-10 text-muted-foreground/60" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-xl font-bold text-foreground">Aset Tidak Ditemukan</h1>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <h1 className="text-xl font-semibold text-gray-900">Aset Tidak Ditemukan</h1>
+            <p className="text-xs text-gray-500 leading-relaxed">
               Data aset ini tidak ada dalam sistem. Aset mungkin telah ditarik, dihapuskan secara resmi dari inventaris, atau diregistrasi ulang dengan kode baru.
             </p>
           </div>
           <div className="pt-2 space-y-2">
-            <Button variant="outline" className="w-full gap-2" onClick={() => window.history.back()}>
+            <Button variant="outline" className="w-full gap-2 border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50" onClick={() => window.history.back()}>
               ← Kembali
             </Button>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               Jika Anda yakin aset ini masih aktif, silakan hubungi admin pengelola inventaris.
             </p>
           </div>
@@ -301,7 +301,7 @@ export default function ScanAsset() {
 
         {/* Usul Hapus Warning Banner */}
         {isUsulHapus && (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 flex items-start gap-3">
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 flex items-start gap-3">
             <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-destructive">Aset Dalam Proses Penghapusan</p>
@@ -314,7 +314,7 @@ export default function ScanAsset() {
 
         {/* Usul Rubah Kondisi Warning Banner */}
         {!isUsulHapus && isUsulRusakBerat && (
-          <div className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 flex items-start gap-3">
+          <div className="rounded-md border border-warning/30 bg-warning/5 px-4 py-3 flex items-start gap-3">
             <ShieldAlert className="h-5 w-5 text-warning shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-warning">Diusulkan Rubah Kondisi (Rusak Berat)</p>
@@ -325,7 +325,7 @@ export default function ScanAsset() {
           </div>
         )}
         {/* Hero / Photo placeholder */}
-        <div className="relative aspect-[4/3] w-full rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+        <div className="relative aspect-[4/3] w-full rounded-md bg-muted flex items-center justify-center overflow-hidden">
           {asset.image_url ? (
             <img src={asset.image_url} alt={asset.nama_aset} className="object-cover w-full h-full" />
           ) : (
@@ -338,16 +338,16 @@ export default function ScanAsset() {
 
         {/* Identity */}
         <div className="space-y-1">
-          <h1 className="text-xl font-bold text-foreground">{asset.nama_aset}</h1>
+          <h1 className="text-xl font-semibold text-gray-900">{asset.nama_aset}</h1>
           <p className="text-sm font-mono text-muted-foreground">{asset.kode_aset}</p>
-          <Badge className={`${statusStyle.bg} ${statusStyle.color} ${statusStyle.border} hover:opacity-90`}>
+          <Badge className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${statusStyle.bg} ${statusStyle.color} ${statusStyle.border} hover:opacity-90`}>
             {statusStyle.label}
           </Badge>
         </div>
 
         {/* Info grid */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-border">
+          <Card className="bg-white border border-gray-200 rounded-md">
             <CardContent className="flex items-start gap-2 p-3">
               <Tag className="h-4 w-4 mt-0.5 text-primary shrink-0" />
               <div>
@@ -357,7 +357,7 @@ export default function ScanAsset() {
             </CardContent>
           </Card>
 
-          <Card className="border-border">
+          <Card className="bg-white border border-gray-200 rounded-md">
             <CardContent className="flex items-start gap-2 p-3">
               <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
               <div>
@@ -367,7 +367,7 @@ export default function ScanAsset() {
             </CardContent>
           </Card>
 
-          <Card className="col-span-2 border-border">
+          <Card className="col-span-2 bg-white border border-gray-200 rounded-md">
             <CardContent className="flex items-start gap-2 p-3">
               <Building2 className="h-4 w-4 mt-0.5 text-primary shrink-0" />
               <div>
@@ -428,7 +428,7 @@ export default function ScanAsset() {
           <div className="mx-auto max-w-md">
             <button
               onClick={() => navigate(`/dashboard/census/audit/${asset.id}`)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
             >
               <div className="h-10 w-10 rounded-lg bg-primary-foreground/15 flex items-center justify-center shrink-0">
                 <ClipboardCheck className="h-5 w-5" />
@@ -447,7 +447,7 @@ export default function ScanAsset() {
       {auditorRole && sensusActive === false && (
         <div className="fixed bottom-16 inset-x-0 px-4 z-20">
           <div className="mx-auto max-w-md">
-            <div className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-muted border border-border shadow-lg">
+            <div className="w-full flex items-center gap-3 px-4 py-3 rounded-md bg-muted border border-border">
               <div className="h-10 w-10 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
                 <Eye className="h-5 w-5 text-warning" />
               </div>
@@ -464,7 +464,7 @@ export default function ScanAsset() {
       {!isUsulHapus && (
         <div className="fixed bottom-0 inset-x-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
           <div className="mx-auto max-w-md">
-            <Button size="lg" variant="destructive" className="w-full gap-2 shadow-lg" onClick={() => setReportOpen(true)}>
+            <Button size="lg" variant="destructive" className="w-full gap-2 rounded-md" onClick={() => setReportOpen(true)}>
               <AlertTriangle className="h-4 w-4" />
               Lapor Kendala
             </Button>
@@ -577,8 +577,8 @@ export default function ScanAsset() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setReportOpen(false)} disabled={submitting}>Batal</Button>
-            <Button onClick={handleSubmitReport} disabled={submitting}>{submitting ? "Mengirim…" : "Kirim Laporan"}</Button>
+            <Button variant="outline" className="border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50" onClick={() => setReportOpen(false)} disabled={submitting}>Batal</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium px-3 py-2" onClick={handleSubmitReport} disabled={submitting}>{submitting ? "Mengirim…" : "Kirim Laporan"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

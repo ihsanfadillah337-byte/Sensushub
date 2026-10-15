@@ -131,15 +131,15 @@ export default function DashboardOverview() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-md" />)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-80 rounded-xl" />
-          <Skeleton className="h-80 rounded-xl" />
+          <Skeleton className="h-80 rounded-md" />
+          <Skeleton className="h-80 rounded-md" />
         </div>
-        <Skeleton className="h-72 rounded-xl" />
+        <Skeleton className="h-72 rounded-md" />
       </div>
     );
   }
@@ -163,8 +163,8 @@ export default function DashboardOverview() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Ringkasan kesehatan aset dan aktivitas pemeliharaan.</p>
+        <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
+        <p className="text-xs text-gray-500 mt-0.5">Ringkasan kesehatan aset dan aktivitas pemeliharaan.</p>
       </div>
 
       {/* Summary Cards */}
@@ -189,7 +189,7 @@ export default function DashboardOverview() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie - Kondisi Aset */}
-        <Card className="shadow-sm">
+        <Card className="bg-white border border-gray-200 rounded-md">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <PieChartIcon className="h-4 w-4 text-muted-foreground" />
@@ -239,7 +239,7 @@ export default function DashboardOverview() {
         </Card>
 
         {/* Bar - Sebaran per Divisi/KIB */}
-        <Card className="shadow-sm">
+        <Card className="bg-white border border-gray-200 rounded-md">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -272,7 +272,7 @@ export default function DashboardOverview() {
       </div>
 
       {/* Trend Chart */}
-      <Card className="shadow-sm">
+      <Card className="bg-white border border-gray-200 rounded-md">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />

@@ -209,8 +209,8 @@ export default function DashboardAssetsNew() {
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0" onClick={() => navigate("/dashboard/assets")}><ArrowLeft className="h-4 w-4" /></Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Tambah Aset Baru</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Isi informasi aset dan simpan ke inventaris.</p>
+          <h1 className="text-xl font-semibold text-gray-900">Tambah Aset Baru</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Isi informasi aset dan simpan ke inventaris.</p>
         </div>
       </div>
 
@@ -222,7 +222,7 @@ export default function DashboardAssetsNew() {
 
       {/* Klasifikasi Aset */}
       {(masterDivisi.length > 0 || masterKib.length > 0) && (
-        <section className="rounded-lg border border-border bg-card">
+        <section className="rounded-md border border-gray-200 bg-white">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
             <Building2 className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Klasifikasi Aset</h2>
@@ -255,7 +255,7 @@ export default function DashboardAssetsNew() {
       )}
 
       {/* Informasi Dasar */}
-      <section className="rounded-lg border border-border bg-card">
+      <section className="rounded-md border border-gray-200 bg-white">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
           <Package className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-foreground">Informasi Dasar</h2>
@@ -285,7 +285,7 @@ export default function DashboardAssetsNew() {
 
       {/* Dynamic Custom Columns based on KIB */}
       {selectedKib && customColumns.length > 0 && (
-        <section className="rounded-lg border border-border bg-card">
+        <section className="rounded-md border border-gray-200 bg-white">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
             <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
@@ -332,7 +332,7 @@ export default function DashboardAssetsNew() {
       )}
 
       {selectedKib && customColumns.length === 0 && (
-        <section className="rounded-lg border border-border bg-card">
+        <section className="rounded-md border border-gray-200 bg-white">
           <div className="px-5 py-8 flex flex-col items-center text-muted-foreground">
             <p className="text-xs font-medium">Belum ada kolom custom untuk KIB ini</p>
             <p className="text-[11px] mt-0.5 opacity-70">Tambahkan di <button type="button" className="underline text-primary hover:text-primary/80" onClick={() => navigate("/dashboard/settings")}>Pengaturan</button>.</p>
@@ -341,7 +341,7 @@ export default function DashboardAssetsNew() {
       )}
 
       {/* Media & Quantity */}
-      <section className="rounded-lg border border-border bg-card">
+      <section className="rounded-md border border-gray-200 bg-white">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
           <Upload className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-foreground">Penggandaan & Media</h2>

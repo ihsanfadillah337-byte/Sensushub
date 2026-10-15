@@ -284,8 +284,8 @@ export default function DashboardAssetEdit() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Edit Aset</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Perbarui informasi aset.</p>
+          <h1 className="text-xl font-semibold text-gray-900">Edit Aset</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Perbarui informasi aset.</p>
         </div>
       </div>
 
@@ -297,7 +297,7 @@ export default function DashboardAssetEdit() {
 
       {/* Klasifikasi Aset */}
       {(masterDivisi.length > 0 || masterKib.length > 0) && (
-        <section className="rounded-lg border border-border bg-card">
+        <section className="rounded-md border border-gray-200 bg-white">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
             <Building2 className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Klasifikasi Aset</h2>
@@ -345,7 +345,7 @@ export default function DashboardAssetEdit() {
       )}
 
       {/* Informasi Dasar */}
-      <section className="rounded-lg border border-border bg-card">
+      <section className="rounded-md border border-gray-200 bg-white">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
           <Package className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-foreground">Informasi Dasar</h2>
@@ -360,7 +360,7 @@ export default function DashboardAssetEdit() {
               Kondisi Tercatat (Data SIMDA)
               <span className="relative group">
                 <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
-                <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 px-3 py-2 text-[11px] leading-relaxed text-popover-foreground bg-popover border border-border rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 px-3 py-2 text-[11px] leading-relaxed text-popover-foreground bg-popover border border-border rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   Kondisi master hanya dapat diubah oleh Super Admin setelah proses rekonsiliasi disetujui bidang akuntansi.
                 </span>
               </span>
@@ -387,7 +387,7 @@ export default function DashboardAssetEdit() {
 
       {/* Dynamic Custom Columns based on KIB */}
       {selectedKib && customColumns.length > 0 && (
-        <section className="rounded-lg border border-border bg-card">
+        <section className="rounded-md border border-gray-200 bg-white">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
             <h2 className="text-sm font-semibold text-foreground">Kolom Custom — {kibLabel}</h2>
           </div>
@@ -449,7 +449,7 @@ export default function DashboardAssetEdit() {
       )}
 
       {/* Media */}
-      <section className="rounded-lg border border-border bg-card">
+      <section className="rounded-md border border-gray-200 bg-white">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
           <Upload className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-foreground">Foto Aset</h2>

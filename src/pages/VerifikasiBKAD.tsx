@@ -455,11 +455,11 @@ export default function VerifikasiBKAD() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-teal-700" />
+          <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <ShieldCheck className="h-6 w-6 text-blue-700" />
             Verifikasi BKAD
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             Daftar pengajuan rekonsiliasi massal dari Pengurus Barang yang menunggu persetujuan Anda.
           </p>
         </div>
@@ -484,16 +484,16 @@ export default function VerifikasiBKAD() {
             </div>
           ) : pendingDocs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <CheckCircle2 className="h-14 w-14 text-chart-3/50 mb-3" />
+              <CheckCircle2 className="h-14 w-14 text-green-500/70 mb-3" />
               <p className="font-semibold text-foreground">Tidak Ada Antrean</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Semua pengajuan saat ini sudah diproses. Cek kembali nanti.
               </p>
             </div>
           ) : (
-            <div className="rounded-xl border border-border/60 overflow-hidden">
+            <div className="rounded-md border border-gray-200 overflow-hidden">
               <Table>
-                <TableHeader className="bg-muted/30">
+                <TableHeader className="bg-gray-50">
                   <TableRow>
                     <TableHead>Nomor Dokumen</TableHead>
                     <TableHead>Tanggal Diajukan</TableHead>
@@ -514,7 +514,7 @@ export default function VerifikasiBKAD() {
                           Nilai: Rp {getTotalNilai(doc).toLocaleString("id-ID")}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="">
                         {formatTanggal(doc.tanggal_surat || doc.created_at)}
                       </TableCell>
                       <TableCell className="text-center">
@@ -524,7 +524,7 @@ export default function VerifikasiBKAD() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className="bg-warning/15 text-warning border-warning/30">
+                        <Badge className="bg-amber-50 text-amber-700 border-amber-200">
                           <Clock className="h-3 w-3 mr-1" />
                           Menunggu BKAD
                         </Badge>
@@ -538,7 +538,7 @@ export default function VerifikasiBKAD() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            className="bg-destructive/90 hover:bg-destructive"
+                            className="bg-red-600 hover:bg-red-700 text-white"
                             onClick={() => handleReject(doc)}
                           >
                             <XCircle className="h-3.5 w-3.5 mr-1.5" />
@@ -546,7 +546,7 @@ export default function VerifikasiBKAD() {
                           </Button>
                           <Button
                             size="sm"
-                            className="bg-chart-3 hover:bg-chart-3/90 text-white"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
                             onClick={() => handleApprove(doc)}
                           >
                             <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
@@ -601,9 +601,9 @@ export default function VerifikasiBKAD() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border/60 overflow-hidden">
-                  <div className="bg-muted/30 px-4 py-2.5 border-b border-border/40">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <div className="rounded-md border border-gray-200 overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                       <Users className="h-3.5 w-3.5" />
                       Tembusan
                     </p>
@@ -621,9 +621,9 @@ export default function VerifikasiBKAD() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border/60 overflow-hidden">
-                  <div className="bg-muted/30 px-4 py-2.5 border-b border-border/40">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <div className="rounded-md border border-gray-200 overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                       <Package className="h-3.5 w-3.5" />
                       Daftar Aset Usulan
                     </p>
@@ -633,7 +633,7 @@ export default function VerifikasiBKAD() {
                       <p className="text-sm text-muted-foreground p-6 text-center">Data aset tidak tersedia.</p>
                     ) : (
                       <Table>
-                        <TableHeader className="bg-muted/15 sticky top-0">
+                        <TableHeader className="bg-gray-50 sticky top-0">
                           <TableRow>
                             <TableHead>Kode Aset</TableHead>
                             <TableHead>Nama Aset</TableHead>
@@ -697,7 +697,7 @@ export default function VerifikasiBKAD() {
       <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-chart-3">
+            <AlertDialogTitle className="flex items-center gap-2 text-green-600">
               <CheckCircle2 className="h-5 w-5" />
               Konfirmasi Persetujuan Final
             </AlertDialogTitle>
@@ -709,8 +709,8 @@ export default function VerifikasiBKAD() {
                     <span className="font-mono font-semibold">{approveDoc.nomor_surat}</span> yang berisi{" "}
                     <strong>{getJumlahAset(approveDoc)} aset</strong>.
                   </p>
-                  <div className="bg-chart-3/10 border border-chart-3/25 rounded-lg p-3 text-sm">
-                    <p className="font-semibold text-chart-3 mb-1 flex items-center gap-1.5">
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3 text-sm">
+                    <p className="font-semibold text-green-700 mb-1 flex items-center gap-1.5">
                       <AlertTriangle className="h-4 w-4" />
                       Eksekusi Master Data (Final)
                     </p>
@@ -731,7 +731,7 @@ export default function VerifikasiBKAD() {
             <AlertDialogAction
               disabled={approveMutation.isPending}
               onClick={() => approveDoc && approveMutation.mutate(approveDoc)}
-              className="bg-chart-3 hover:bg-chart-3/90 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {approveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
               Ya, Setujui & Eksekusi
@@ -757,8 +757,8 @@ export default function VerifikasiBKAD() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm">
-              <p className="font-semibold text-destructive mb-1">⚠️ Catatan Penting</p>
+            <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm">
+              <p className="font-semibold text-red-700 mb-1">⚠️ Catatan Penting</p>
               <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
                 <li>Master data kondisi <strong>TETAP AMAN</strong> (tidak diubah).</li>
                 <li>Aset yang ditolak ditandai <code className="bg-muted px-1 rounded">status_rekon=ditolak</code>.</li>
@@ -767,7 +767,7 @@ export default function VerifikasiBKAD() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="catatan-bkad">
-                Alasan Penolakan <span className="text-destructive">*</span>
+                Alasan Penolakan <span className="text-red-600">*</span>
               </Label>
               <Textarea
                 id="catatan-bkad"

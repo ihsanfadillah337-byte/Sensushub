@@ -48,15 +48,15 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-slate-200/70 bg-[#f0f9ff] dark:border-sidebar-border dark:bg-sidebar">
+    <Sidebar collapsible="icon" className="border-r border-slate-200 bg-white dark:border-sidebar-border dark:bg-sidebar">
       <SidebarHeader className="p-4">
         {!collapsed ? (
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm shrink-0">
-              <Package className="h-4 w-4 text-sidebar-primary-foreground" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 shrink-0">
+              <Package className="h-4 w-4 text-white" />
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="text-base font-extrabold tracking-tight text-teal-800 dark:text-teal-300">
+              <span className="text-base font-extrabold tracking-tight text-slate-800 dark:text-slate-100">
                 SIPPA-BMD
               </span>
               <span className="text-[9px] text-slate-500 dark:text-slate-400 leading-tight font-normal">
@@ -65,8 +65,8 @@ export function AppSidebar() {
             </div>
           </div>
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm mx-auto">
-            <Package className="h-4 w-4 text-sidebar-primary-foreground" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 mx-auto">
+            <Package className="h-4 w-4 text-white" />
           </div>
         )}
       </SidebarHeader>
@@ -84,8 +84,8 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end
-                      className="rounded-lg transition-all duration-150 hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-accent-foreground"
-                      activeClassName="bg-teal-50 text-teal-700 font-semibold dark:bg-sidebar-accent dark:text-sidebar-accent-foreground"
+                      className="rounded-md transition-colors duration-150 text-slate-600 hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-accent-foreground"
+                      activeClassName="bg-blue-50 text-blue-700 font-medium dark:bg-sidebar-accent dark:text-sidebar-accent-foreground"
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
@@ -103,7 +103,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={signOut}
-              className="rounded-lg transition-all duration-150 hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-destructive"
+              className="rounded-md transition-colors duration-150 hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
               {!collapsed && <span>Keluar</span>}

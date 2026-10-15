@@ -110,7 +110,7 @@ export default function CascadingDropdown({ column, value, onChange }: Cascading
 
         return (
           <div key={levelIdx} className="space-y-1" style={{ paddingLeft: `${levelIdx * 12}px` }}>
-            <Label className="text-[10px] font-medium text-muted-foreground/70">
+            <Label className="text-xs font-medium text-gray-500">
               {levels[levelIdx] || `Level ${levelIdx + 1}`}
             </Label>
             <Select
@@ -123,7 +123,7 @@ export default function CascadingDropdown({ column, value, onChange }: Cascading
               <SelectContent>
                 {options.map((opt) => (
                   <SelectItem key={opt.code} value={opt.code}>
-                    <span className="font-mono text-muted-foreground mr-2">{opt.code}</span>
+                    <span className="font-mono text-gray-500 mr-2">{opt.code}</span>
                     {opt.label}
                   </SelectItem>
                 ))}

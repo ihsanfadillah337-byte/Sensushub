@@ -400,16 +400,16 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: ArchiveRow; onCl
     <Dialog open onOpenChange={() => onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Printer className="h-5 w-5 text-primary" /> Cetak Ulang Berita Acara</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Printer className="h-5 w-5 text-blue-700" /> Cetak Ulang Berita Acara</DialogTitle>
         </DialogHeader>
-        <div className="rounded-lg border border-border p-4 space-y-2 bg-muted/20 text-sm">
+        <div className="rounded-md border border-gray-200 p-4 space-y-2 bg-gray-50 text-[13px]">
           <p><strong>ID Unik Batch:</strong> {arc.nomor_surat || "—"}</p>
           <p><strong>Tanggal Surat:</strong> {tglSurat}</p>
           <p><strong>Jenis KIB:</strong> {arc.jenis_kib || "—"}</p>
           <p><strong>Jumlah Aset:</strong> {jumlahAsetDisplay} item</p>
           <p><strong>Total Nilai:</strong> Rp {totalNilaiDisplay.toLocaleString("id-ID")}</p>
           <p><strong>Kepala Dinas:</strong> {(ot as any).nama || "—"} (NIP. {(ot as any).nip || "—"})</p>
-          <p><strong>Status:</strong> <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30">{arc.status || "—"}</Badge></p>
+          <p><strong>Status:</strong> <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-green-50 text-green-700 border-green-200">{arc.status || "—"}</Badge></p>
         </div>
         <div className="flex justify-end pt-3 border-t border-border">
           <Button onClick={handleDownload} disabled={downloading} className="gap-1.5">
@@ -545,29 +545,29 @@ export default function FinalisasiRekon() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <FileCheck2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+          <h1 className="text-xl font-semibold text-gray-900 tracking-tight flex items-center gap-2">
+            <FileCheck2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700" />
             Arsip Berita Acara
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Pusat arsip resmi Berita Acara penerbitan BMD. Cari, filter, dan cetak ulang dokumen lengkap dengan lampiran.
           </p>
         </div>
       </div>
 
       {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-        <Archive className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-        <p className="text-sm text-primary-foreground/90 dark:text-primary-foreground/80 leading-relaxed">
+      <div className="flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+        <Archive className="h-4 w-4 text-blue-700 mt-0.5 shrink-0" />
+        <p className="text-[13px] text-blue-800 leading-relaxed">
           Dokumen yang diterbitkan oleh Wizard akan langsung muncul di sini. Gunakan tombol aksi <strong>Cetak Ulang</strong> di sisi kanan
           tabel untuk mengunduh PDF lengkap dengan lampiran daftar aset (format 12 kolom resmi).
         </p>
       </div>
 
       {/* Filter + Search Card */}
-      <Card className="border-border/60">
+      <Card className="bg-white border border-gray-200 rounded-md">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
             <Filter className="h-4 w-4" /> Pencarian &amp; Filter Arsip
           </CardTitle>
         </CardHeader>
@@ -575,7 +575,7 @@ export default function FinalisasiRekon() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="lg:col-span-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Cari berdasarkan ID Unik Batch / Nomor Surat..."
                   value={searchQuery}
@@ -598,7 +598,7 @@ export default function FinalisasiRekon() {
                 variant="ghost"
                 size="sm"
                 onClick={clearFilter}
-                className="shrink-0 text-muted-foreground hover:text-foreground"
+                className="shrink-0 text-gray-500 hover:text-gray-900"
                 title="Reset filter"
               >
                 Reset
@@ -607,7 +607,7 @@ export default function FinalisasiRekon() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <Input
                 type="date"
                 value={tglFrom}
@@ -617,7 +617,7 @@ export default function FinalisasiRekon() {
               />
             </div>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <Input
                 type="date"
                 value={tglTo}
@@ -631,13 +631,13 @@ export default function FinalisasiRekon() {
       </Card>
 
       {/* Table card */}
-      <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+      <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-10 w-full" />))}
           </div>
         ) : filteredArchives.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
             <Package className="h-10 w-10 mb-3 opacity-40" />
             <p className="text-sm font-medium">
               {archives.length === 0 ? "Belum ada arsip Berita Acara yang diterbitkan." : "Tidak ada arsip yang cocok dengan filter."}
@@ -652,14 +652,14 @@ export default function FinalisasiRekon() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-12 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">No</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">ID Unik Batch / Nomor Surat</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Jenis KIB</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Jumlah Aset</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Total Nilai</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center w-32">Aksi</TableHead>
+                    <TableHead className="w-12 bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">No</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">ID Unik Batch / Nomor Surat</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tanggal</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Jenis KIB</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Jumlah Aset</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Total Nilai</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Status</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center w-32">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -674,15 +674,15 @@ export default function FinalisasiRekon() {
                         ? arc.total_nilai
                         : built.total;
                     return (
-                      <TableRow key={arc.id} className="hover:bg-muted/30">
-                        <TableCell className="text-center text-sm text-muted-foreground">{indexOfFirstItem + i + 1}</TableCell>
-                        <TableCell className="text-sm font-medium">{arc.nomor_surat || <span className="text-muted-foreground italic">—</span>}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{formatTgl(arc.tanggal_surat)}</TableCell>
-                        <TableCell className="text-sm">{arc.jenis_kib || "—"}</TableCell>
-                        <TableCell className="text-center text-sm">{jumlahAset}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">Rp {totalNilai.toLocaleString("id-ID")}</TableCell>
+                      <TableRow key={arc.id} className="hover:bg-gray-50">
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center">{indexOfFirstItem + i + 1}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 font-medium">{arc.nomor_surat || <span className="text-gray-500 italic">—</span>}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{formatTgl(arc.tanggal_surat)}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{arc.jenis_kib || "—"}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center">{jumlahAset}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-right font-semibold">Rp {totalNilai.toLocaleString("id-ID")}</TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30 text-xs">
+                          <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-green-50 text-green-700 border-green-200">
                             {arc.status || "—"}
                           </Badge>
                         </TableCell>
@@ -690,12 +690,12 @@ export default function FinalisasiRekon() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="gap-1.5 hover:bg-primary/10"
+                            className="gap-1.5 hover:bg-gray-50"
                             onClick={() => setReprintArc(arc)}
                             title="Cetak ulang Berita Acara lengkap dengan lampiran aset"
                           >
-                            <Printer className="h-4 w-4 text-primary" />
-                            <span className="text-xs font-medium text-primary">Cetak Ulang</span>
+                            <Printer className="h-4 w-4 text-blue-700" />
+                            <span className="text-xs font-medium text-blue-700">Cetak Ulang</span>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -706,8 +706,8 @@ export default function FinalisasiRekon() {
             </div>
 
             {/* Pagination */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-border/60 bg-muted/20">
-              <p className="text-xs text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-gray-200 bg-gray-50">
+              <p className="text-xs text-gray-500">
                 Menampilkan <strong>{indexOfFirstItem + 1}</strong>–<strong>{Math.min(indexOfLastItem, totalItems)}</strong> dari <strong>{totalItems}</strong> arsip
               </p>
               <div className="flex items-center gap-1">
@@ -722,7 +722,7 @@ export default function FinalisasiRekon() {
                 </Button>
                 {pageNumbers.map((pn, idx) => (
                   pn === "..." ? (
-                    <span key={`e-${idx}`} className="px-2 text-xs text-muted-foreground">…</span>
+                    <span key={`e-${idx}`} className="px-2 text-xs text-gray-500">…</span>
                   ) : (
                     <Button
                       key={pn}

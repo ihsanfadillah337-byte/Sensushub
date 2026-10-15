@@ -279,8 +279,8 @@ export default function CensusAuditForm() {
     return (
       <div className="space-y-6 max-w-2xl mx-auto">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-40 w-full rounded-xl" />
-        <Skeleton className="h-80 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-md" />
+        <Skeleton className="h-80 w-full rounded-md" />
       </div>
     );
   }
@@ -290,9 +290,9 @@ export default function CensusAuditForm() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center px-6">
         <PackageX className="h-16 w-16 text-muted-foreground/40 mb-4" />
-        <h2 className="text-xl font-bold text-foreground">Aset Tidak Ditemukan</h2>
-        <p className="text-sm text-muted-foreground mt-1">Data aset tidak tersedia atau telah dihapus.</p>
-        <Button variant="outline" className="mt-4 gap-1.5" onClick={() => navigate("/dashboard/census")}>
+        <h2 className="text-xl font-semibold text-gray-900">Aset Tidak Ditemukan</h2>
+        <p className="text-xs text-gray-500 mt-1">Data aset tidak tersedia atau telah dihapus.</p>
+        <Button variant="outline" className="mt-4 gap-1.5 border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50" onClick={() => navigate("/dashboard/census")}>
           <ArrowLeft className="h-4 w-4" />
           Kembali ke Sensus
         </Button>
@@ -304,20 +304,20 @@ export default function CensusAuditForm() {
   if (sensusActive === false && !sensusLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center px-6 max-w-md mx-auto">
-        <div className="h-20 w-20 rounded-2xl bg-warning/10 flex items-center justify-center mb-4">
+        <div className="h-20 w-20 rounded-md bg-warning/10 flex items-center justify-center mb-4">
           <ShieldAlert className="h-10 w-10 text-warning" />
         </div>
-        <h2 className="text-xl font-bold text-foreground">Mode Hanya-Baca</h2>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+        <h2 className="text-xl font-semibold text-gray-900">Mode Hanya-Baca</h2>
+        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
           Periode Sensus sedang <strong>tidak aktif</strong>. Form audit tidak dapat diakses saat ini.
           Silakan hubungi Super Admin untuk mengaktifkan kembali periode sensus.
         </p>
         <div className="flex gap-3 mt-6">
-          <Button variant="outline" className="gap-1.5" onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>
+          <Button variant="outline" className="gap-1.5 border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50" onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>
             <ArrowLeft className="h-4 w-4" />
             Kembali ke Sensus
           </Button>
-          <Button variant="outline" className="gap-1.5" onClick={() => navigate(`/scan/${asset.id}`)}>
+          <Button variant="outline" className="gap-1.5 border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50" onClick={() => navigate(`/scan/${asset.id}`)}>
             Lihat Profil Aset
           </Button>
         </div>
@@ -370,15 +370,15 @@ export default function CensusAuditForm() {
   if (allDone) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-        <div className="h-20 w-20 rounded-2xl bg-chart-2/10 flex items-center justify-center mb-4">
+        <div className="h-20 w-20 rounded-md bg-chart-2/10 flex items-center justify-center mb-4">
           <PartyPopper className="h-10 w-10 text-chart-2" />
         </div>
-        <h2 className="text-xl font-bold text-foreground">Selesai!</h2>
-        <p className="text-sm text-muted-foreground mt-2">
+        <h2 className="text-xl font-semibold text-gray-900">Selesai!</h2>
+        <p className="text-xs text-gray-500 mt-2">
           Semua aset pada periode ini telah selesai disensus!
         </p>
         <div className="flex gap-3 mt-6">
-          <Button className="gap-1.5" onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>
+          <Button className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium px-3 py-2" onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>
             <ArrowLeft className="h-4 w-4" />
             Kembali ke Dashboard Sensus
           </Button>
@@ -391,24 +391,24 @@ export default function CensusAuditForm() {
   if (submitted) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-        <div className="h-20 w-20 rounded-2xl bg-chart-3/10 flex items-center justify-center mb-4">
+        <div className="h-20 w-20 rounded-md bg-chart-3/10 flex items-center justify-center mb-4">
           <CheckCircle2 className="h-10 w-10 text-chart-3" />
         </div>
-        <h2 className="text-xl font-bold text-foreground">Audit Berhasil Disimpan</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Kondisi aset <strong>{asset.nama_aset}</strong> tercatat sebagai <Badge className="ml-1">{kondisi}</Badge>
+        <h2 className="text-xl font-semibold text-gray-900">Audit Berhasil Disimpan</h2>
+        <p className="text-xs text-gray-500 mt-1">
+          Kondisi aset <strong>{asset.nama_aset}</strong> tercatat sebagai <Badge className="ml-1 px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center">{kondisi}</Badge>
         </p>
         {gpsCoords && (
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-gray-500 mt-2">
             Lokasi: {gpsCoords.lat.toFixed(6)}, {gpsCoords.lng.toFixed(6)}
           </p>
         )}
         <div className="flex gap-3 mt-6">
-          <Button variant="outline" className="gap-1.5" onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>
+          <Button variant="outline" className="gap-1.5 border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50" onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>
             <ArrowLeft className="h-4 w-4" />
             Kembali ke Daftar
           </Button>
-          <Button className="gap-1.5" disabled={findingNext} onClick={handleNextAudit}>
+          <Button className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium px-3 py-2" disabled={findingNext} onClick={handleNextAudit}>
             {findingNext && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
             Audit Aset Lain
           </Button>
@@ -444,7 +444,7 @@ export default function CensusAuditForm() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => navigate("/dashboard/rekonsiliasi?tab=sensus&sub=list")}>Kembali</AlertDialogCancel>
-            <AlertDialogAction onClick={() => setRevisionMode(true)} className="bg-primary text-primary-foreground">
+            <AlertDialogAction onClick={() => setRevisionMode(true)} className="bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium px-3 py-2">
               Revisi Data
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -467,17 +467,17 @@ export default function CensusAuditForm() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
             <ClipboardCheck className="h-5 w-5 text-primary" />
             Formulir Audit
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Catat kondisi aktual aset di lapangan</p>
+          <p className="text-xs text-gray-500 mt-0.5">Catat kondisi aktual aset di lapangan</p>
         </div>
       </div>
 
       {/* Revision Mode Banner */}
       {revisionMode && (
-        <div className="bg-warning/10 border border-warning/20 text-warning px-4 py-3 rounded-xl flex items-start gap-3">
+        <div className="bg-warning/10 border border-warning/20 text-warning px-4 py-3 rounded-md flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold">Mode Revisi Aktif</p>
@@ -487,17 +487,17 @@ export default function CensusAuditForm() {
       )}
 
       {/* Asset Summary Card */}
-      <Card className="border-border/60 overflow-hidden">
+      <Card className="bg-white border border-gray-200 rounded-md overflow-hidden">
         <div className="bg-muted/30 border-b border-border/40 px-5 py-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ringkasan Aset</p>
         </div>
         <CardContent className="p-5 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1 min-w-0">
-              <h2 className="text-lg font-bold text-foreground truncate">{asset.nama_aset}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 truncate">{asset.nama_aset}</h2>
               <p className="text-sm font-mono text-muted-foreground">{asset.kode_aset}</p>
             </div>
-            <Badge className={`${currentKondisiStyle.bg} ${currentKondisiStyle.color} ${currentKondisiStyle.border} shrink-0`}>
+            <Badge className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${currentKondisiStyle.bg} ${currentKondisiStyle.color} ${currentKondisiStyle.border} shrink-0`}>
               {currentKondisiStyle.label}
             </Badge>
           </div>
@@ -522,7 +522,7 @@ export default function CensusAuditForm() {
       </Card>
 
       {/* GPS Status */}
-      <Card className="border-border/60">
+      <Card className="bg-white border border-gray-200 rounded-md">
         <CardContent className="p-4 flex items-center gap-3">
           <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${gpsCoords ? 'bg-chart-3/10' : gpsError ? 'bg-destructive/10' : 'bg-warning/10'}`}>
             <MapPinned className={`h-4.5 w-4.5 ${gpsCoords ? 'text-chart-3' : gpsError ? 'text-destructive' : 'text-warning'}`} />
@@ -538,13 +538,13 @@ export default function CensusAuditForm() {
             {!gpsLoading && !gpsCoords && !gpsError && <p className="text-sm text-muted-foreground">GPS belum aktif</p>}
           </div>
           {(gpsError || (!gpsLoading && !gpsCoords)) && (
-            <Button size="sm" variant="outline" onClick={requestGPS}>Coba Lagi</Button>
+            <Button size="sm" variant="outline" className="border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50" onClick={requestGPS}>Coba Lagi</Button>
           )}
         </CardContent>
       </Card>
 
       {/* Audit Form */}
-      <Card className="border-border/60">
+      <Card className="bg-white border border-gray-200 rounded-md">
         <div className="bg-primary/5 border-b border-primary/10 px-5 py-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">Data Audit Lapangan</p>
         </div>
@@ -655,7 +655,7 @@ export default function CensusAuditForm() {
 
           {/* Submit */}
           <Button
-            className="w-full gap-2 mt-2"
+            className="w-full gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium px-3 py-2"
             size="lg"
             disabled={submitting || !kondisi || !kesesuaianKib || !rekomendasiAuditor}
             onClick={handleSubmit}

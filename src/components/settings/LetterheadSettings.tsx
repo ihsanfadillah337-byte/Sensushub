@@ -92,13 +92,13 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-            <FileSignature className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-900">
+            <FileSignature className="h-4 w-4 text-blue-700" />
             Teks Identitas Kop Surat
           </h3>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Nama Pemerintah Daerah</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">Nama Pemerintah Daerah</Label>
               <Input 
                 value={settings.pemda_name} 
                 onChange={e => setSettings({ ...settings, pemda_name: e.target.value })}
@@ -107,7 +107,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Nama Dinas / Instansi</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">Nama Dinas / Instansi</Label>
               <Input 
                 value={settings.dinas_name} 
                 onChange={e => setSettings({ ...settings, dinas_name: e.target.value })}
@@ -116,7 +116,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Alamat Instansi</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">Alamat Instansi</Label>
               <Input 
                 value={settings.dinas_address} 
                 onChange={e => setSettings({ ...settings, dinas_address: e.target.value })}
@@ -125,7 +125,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Kontak (Email & Website)</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">Kontak (Email & Website)</Label>
               <Input 
                 value={settings.dinas_contact} 
                 onChange={e => setSettings({ ...settings, dinas_contact: e.target.value })}
@@ -137,10 +137,10 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-foreground">Pengaturan Ukuran (Pixel)</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Pengaturan Ukuran (Pixel)</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Ukuran Font Pemda</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">Ukuran Font Pemda</Label>
               <Input 
                 type="number" 
                 value={settings.font_size_pemda || ""} 
@@ -149,7 +149,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Ukuran Font Dinas</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">Ukuran Font Dinas</Label>
               <Input 
                 type="number" 
                 value={settings.font_size_dinas || ""} 
@@ -158,7 +158,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Ukuran Font Alamat</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">Ukuran Font Alamat</Label>
               <Input 
                 type="number" 
                 value={settings.font_size_address || ""} 
@@ -167,7 +167,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Margin Atas (Spacing)</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">Margin Atas (Spacing)</Label>
               <Input 
                 type="number" 
                 value={settings.margin_top || ""} 
@@ -180,7 +180,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
       </div>
       
       {!isLocked && (
-        <div className="flex justify-end pt-4 border-t border-border">
+        <div className="flex justify-end pt-4 border-t border-gray-200">
           <Button onClick={handleSave} disabled={saving || isLocked} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Simpan Pengaturan

@@ -37,7 +37,7 @@ function SortableBlock({
   return (
     <li ref={setNodeRef} style={style} className="group">
       <div
-        className={`flex items-center justify-between px-4 py-2.5 rounded-lg border transition-all ${
+        className={`flex items-center justify-between px-3 py-2 rounded-md border transition-colors ${
           block.isFixed
             ? "border-primary/20 bg-primary/5"
             : block.isVisible
@@ -61,7 +61,7 @@ function SortableBlock({
             {block.label}
           </span>
           {block.isFixed && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-4 border-primary/30 text-primary">
+            <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border bg-blue-50 text-blue-700 border-blue-200">
               Terkunci
             </Badge>
           )}
@@ -210,8 +210,8 @@ export default function CodeBuilder({ kibLabel }: CodeBuilderProps) {
   return (
     <div className="space-y-5">
       {/* Live Preview */}
-      <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">
+      <div className="rounded-md border border-gray-200 bg-white px-4 py-3">
+        <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
           Live Preview — {kibLabel}
         </p>
         <div className="flex items-center gap-1 flex-wrap">
@@ -243,12 +243,12 @@ export default function CodeBuilder({ kibLabel }: CodeBuilderProps) {
               return acc;
             }, [])}
         </div>
-        <p className="text-xs font-mono text-primary font-bold mt-2">{livePreview}</p>
+        <p className="text-xs font-mono text-blue-700 font-bold mt-2">{livePreview}</p>
       </div>
 
       {/* Separator Picker */}
       <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Karakter Pemisah</p>
+        <p className="text-xs font-medium text-gray-500">Karakter Pemisah</p>
         <Select value={syncedConfig.separator} onValueChange={handleSeparatorChange}>
           <SelectTrigger className="w-48">
             <SelectValue />
@@ -263,9 +263,9 @@ export default function CodeBuilder({ kibLabel }: CodeBuilderProps) {
 
       {/* Drag-and-Drop Block List */}
       <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">
+        <p className="text-xs font-medium text-gray-500">
           Blok Penyusun Kode{" "}
-          <span className="text-muted-foreground/60">— geser untuk mengubah urutan, klik 👁 untuk sembunyikan</span>
+          <span className="text-gray-400">— geser untuk mengubah urutan, klik 👁 untuk sembunyikan</span>
         </p>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={draggableBlocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
@@ -283,7 +283,7 @@ export default function CodeBuilder({ kibLabel }: CodeBuilderProps) {
       </div>
 
       {availableCustomBlocks.length === 0 && (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-gray-500">
           💡 Tambahkan kolom "Dropdown Berkode" untuk KIB ini di Pengaturan Kolom Custom untuk menambah blok kode baru.
         </p>
       )}

@@ -244,18 +244,18 @@ export default function PapanRekonsiliasi() {
   // ─── Badge Helpers ────────────────────────────────────
   function sourceLabel(source: AnomalyItem["source"]) {
     switch (source) {
-      case "keluhan": return { text: "Keluhan Publik", icon: Users, class: "bg-primary/10 text-primary border-primary/30" };
-      case "sensus": return { text: "Temuan Sensus", icon: ClipboardCheck, class: "bg-chart-3/10 text-chart-3 border-chart-3/30" };
-      case "both": return { text: "Keduanya", icon: AlertTriangle, class: "bg-destructive/10 text-destructive border-destructive/30" };
+      case "keluhan": return { text: "Keluhan Publik", icon: Users, class: "bg-slate-100 text-slate-700 border-slate-200" };
+      case "sensus": return { text: "Temuan Sensus", icon: ClipboardCheck, class: "bg-slate-100 text-slate-700 border-slate-200" };
+      case "both": return { text: "Keduanya", icon: AlertTriangle, class: "bg-red-50 text-red-700 border-red-200" };
     }
   }
 
   function kondisiBadge(kondisi: string) {
     switch (kondisi) {
-      case "Rusak Berat": return "bg-destructive/10 text-destructive border-destructive/30";
-      case "Rusak Ringan": return "bg-warning/10 text-warning border-warning/30";
-      case "Dalam Perbaikan": return "bg-chart-3/10 text-chart-3 border-chart-3/30";
-      default: return "bg-muted text-muted-foreground";
+      case "Rusak Berat": return "bg-red-50 text-red-700 border-red-200";
+      case "Rusak Ringan": return "bg-amber-50 text-amber-700 border-amber-200";
+      case "Dalam Perbaikan": return "bg-amber-50 text-amber-700 border-amber-200";
+      default: return "bg-slate-100 text-slate-700 border-slate-200";
     }
   }
 
@@ -677,7 +677,7 @@ export default function PapanRekonsiliasi() {
                   <Scale className="h-4 w-4 text-primary" />
                   <span>Daftar Anomali</span>
                   {anomalies.length > 0 && (
-                    <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 rounded-full text-[10px] bg-destructive/15 text-destructive">
+                    <Badge variant="secondary" className="min-w-[20px] bg-red-50 text-red-700 border-red-200">
                       {anomalies.length}
                     </Badge>
                   )}
@@ -691,7 +691,7 @@ export default function PapanRekonsiliasi() {
                   <Package className="h-4 w-4 text-chart-3" />
                   <span>Finalisasi Rekon</span>
                   {draftPengajuanItems.length > 0 && (
-                    <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 rounded-full text-[10px] bg-chart-3/15 text-chart-3 border-chart-3/30">
+                    <Badge variant="secondary" className="min-w-[20px] bg-slate-100 text-slate-700 border-slate-200">
                       {draftPengajuanItems.length}
                     </Badge>
                   )}
@@ -707,25 +707,25 @@ export default function PapanRekonsiliasi() {
             {isLoading ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+                  {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-md" />)}
                 </div>
-                <Skeleton className="h-64 rounded-xl" />
+                <Skeleton className="h-64 rounded-md" />
               </div>
             ) : anomalies.length === 0 ? (
               /* ───── Empty State Anomali ───── */
-              <Card className="border-chart-3/20 bg-chart-3/5">
+              <Card className="border-green-200 bg-green-50 rounded-md">
                 <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="h-20 w-20 rounded-2xl bg-chart-3/10 flex items-center justify-center mb-5">
-                    <PartyPopper className="h-10 w-10 text-chart-3" />
+                  <div className="h-20 w-20 rounded-md bg-green-100 flex items-center justify-center mb-5">
+                    <PartyPopper className="h-10 w-10 text-green-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">Luar biasa! Semua Aset Aman 🎉</h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Luar biasa! Semua Aset Aman 🎉</h3>
+                  <p className="text-xs text-gray-500 max-w-md">
                     Tidak ada aset yang bermasalah saat ini. Semua data rekonsiliasi antara laporan publik,
                     temuan sensus, dan data master SIMDA sudah selaras.
                   </p>
                   <div className="flex items-center gap-2 mt-5">
-                    <Shield className="h-4 w-4 text-chart-3" />
-                    <span className="text-xs text-chart-3 font-medium">0 anomali terdeteksi</span>
+                    <Shield className="h-4 w-4 text-green-600" />
+                    <span className="text-xs text-green-700 font-medium">0 anomali terdeteksi</span>
                   </div>
                   {draftPengajuanItems.length > 0 && (
                     <Button
@@ -733,7 +733,7 @@ export default function PapanRekonsiliasi() {
                       className="mt-6 gap-2"
                       onClick={() => setActiveTab("finalisasi")}
                     >
-                      <Clock className="h-4 w-4 text-chart-3" />
+                      <Clock className="h-4 w-4 text-green-600" />
                       Lihat {draftPengajuanItems.length} aset di Buffer Finalisasi
                     </Button>
                   )}
@@ -743,7 +743,7 @@ export default function PapanRekonsiliasi() {
               <>
                 {/* Header Actions */}
                 <div className="flex justify-end mb-4">
-                  <Button onClick={handleExportExcel} disabled={isExporting} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Button onClick={handleExportExcel} disabled={isExporting} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
                     {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
                     Cetak Lampiran Perubahan Kondisi
                   </Button>
@@ -751,7 +751,7 @@ export default function PapanRekonsiliasi() {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Card className="border-border/60">
+                  <Card className="bg-white border border-gray-200 rounded-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center">
@@ -762,7 +762,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Total Anomali</p>
                     </CardContent>
                   </Card>
-                  <Card className="border-border/60">
+                  <Card className="bg-white border border-gray-200 rounded-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center">
@@ -773,7 +773,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Rusak Berat</p>
                     </CardContent>
                   </Card>
-                  <Card className="border-border/60">
+                  <Card className="bg-white border border-gray-200 rounded-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -784,7 +784,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Dari Keluhan Publik</p>
                     </CardContent>
                   </Card>
-                  <Card className="border-border/60">
+                  <Card className="bg-white border border-gray-200 rounded-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-chart-3/10 flex items-center justify-center">
@@ -798,17 +798,17 @@ export default function PapanRekonsiliasi() {
                 </div>
 
                 {/* Anomaly Table */}
-                <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+                <div className="rounded-md bg-white border border-gray-200 overflow-hidden">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Aset</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sumber</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kondisi</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Keterangan</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Terakhir</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                        <TableRow className="hover:bg-gray-50">
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700">Aset</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700">Sumber</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700">Kondisi</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700 hidden md:table-cell">Keterangan</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700 hidden sm:table-cell">Terakhir</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700 text-right">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -824,12 +824,12 @@ export default function PapanRekonsiliasi() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1.5">
-                                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${src.class}`}>
+                                  <Badge variant="outline" className={`${src.class}`}>
                                     <src.icon className="h-3 w-3 mr-1" />
                                     {src.text}
                                   </Badge>
                                   {item.reportCount > 1 && (
-                                    <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] flex items-center justify-center text-[10px] rounded-full">
+                                    <Badge variant="destructive" className="min-w-[20px] flex items-center justify-center">
                                       {item.reportCount}
                                     </Badge>
                                   )}
@@ -853,7 +853,7 @@ export default function PapanRekonsiliasi() {
                                     const isDiajukan = customData.status_usulan === "Pengajuan Perubahan Kondisi" || customData.status_aset === "Usul Hapus";
                                     if (isDiajukan) {
                                       return (
-                                        <Badge variant="outline" className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[11px] gap-1 py-1 mr-2 px-2">
+                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1 mr-2">
                                           <CheckCircle2 className="h-3 w-3" /> Siap Diekspor
                                         </Badge>
                                       );
@@ -928,19 +928,19 @@ export default function PapanRekonsiliasi() {
             {isLoading ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+                  {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-md" />)}
                 </div>
-                <Skeleton className="h-64 rounded-xl" />
+                <Skeleton className="h-64 rounded-md" />
               </div>
             ) : draftPengajuanItems.length === 0 ? (
               /* ───── Empty State Finalisasi ───── */
-              <Card className="border-chart-3/20 bg-chart-3/5">
+              <Card className="border-gray-200 bg-white rounded-md">
                 <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+                  <div className="h-20 w-20 rounded-md bg-primary/10 flex items-center justify-center mb-5">
                     <Package className="h-10 w-10 text-primary" />
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">Buffer Finalisasi Kosong</h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Buffer Finalisasi Kosong</h3>
+                  <p className="text-xs text-gray-500 max-w-md">
                     Belum ada aset yang ditandai untuk diajukan ke BKAD. Gunakan tombol{" "}
                     <span className="font-medium">"Tindak Lanjuti"</span> di Tab{" "}
                     <span className="font-medium">"Daftar Anomali"</span> dan pilih rekomendasi
@@ -968,7 +968,7 @@ export default function PapanRekonsiliasi() {
                 {/* ── Finalisasi Header Action Bar ── */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5">
+                    <div className="inline-flex items-center gap-1.5 rounded border border-amber-200 bg-amber-50 px-3 py-1.5">
                       <Clock className="h-3.5 w-3.5 text-amber-600" />
                       <span className="text-xs font-medium text-amber-700 dark:text-amber-500">
                         {draftPengajuanItems.length} aset dalam buffer — siap diajukan
@@ -978,7 +978,7 @@ export default function PapanRekonsiliasi() {
                   <Button
                     onClick={() => setConfirmBatchOpen(true)}
                     disabled={isBatching}
-                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 sm:self-end"
+                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shrink-0 sm:self-end"
                   >
                     {isBatching ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -990,9 +990,9 @@ export default function PapanRekonsiliasi() {
                 </div>
 
                 {/* Finalisasi Info Banner */}
-                <div className="flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 mb-4">
+                <div className="flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 mb-4">
                   <Shield className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                  <div className="text-xs sm:text-sm text-primary-foreground/90 dark:text-primary/90 leading-relaxed">
+                  <div className="text-xs sm:text-sm text-blue-800 leading-relaxed">
                     <span className="font-semibold">Dual-Approval Workflow:</span> Aset di bawah ini telah diverifikasi
                     oleh <span className="font-semibold">Pengurus Barang (super_admin)</span>. Menekan tombol{" "}
                     <span className="font-semibold">"Ajukan ke BKAD"</span> akan mengirim SEMUA aset ini secara massal
@@ -1004,7 +1004,7 @@ export default function PapanRekonsiliasi() {
 
                 {/* Finalisasi Stats */}
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  <Card className="border-border/60">
+                  <Card className="bg-white border border-gray-200 rounded-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-chart-3/10 flex items-center justify-center">
@@ -1015,7 +1015,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Total Siap Diajukan</p>
                     </CardContent>
                   </Card>
-                  <Card className="border-border/60">
+                  <Card className="bg-white border border-gray-200 rounded-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center">
@@ -1026,7 +1026,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Kategori Rusak Berat</p>
                     </CardContent>
                   </Card>
-                  <Card className="border-border/60">
+                  <Card className="bg-white border border-gray-200 rounded-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -1040,17 +1040,17 @@ export default function PapanRekonsiliasi() {
                 </div>
 
                 {/* Finalisasi Buffer Table */}
-                <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+                <div className="rounded-md bg-white border border-gray-200 overflow-hidden">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Aset</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sumber</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kondisi</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Rekomendasi</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Keterangan</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Masuk Buffer</TableHead>
+                        <TableRow className="hover:bg-gray-50">
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700">Aset</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700">Sumber</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700">Kondisi</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700 hidden sm:table-cell">Rekomendasi</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700 hidden md:table-cell">Keterangan</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-700 hidden lg:table-cell">Masuk Buffer</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1060,7 +1060,7 @@ export default function PapanRekonsiliasi() {
                           const rekomendasi = cd.rekon_rekomendasi || cd.status_usulan || "Usul Perbaikan";
                           const masukAt = cd.rekon_tanggal || item.latestDate;
                           return (
-                            <TableRow key={item.assetId} className="bg-chart-3/[0.03]">
+                            <TableRow key={item.assetId} className="bg-blue-50/40">
                               <TableCell>
                                 <div className="max-w-[140px] sm:max-w-[180px]">
                                   <p className="text-sm font-medium text-foreground truncate">{item.namaAset}</p>
@@ -1069,12 +1069,12 @@ export default function PapanRekonsiliasi() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1.5">
-                                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${src.class}`}>
+                                  <Badge variant="outline" className={`${src.class}`}>
                                     <src.icon className="h-3 w-3 mr-1" />
                                     {src.text}
                                   </Badge>
                                   {item.reportCount > 1 && (
-                                    <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] flex items-center justify-center text-[10px] rounded-full">
+                                    <Badge variant="destructive" className="min-w-[20px] flex items-center justify-center">
                                       {item.reportCount}
                                     </Badge>
                                   )}
@@ -1090,8 +1090,8 @@ export default function PapanRekonsiliasi() {
                                   variant="outline"
                                   className={
                                     rekomendasi.includes("Perubahan Kondisi") || rekomendasi.includes("Rusak Berat")
-                                      ? "bg-destructive/10 text-destructive border-destructive/30 text-[10px] px-1.5 py-0"
-                                      : "bg-warning/10 text-warning border-warning/30 text-[10px] px-1.5 py-0"
+                                      ? "bg-red-50 text-red-700 border-red-200"
+                                      : "bg-amber-50 text-amber-700 border-amber-200"
                                   }
                                 >
                                   {rekomendasi}
@@ -1155,9 +1155,9 @@ export default function PapanRekonsiliasi() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <div className="rounded-md border border-chart-3/30 bg-chart-3/[0.04] p-2.5 mt-2">
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-2.5 mt-2">
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      <span className="font-semibold text-chart-3">Catatan Dual-Approval:</span> Pilihan
+                      <span className="font-semibold text-slate-700">Catatan Dual-Approval:</span> Pilihan
                       selain "Layak Pakai" akan memasukkan aset ke{" "}
                       <span className="font-medium">Buffer Finalisasi Rekon</span> (draft_pengajuan).
                       Aset yang terkumpul dapat diajukan <span className="font-medium">SEKALIGUS</span>{" "}
@@ -1218,7 +1218,7 @@ export default function PapanRekonsiliasi() {
                   handleAjukanKeBKAD();
                 }}
                 disabled={isBatching}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {isBatching && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
                 Ya, Ajukan Semua ke BKAD

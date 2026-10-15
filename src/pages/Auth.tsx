@@ -73,29 +73,29 @@ export default function Auth() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm">
-        <div className="bg-card border border-border shadow-md rounded-2xl p-8 space-y-6">
+        <div className="bg-white border border-gray-200 rounded-md p-8 space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="mx-auto h-12 w-12 rounded-md bg-primary/10 flex items-center justify-center">
             <Package className="h-6 w-6 text-primary" />
           </div>
           <div className="flex flex-col items-center gap-0.5">
-            <h1 className="text-2xl font-extrabold tracking-tight text-teal-800 dark:text-teal-300">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-slate-300">
               SIPPA-BMD
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight font-normal">
               Sistem Inventarisasi, Pengawasan &amp; Pelaporan Aset - Barang Milik Daerah
             </p>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             {isLogin ? "Masuk ke akun Anda" : "Buat akun baru"}
           </p>
         </div>
@@ -141,11 +141,11 @@ export default function Auth() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-gray-500">
           {isLogin ? "Belum punya akun?" : "Sudah punya akun?"}{" "}
           <button
             type="button"
-            className="text-primary hover:underline font-medium"
+            className="text-blue-600 hover:underline font-medium"
             onClick={() => setIsLogin(!isLogin)}
           >
             {isLogin ? "Daftar" : "Masuk"}

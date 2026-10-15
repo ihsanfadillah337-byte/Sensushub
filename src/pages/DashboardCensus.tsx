@@ -636,7 +636,7 @@ export default function DashboardCensus() {
       {/* Sensus Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <Badge className={sensusActive ? "bg-chart-3/15 text-chart-3 border-chart-3/30" : "bg-destructive/10 text-destructive border-destructive/20"}>
+          <Badge className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${sensusActive ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}>
             {sensusActive ? "SENSUS AKTIF" : "SENSUS NONAKTIF"}
           </Badge>
           <div className="flex items-center gap-1.5">
@@ -710,14 +710,14 @@ export default function DashboardCensus() {
         <TabsContent value="overview" className="mt-6 space-y-6">
           {isLoading || isLoadingAudits ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-md" />)}
             </div>
           ) : (
             <>
               {/* Metric Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {metricCards.map((m) => (
-                  <Card key={m.title} className="border-border/60">
+                  <Card key={m.title} className="bg-white border border-gray-200 rounded-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className={`h-9 w-9 rounded-lg ${m.bgColor} flex items-center justify-center`}>
@@ -732,7 +732,7 @@ export default function DashboardCensus() {
               </div>
 
               {/* Progress Bar */}
-              <Card className="border-border/60">
+              <Card className="bg-white border border-gray-200 rounded-md">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold">Progres Sensus</CardTitle>
                 </CardHeader>
@@ -774,7 +774,7 @@ export default function DashboardCensus() {
               {sensusActive ? (
                 <Card className="border-primary/20 bg-primary/5">
                   <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                    <div className="h-12 w-12 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
                       <ScanLine className="h-6 w-6 text-primary" />
                     </div>
                     <div className="flex-1">
@@ -805,7 +805,7 @@ export default function DashboardCensus() {
 
               {/* Archive History */}
               {archives.length > 0 && (
-                <Card className="border-border/60">
+                <Card className="bg-white border border-gray-200 rounded-md">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base font-semibold flex items-center gap-2">
                       <History className="h-4 w-4 text-muted-foreground" />
@@ -817,37 +817,37 @@ export default function DashboardCensus() {
                       <Table>
                         <TableHeader>
                           <TableRow className="hover:bg-transparent">
-                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Periode</TableHead>
-                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal</TableHead>
-                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Aset</TableHead>
-                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">Diaudit</TableHead>
-                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center hidden sm:table-cell">Baik</TableHead>
-                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center hidden sm:table-cell">Rusak</TableHead>
-                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">%</TableHead>
-                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Periode</TableHead>
+                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tanggal</TableHead>
+                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Aset</TableHead>
+                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Diaudit</TableHead>
+                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center hidden sm:table-cell">Baik</TableHead>
+                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center hidden sm:table-cell">Rusak</TableHead>
+                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">%</TableHead>
+                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {archives.map((arc) => {
                             const pct = arc.total_assets > 0 ? Math.round((arc.total_audited / arc.total_assets) * 100) : 0;
                             return (
-                              <TableRow key={arc.id}>
-                                <TableCell className="text-sm font-medium text-foreground">{arc.period_name}</TableCell>
-                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              <TableRow key={arc.id} className="hover:bg-gray-50">
+                                <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 font-medium">{arc.period_name}</TableCell>
+                                <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-500 whitespace-nowrap">
                                   {arc.start_date ? formatTanggal(arc.start_date) : "—"}
                                   {" s/d "}
                                   {arc.end_date ? formatTanggal(arc.end_date) : "—"}
                                 </TableCell>
-                                <TableCell className="text-center text-sm">{arc.total_assets}</TableCell>
-                                <TableCell className="text-center text-sm font-medium">{arc.total_audited}</TableCell>
-                                <TableCell className="text-center text-sm text-chart-3 hidden sm:table-cell">{arc.total_baik}</TableCell>
-                                <TableCell className="text-center text-sm text-destructive hidden sm:table-cell">{arc.total_rusak_ringan + arc.total_rusak_berat}</TableCell>
-                                <TableCell className="text-center">
-                                  <Badge variant="outline" className={pct === 100 ? 'bg-chart-3/10 text-chart-3 border-chart-3/30' : 'bg-warning/10 text-warning border-warning/30'}>
+                                <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center">{arc.total_assets}</TableCell>
+                                <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center font-medium">{arc.total_audited}</TableCell>
+                                <TableCell className="py-1.5 px-2.5 text-[13px] text-chart-3 text-center hidden sm:table-cell">{arc.total_baik}</TableCell>
+                                <TableCell className="py-1.5 px-2.5 text-[13px] text-destructive text-center hidden sm:table-cell">{arc.total_rusak_ringan + arc.total_rusak_berat}</TableCell>
+                                <TableCell className="py-1.5 px-2.5 text-center">
+                                  <Badge variant="outline" className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${pct === 100 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                                     {pct}%
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="py-1.5 px-2.5 text-right">
                                   <Button variant="ghost" size="sm" onClick={() => exportSpecificArchive(arc)} title="Unduh Excel">
                                     <FileText className="h-4 w-4 text-primary" />
                                   </Button>
@@ -889,8 +889,8 @@ export default function DashboardCensus() {
                   onClick={() => setStatusFilter(opt.key)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                     statusFilter === opt.key
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-white text-gray-900"
+                      : "text-gray-500 hover:text-gray-900"
                   }`}
                 >
                   {opt.label}
@@ -899,7 +899,7 @@ export default function DashboardCensus() {
             </div>
             <Button
               variant="outline"
-              className="gap-2 self-start bg-background"
+              className="gap-2 self-start border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50"
               onClick={handleExportArchiveExcel}
             >
               <FileText className="h-4 w-4 text-primary" />
@@ -907,7 +907,7 @@ export default function DashboardCensus() {
             </Button>
           </div>
 
-          <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+          <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
             {isLoading ? (
               <div className="p-6 space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
@@ -922,12 +922,12 @@ export default function DashboardCensus() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kode Aset</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nama Aset</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Lokasi</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kondisi</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Terakhir Cek</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kode Aset</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Nama Aset</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden md:table-cell">Lokasi</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kondisi</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Terakhir Cek</TableHead>
+                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -935,21 +935,21 @@ export default function DashboardCensus() {
                       const kondisiStyle = assetKondisi(asset);
                       const tglCek = assetTerakhirDiaudit(asset);
                       return (
-                        <TableRow key={asset.id}>
-                          <TableCell className="font-mono text-xs sm:text-sm font-medium text-foreground max-w-[90px] sm:max-w-none truncate">{asset.kode_aset}</TableCell>
-                          <TableCell className="text-sm text-foreground max-w-[120px] sm:max-w-none truncate">{asset.nama_aset}</TableCell>
-                          <TableCell className="text-xs sm:text-sm text-muted-foreground hidden md:table-cell truncate max-w-[140px]">{assetLocation(asset)}</TableCell>
-                          <TableCell>
-                            <Badge className={`${kondisiStyle.bg} ${kondisiStyle.color} ${kondisiStyle.border} text-xs`}>
+                        <TableRow key={asset.id} className="hover:bg-gray-50">
+                          <TableCell className="py-1.5 px-2.5 text-[13px] font-mono font-medium text-gray-800 max-w-[90px] sm:max-w-none truncate">{asset.kode_aset}</TableCell>
+                          <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 max-w-[120px] sm:max-w-none truncate">{asset.nama_aset}</TableCell>
+                          <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-500 hidden md:table-cell truncate max-w-[140px]">{assetLocation(asset)}</TableCell>
+                          <TableCell className="py-1.5 px-2.5">
+                            <Badge className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${kondisiStyle.bg} ${kondisiStyle.color} ${kondisiStyle.border}`}>
                               {kondisiStyle.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{tglCek}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-500 hidden sm:table-cell">{tglCek}</TableCell>
+                          <TableCell className="py-1.5 px-2.5 text-right">
                             <Button
                               size="sm"
                               variant={sensusActive ? "outline" : "ghost"}
-                              className="gap-1.5"
+                              className="gap-1.5 rounded-md text-xs"
                               disabled={!sensusActive}
                               onClick={() => navigate(`/dashboard/census/audit/${asset.id}`)}
                             >

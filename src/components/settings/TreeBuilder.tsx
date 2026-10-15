@@ -80,7 +80,7 @@ function TreeNodeEditor({
           <span className="w-4 shrink-0" />
         )}
 
-        <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0 tabular-nums opacity-60">
+        <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border bg-slate-100 text-slate-700 border-slate-200 shrink-0 tabular-nums">
           L{depth + 1}
         </Badge>
 
@@ -101,7 +101,7 @@ function TreeNodeEditor({
               onChange={(e) => setEditCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && saveEdit()}
             />
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary shrink-0" onClick={saveEdit}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-700 shrink-0" onClick={saveEdit}>
               <Check className="h-3.5 w-3.5" />
             </Button>
             {node.label && (
@@ -117,7 +117,7 @@ function TreeNodeEditor({
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors shrink-0"
+              className="h-6 w-6 text-muted-foreground hover:text-blue-700 transition-colors shrink-0"
               onClick={startEditing}
               title="Edit Node"
             >
@@ -130,7 +130,7 @@ function TreeNodeEditor({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-1.5 text-[10px] text-primary hover:text-primary/80 shrink-0"
+            className="h-6 px-1.5 text-[10px] text-blue-700 hover:text-blue-700/80 shrink-0"
             onClick={addChild}
             title={`Tambah sub-opsi ${levelNames[depth + 1] || ""}`}
           >
@@ -183,7 +183,7 @@ function LevelItem({ idx, level, onUpdate, onRemove }: { idx: number; level: str
 
   return (
     <div className="flex items-center gap-2 group">
-      <Badge variant="secondary" className="text-[10px] px-1.5 shrink-0 tabular-nums">
+      <Badge variant="secondary" className="px-2 py-0.5 text-[11px] font-semibold rounded border bg-slate-100 text-slate-700 border-slate-200 shrink-0 tabular-nums">
         L{idx + 1}
       </Badge>
       
@@ -197,7 +197,7 @@ function LevelItem({ idx, level, onUpdate, onRemove }: { idx: number; level: str
             autoFocus 
             onKeyDown={(e) => e.key === "Enter" && save()} 
           />
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary shrink-0" onClick={save}><Check className="h-3.5 w-3.5" /></Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-700 shrink-0" onClick={save}><Check className="h-3.5 w-3.5" /></Button>
           {level && (
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground shrink-0" onClick={() => { setVal(level); setEditing(false); }}><X className="h-3.5 w-3.5" /></Button>
           )}
@@ -206,7 +206,7 @@ function LevelItem({ idx, level, onUpdate, onRemove }: { idx: number; level: str
         <div className="flex-1 flex items-center justify-between">
           <span className="text-xs">{level || <span className="text-muted-foreground italic">Level {idx + 1}</span>}</span>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary shrink-0" onClick={() => setEditing(true)}>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-blue-700 shrink-0" onClick={() => setEditing(true)}>
               <Pencil className="h-3 w-3" />
             </Button>
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={onRemove}>
@@ -276,12 +276,12 @@ export default function TreeBuilder({ levels, tree, onLevelsChange, onTreeChange
   };
 
   return (
-    <div className="rounded-md border border-border bg-muted/30 p-4 space-y-4">
+    <div className="rounded-md border border-gray-200 bg-white p-4 space-y-4">
       {/* Level Definition */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <Layers className="h-3.5 w-3.5 text-primary" />
+          <p className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5 text-blue-700" />
             Level Dropdown
           </p>
           <Button size="sm" variant="outline" className="gap-1 h-6 text-[10px]" onClick={addLevel}>
@@ -304,7 +304,7 @@ export default function TreeBuilder({ levels, tree, onLevelsChange, onTreeChange
       {/* Tree Node Editor */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-foreground">
+          <p className="text-xs font-semibold text-gray-900">
             Struktur Opsi Hierarki
             <span className="font-normal text-muted-foreground ml-1.5">({countNodes(tree || [])} node)</span>
           </p>
@@ -314,7 +314,7 @@ export default function TreeBuilder({ levels, tree, onLevelsChange, onTreeChange
         </div>
 
         {(!tree || tree.length === 0) && (
-          <p className="text-[11px] text-muted-foreground py-2">
+          <p className="text-xs text-gray-500 py-2">
             Klik "Tambah Opsi Root" untuk mulai.
           </p>
         )}

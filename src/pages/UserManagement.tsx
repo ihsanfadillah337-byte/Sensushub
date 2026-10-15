@@ -64,10 +64,10 @@ export default function UserManagement() {
   });
 
   const getRoleBadge = (role: AppRole) => {
-    if (role === "super_admin") return <Badge className="bg-primary/20 text-primary border-primary/30">Super Admin</Badge>;
-    if (role === "auditor") return <Badge className="bg-chart-3/20 text-chart-3 border-chart-3/30">Auditor Lapangan</Badge>;
-    if (role === "staf_bkad") return <Badge className="bg-chart-4/15 text-chart-4 border-chart-4/30">Staf BKAD (Pengelola Barang)</Badge>;
-    return <Badge className="bg-muted text-foreground border-border">Operator</Badge>;
+    if (role === "super_admin") return <Badge className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-blue-50 text-blue-700 border-blue-200">Super Admin</Badge>;
+    if (role === "auditor") return <Badge className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-amber-50 text-amber-700 border-amber-200">Auditor Lapangan</Badge>;
+    if (role === "staf_bkad") return <Badge className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-slate-100 text-slate-700 border-slate-200">Staf BKAD (Pengelola Barang)</Badge>;
+    return <Badge className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-slate-100 text-slate-700 border-slate-200">Operator</Badge>;
   };
 
   const resetForm = () => {
@@ -144,11 +144,11 @@ export default function UserManagement() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
+          <h1 className="text-xl font-semibold text-gray-900 tracking-tight flex items-center gap-2">
             <Users className="h-6 w-6 text-primary" />
             Manajemen Pengguna
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Kelola akun pegawai (Operator & Auditor) untuk instansi Anda.
           </p>
         </div>
@@ -232,8 +232,8 @@ export default function UserManagement() {
         </Dialog>
       </div>
 
-      <Card className="border-border/60">
-        <CardHeader className="py-4 border-b border-border/40 bg-muted/20">
+      <Card className="border-gray-200">
+        <CardHeader className="py-3 border-b border-gray-200 bg-gray-50">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -249,9 +249,9 @@ export default function UserManagement() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="py-4 px-6">Nama Pegawai</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="hidden sm:table-cell">Waktu Didaftarkan</TableHead>
+                  <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Nama Pegawai</TableHead>
+                  <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Role</TableHead>
+                  <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Waktu Didaftarkan</TableHead>
                   {/* <TableHead className="text-right px-6">Aksi</TableHead> */}
                 </TableRow>
               </TableHeader>
@@ -259,14 +259,14 @@ export default function UserManagement() {
                 {isLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell className="py-4 px-6"><Skeleton className="h-5 w-40" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                      <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800"><Skeleton className="h-5 w-40" /></TableCell>
+                      <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800"><Skeleton className="h-5 w-20" /></TableCell>
+                      <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 hidden sm:table-cell"><Skeleton className="h-5 w-32" /></TableCell>
                     </TableRow>
                   ))
                 ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                     <TableCell colSpan={3} className="h-32 text-center text-muted-foreground">
+                     <TableCell colSpan={3} className="py-1.5 px-2.5 text-[13px] text-gray-800 h-32 text-center text-gray-500">
                        <div className="flex flex-col items-center justify-center">
                           <PackageX className="h-8 w-8 mb-2 opacity-30" />
                           <p>Tidak ada pengguna yang ditemukan.</p>
@@ -275,15 +275,15 @@ export default function UserManagement() {
                   </TableRow>
                 ) : (
                   filteredUsers.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell className="py-4 px-6">
-                        <div className="font-medium text-foreground">
+                    <TableRow key={u.id} className="hover:bg-gray-50">
+                      <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">
+                        <div className="font-medium text-gray-900">
                           {u.full_name || "Tanpa Nama"}
                           {u.id === currentUser?.id && <Badge variant="outline" className="ml-2 text-[10px]">Anda</Badge>}
                         </div>
                       </TableCell>
-                      <TableCell>{getRoleBadge(u.role)}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                      <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{getRoleBadge(u.role)}</TableCell>
+                      <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 hidden sm:table-cell text-gray-500">
                         {new Date(u.created_at).toLocaleDateString("id-ID", {
                           day: "2-digit", month: "short", year: "numeric"
                         })}
@@ -297,7 +297,7 @@ export default function UserManagement() {
         </CardContent>
       </Card>
       
-      <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 flex gap-3 items-start">
+      <div className="p-4 bg-blue-50 rounded-md border border-blue-200 flex gap-3 items-start">
          <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
          <div>
             <h4 className="text-sm font-semibold text-primary">Informasi Keamanan RBAC</h4>

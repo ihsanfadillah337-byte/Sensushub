@@ -46,7 +46,7 @@ export function CreatableCombobox({ columnName, value, onChange, placeholder }: 
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between font-normal"
+          className="w-full justify-between font-normal border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50"
         >
           {value ? value : <span className="text-muted-foreground">{placeholder || `Pilih atau ketik ${columnName.toLowerCase()}...`}</span>}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -89,7 +89,7 @@ export function CreatableCombobox({ columnName, value, onChange, placeholder }: 
                 <CommandItem
                   value={inputValue}
                   onSelect={() => handleSelect(inputValue.trim())}
-                  className="font-medium text-primary"
+                  className="font-medium text-blue-700"
                 >
                   <Check className="mr-2 h-4 w-4 opacity-0" />
                   Buat "{inputValue.trim()}"

@@ -302,8 +302,8 @@ export default function DashboardAssets() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Daftar Aset</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Kelola semua aset inventaris perusahaan Anda.</p>
+          <h1 className="text-xl font-semibold text-gray-900">Daftar Aset</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Kelola semua aset inventaris perusahaan Anda.</p>
         </div>
         <div className="flex items-center gap-2 self-start flex-wrap">
           {selectedIds.size > 0 && (
@@ -372,7 +372,7 @@ export default function DashboardAssets() {
         )}
       </div>
 
-      <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+      <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
         ) : filteredAssets.length === 0 ? (
@@ -394,35 +394,35 @@ export default function DashboardAssets() {
                       aria-label="Select all"
                     />
                   </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kode Aset</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nama Aset</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Kategori</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Kondisi</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Lokasi</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                  <TableHead className="text-gray-700">Kode Aset</TableHead>
+                  <TableHead className="text-gray-700">Nama Aset</TableHead>
+                  <TableHead className="text-gray-700 hidden sm:table-cell">Kategori</TableHead>
+                  <TableHead className="text-gray-700 hidden md:table-cell">Kondisi</TableHead>
+                  <TableHead className="text-gray-700 hidden lg:table-cell">Lokasi</TableHead>
+                  <TableHead className="text-gray-700 text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {currentAssets.map((asset) => (
                   <TableRow key={asset.id} data-state={selectedIds.has(asset.id) ? "selected" : undefined}>
                     <TableCell><Checkbox checked={selectedIds.has(asset.id)} onCheckedChange={() => toggleOne(asset.id)} /></TableCell>
-                    <TableCell className="font-mono text-xs sm:text-sm font-medium text-foreground max-w-[100px] truncate">{asset.kode_aset}</TableCell>
-                    <TableCell className="text-sm text-foreground max-w-[160px] sm:max-w-none">
+                    <TableCell className="font-mono text-[13px] font-medium text-gray-800 max-w-[100px] truncate">{asset.kode_aset}</TableCell>
+                    <TableCell className="text-[13px] text-gray-800 max-w-[160px] sm:max-w-none">
                       <div className="flex items-center gap-1.5 truncate">
                         <span className="truncate">{asset.nama_aset}</span>
                         {(() => {
                           const cd = typeof asset.custom_data === "object" && asset.custom_data && !Array.isArray(asset.custom_data) ? asset.custom_data as Record<string, unknown> : null;
                           if (cd?.["status_usulan"] === "Menunggu Update SIMDA") {
-                            return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">⏳ Menunggu SIMDA</Badge>;
+                            return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 shrink-0">⏳ Menunggu SIMDA</Badge>;
                           }
                           if (cd?.["Kondisi"] === "Diusulkan Reklasifikasi (Rusak Berat)") {
-                            return <Badge variant="outline" className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">Usul Reklasifikasi</Badge>;
+                            return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 shrink-0">Usul Reklasifikasi</Badge>;
                           }
                           if (cd?.["status_aset"] === "Unit Pengganti") {
-                            return <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">Pengganti</Badge>;
+                            return <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 shrink-0">Pengganti</Badge>;
                           }
                           if (cd?.["status_aset"] === "Usul Hapus") {
-                            return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-[10px] px-1.5 py-0 leading-4 shrink-0">Usul Hapus</Badge>;
+                            return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 shrink-0">Usul Hapus</Badge>;
                           }
                           return null;
                         })()}
@@ -436,10 +436,10 @@ export default function DashboardAssets() {
                         const cd = typeof asset.custom_data === "object" && asset.custom_data && !Array.isArray(asset.custom_data) ? asset.custom_data as Record<string, unknown> : null;
                         const kondisi = getKondisi(cd);
                         const style = getKondisiStyle(kondisi);
-                        return <Badge className={`${style.bg} ${style.color} ${style.border} text-xs`}>{style.label}</Badge>;
+                        return <Badge className={`${style.bg} ${style.color} ${style.border}`}>{style.label}</Badge>;
                       })()}
                     </TableCell>
-                    <TableCell className="text-xs sm:text-sm text-muted-foreground hidden lg:table-cell truncate max-w-[160px]">{assetSmartLocation(asset)}</TableCell>
+                    <TableCell className="text-[13px] text-gray-800 hidden lg:table-cell truncate max-w-[160px]">{assetSmartLocation(asset)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => navigate(`/dashboard/assets/${asset.id}/edit`)}>
@@ -462,7 +462,7 @@ export default function DashboardAssets() {
 
         {/* ── Pagination Footer ── */}
         {!isLoading && totalItems > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/60">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200">
             {/* Left: info text */}
             <p className="text-xs text-muted-foreground order-2 sm:order-1">
               Menampilkan{" "}
@@ -495,7 +495,7 @@ export default function DashboardAssets() {
                     onClick={() => setCurrentPage(p as number)}
                     className={`h-8 w-8 rounded-md text-xs font-medium transition-colors ${
                       p === safeCurrentPage
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     aria-label={`Halaman ${p}`}

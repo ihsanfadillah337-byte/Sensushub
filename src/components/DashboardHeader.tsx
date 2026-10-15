@@ -10,17 +10,17 @@ import type { AppRole } from "@/types/supabase";
 const ROLE_CONFIG: Record<AppRole, { label: string; className: string; icon: React.ComponentType<{ className?: string }> }> = {
   super_admin: {
     label: "Admin",
-    className: "bg-primary/15 text-primary border-primary/30",
+    className: "bg-blue-50 text-blue-700 border-blue-200",
     icon: Shield,
   },
   operator: {
     label: "Operator",
-    className: "bg-chart-3/15 text-chart-3 border-chart-3/30",
+    className: "bg-slate-100 text-slate-700 border-slate-200",
     icon: UserCog,
   },
   auditor: {
     label: "Auditor",
-    className: "bg-warning/15 text-warning border-warning/30",
+    className: "bg-amber-50 text-amber-700 border-amber-200",
     icon: ClipboardCheck,
   },
 };
@@ -39,7 +39,7 @@ export function DashboardHeader() {
   const roleConfig = role ? ROLE_CONFIG[role] : null;
 
   return (
-    <header className="h-14 flex items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-4 sticky top-0 z-10">
+    <header className="h-14 flex items-center justify-between border-b border-gray-200 bg-white px-4 sticky top-0 z-10">
       <div className="flex items-center gap-3">
         <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
         <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
