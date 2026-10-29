@@ -6,7 +6,7 @@ import { useCustomColumns } from "@/contexts/CustomColumnsContext";
 import * as XLSX from "xlsx";
 import {
   AlertTriangle, CheckCircle2, Wrench, Users, ClipboardCheck,
-  ExternalLink, PartyPopper, MessageCircle, Shield, FileSpreadsheet, Loader2
+  ExternalLink, MessageCircle, Shield, FileSpreadsheet, Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -485,7 +485,7 @@ export default function PapanRekonsiliasi() {
           total_aset: draftPengajuanItems.length,
           total_nilai: totalNilai,
           kode_barang_list: kodeBarangList as any,
-          tembusan: ["BKAD", "Pokja Inventarisasi", "Atasan Langsung"] as any,
+          tembusan: [] as any,
           data_otorisasi: assetSnapshot as any,
           status: "Menunggu Persetujuan BKAD",
           status_approval: "menunggu_bkad",
@@ -530,7 +530,7 @@ export default function PapanRekonsiliasi() {
       queryClient.invalidateQueries({ queryKey: ["assets"] });
 
       toast.success(
-        `✅ ${draftPengajuanItems.length} aset berhasil diajukan ke BKAD (No. ${nomorSuratAuto}).`,
+        `${draftPengajuanItems.length} aset berhasil diajukan ke BKAD (No. ${nomorSuratAuto}).`,
         { description: "Staf BKAD dapat meninjau dan menyetujui di halaman Persetujuan." }
       );
       setActiveTab("anomali");
@@ -713,19 +713,19 @@ export default function PapanRekonsiliasi() {
               </div>
             ) : anomalies.length === 0 ? (
               /* ───── Empty State Anomali ───── */
-              <Card className="border-green-200 bg-green-50 rounded-md">
+              <Card className="border-gray-200 bg-white rounded-md">
                 <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="h-20 w-20 rounded-md bg-green-100 flex items-center justify-center mb-5">
-                    <PartyPopper className="h-10 w-10 text-green-600" />
+                  <div className="h-20 w-20 rounded-md bg-gray-100 flex items-center justify-center mb-5">
+                    <CheckCircle2 className="h-10 w-10 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Luar biasa! Semua Aset Aman 🎉</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Tidak ada laporan anomali saat ini.</h3>
                   <p className="text-xs text-gray-500 max-w-md">
-                    Tidak ada aset yang bermasalah saat ini. Semua data rekonsiliasi antara laporan publik,
+                    Belum ada anomali yang perlu ditindaklanjuti. Data rekonsiliasi antara laporan publik,
                     temuan sensus, dan data master SIMDA sudah selaras.
                   </p>
                   <div className="flex items-center gap-2 mt-5">
-                    <Shield className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-green-700 font-medium">0 anomali terdeteksi</span>
+                    <Shield className="h-4 w-4 text-gray-400" />
+                    <span className="text-xs text-gray-600 font-medium">0 anomali terdeteksi</span>
                   </div>
                   {draftPengajuanItems.length > 0 && (
                     <Button
@@ -733,7 +733,7 @@ export default function PapanRekonsiliasi() {
                       className="mt-6 gap-2"
                       onClick={() => setActiveTab("finalisasi")}
                     >
-                      <Clock className="h-4 w-4 text-green-600" />
+                      <Clock className="h-4 w-4 text-gray-500" />
                       Lihat {draftPengajuanItems.length} aset di Buffer Finalisasi
                     </Button>
                   )}
@@ -1146,12 +1146,10 @@ export default function PapanRekonsiliasi() {
                       <SelectValue placeholder="Pilih rekomendasi..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Layak Pakai">Layak Pakai — Tutup & keluar dari daftar</SelectItem>
-                      <SelectItem value="Usul Perbaikan">
-                        📦 Usul Perbaikan — Masuk Buffer Finalisasi
-                      </SelectItem>
+                      <SelectItem value="Layak Pakai">Masih layak pakai</SelectItem>
+                      <SelectItem value="Usul Perbaikan">Usul perbaikan</SelectItem>
                       <SelectItem value="Pengajuan Perubahan Kondisi">
-                        📦 Pengajuan Perubahan Kondisi (Rusak Berat) — Masuk Buffer
+                        Pengajuan perubahan kondisi dalam rusak berat
                       </SelectItem>
                     </SelectContent>
                   </Select>

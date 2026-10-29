@@ -178,7 +178,7 @@ function rekomendasiToKondisi(rekomendasi: string): "Rusak Berat" | "Rusak Ringa
 export default function VerifikasiBKAD() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, hasRole, companyId } = useAuth();
+  const { user, hasRole, companyId, loading, role } = useAuth();
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<DocumentArchiveRow | null>(null);
@@ -190,13 +190,16 @@ export default function VerifikasiBKAD() {
   const [rejectDoc, setRejectDoc] = useState<DocumentArchiveRow | null>(null);
   const [catatanReject, setCatatanReject] = useState("");
 
-  // RBAC GLOBAL — hanya staf_bkad yang boleh di sini
+  // RBAC GLOBAL — hanya staf_bkad yang boleh di sini.
+  // PENTING: tunggu proses loading profil selesai sebelum mengevaluasi role,
+  // agar refresh (F5) tidak salah me-redirect ke dashboard saat role belum termuat.
   useEffect(() => {
+    if (loading || !role) return;
     if (!hasRole("staf_bkad")) {
       toast.error("Akses ditolak: Anda tidak memiliki wewenang BKAD.");
       navigate("/dashboard/overview", { replace: true });
     }
-  }, [hasRole, navigate]);
+  }, [loading, role, hasRole, navigate]);
 
   const { data: pendingDocs = [], isLoading } = useQuery({
     queryKey: ["bkad-pending-documents", companyId],

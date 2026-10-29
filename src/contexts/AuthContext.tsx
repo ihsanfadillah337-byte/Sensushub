@@ -112,14 +112,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid blocking the auth state change callback
-          setTimeout(() => {
-            fetchProfile(session.user.id);
+          // Use setTimeout to avoid blocking the auth state change callback.
+          // PENTING: `loading` baru dimatikan SETELAH profil (role) selesai di-fetch,
+          // agar route guard tidak salah me-redirect ke dashboard saat refresh (F5).
+          setTimeout(async () => {
+            await fetchProfile(session.user.id);
+            setLoading(false);
           }, 0);
         } else {
           resetProfileState();
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
