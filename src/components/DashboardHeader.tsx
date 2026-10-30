@@ -1,6 +1,6 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, Sun, Moon, Shield, UserCog } from "lucide-react";
+import { Building2, Sun, Moon, Shield, UserCog, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,11 @@ const ROLE_CONFIG: Record<AppRole, { label: string; className: string; icon: Rea
     label: "Operator",
     className: "bg-slate-100 text-slate-700 border-slate-200",
     icon: UserCog,
+  },
+  staf_bkad: {
+    label: "Staf BKAD",
+    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    icon: ShieldCheck,
   },
 };
 
