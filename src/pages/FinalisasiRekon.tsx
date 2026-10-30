@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCustomColumns } from "@/contexts/CustomColumnsContext";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import {
@@ -433,11 +434,13 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: ArchiveRow; onCl
 
 // ─── Constants ───────────────────────────────────────────
 const ITEMS_PER_PAGE = 10;
-const KIB_OPTIONS = ["KIB A", "KIB B", "KIB C", "KIB D", "KIB E", "KIB F"];
 
 // ─── Component ───────────────────────────────────────────
 export default function FinalisasiRekon() {
   const { companyId } = useAuth();
+  // Master KIB ditarik dari Supabase (tabel companies.master_kib) via context,
+  // sehingga opsi filter selalu sinkron dengan data master instansi.
+  const { masterKib } = useCustomColumns();
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -589,7 +592,11 @@ export default function FinalisasiRekon() {
                 <SelectTrigger><SelectValue placeholder="Filter Jenis KIB" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua KIB</SelectItem>
-                  {KIB_OPTIONS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                  {masterKib
+                    .filter((k) => !!k.label)
+                    .map((k) => (
+                      <SelectItem key={k.id} value={k.label}>{k.label}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
