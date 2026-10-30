@@ -143,6 +143,8 @@ export interface DocumentArchive {
   total_nilai: number;
   kode_barang_list: unknown;
   tembusan: unknown;
+  url_surat_pernyataan: string | null;
+  url_berita_acara: string | null;
   data_otorisasi: unknown;
   status: string;
   status_approval: DocumentApprovalStatus;
@@ -163,6 +165,8 @@ export interface DocumentArchiveInsert {
   total_nilai?: number;
   kode_barang_list?: unknown;
   tembusan?: unknown;
+  url_surat_pernyataan?: string | null;
+  url_berita_acara?: string | null;
   data_otorisasi?: unknown;
   status?: string;
   status_approval?: DocumentApprovalStatus;
@@ -183,6 +187,8 @@ export interface DocumentArchiveUpdate {
   total_nilai?: number;
   kode_barang_list?: unknown;
   tembusan?: unknown;
+  url_surat_pernyataan?: string | null;
+  url_berita_acara?: string | null;
   data_otorisasi?: unknown;
   status?: string;
   status_approval?: DocumentApprovalStatus;
