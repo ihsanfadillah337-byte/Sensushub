@@ -741,14 +741,6 @@ export default function PapanRekonsiliasi() {
               </Card>
             ) : (
               <>
-                {/* Header Actions */}
-                <div className="flex justify-end mb-4">
-                  <Button onClick={handleExportExcel} disabled={isExporting} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                    {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-                    Cetak Lampiran Perubahan Kondisi
-                  </Button>
-                </div>
-
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <Card className="bg-white border border-gray-200 rounded-md">

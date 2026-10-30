@@ -539,7 +539,6 @@ export default function DashboardReports() {
                       <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kondisi</TableHead>
                       <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden md:table-cell">Rekomendasi</TableHead>
                       <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Bukti</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -611,17 +610,6 @@ export default function DashboardReports() {
                                    </Tooltip>
                                 )}
                               </div>
-                           </TableCell>
-                           <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-right">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-8 gap-1.5 text-xs"
-                                onClick={() => toast("Fitur eksekusi SPK & Disposal segera hadir.")}
-                              >
-                                <Wrench className="h-3.5 w-3.5" />
-                                Eksekusi
-                              </Button>
                            </TableCell>
                          </TableRow>
                        )
