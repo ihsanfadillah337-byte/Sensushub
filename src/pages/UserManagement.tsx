@@ -65,7 +65,6 @@ export default function UserManagement() {
 
   const getRoleBadge = (role: AppRole) => {
     if (role === "super_admin") return <Badge className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-blue-50 text-blue-700 border-blue-200">Super Admin</Badge>;
-    if (role === "auditor") return <Badge className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-amber-50 text-amber-700 border-amber-200">Auditor Lapangan</Badge>;
     if (role === "staf_bkad") return <Badge className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-slate-100 text-slate-700 border-slate-200">Staf BKAD (Pengelola Barang)</Badge>;
     return <Badge className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-slate-100 text-slate-700 border-slate-200">Operator</Badge>;
   };
@@ -149,7 +148,7 @@ export default function UserManagement() {
             Manajemen Pengguna
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Kelola akun pegawai (Operator & Auditor) untuk instansi Anda.
+            Kelola akun pegawai untuk instansi Anda.
           </p>
         </div>
         
@@ -213,7 +212,6 @@ export default function UserManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="operator">Operator (Cetak Label, Input Data)</SelectItem>
-                    <SelectItem value="auditor">Auditor (Sensus Lapangan)</SelectItem>
                     <SelectItem value="staf_bkad">Staf BKAD (Pengelola Barang)</SelectItem>
                   </SelectContent>
                 </Select>

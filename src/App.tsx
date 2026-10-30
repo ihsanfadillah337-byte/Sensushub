@@ -54,7 +54,7 @@ const App = () => (
               <Route path="assets/:id/edit" element={<DashboardAssetEdit />} />
               <Route path="reports" element={<Navigate to="/dashboard/rekonsiliasi" replace />} />
               <Route path="rekonsiliasi" element={
-                <ProtectedRoute allowedRoles={['super_admin', 'operator', 'auditor']}>
+                <ProtectedRoute allowedRoles={['super_admin', 'operator']}>
                   <DashboardRekonsiliasi />
                 </ProtectedRoute>
               } />
@@ -80,7 +80,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="census/audit/:id" element={
-                <ProtectedRoute allowedRoles={['super_admin', 'auditor']}>
+                <ProtectedRoute allowedRoles={['super_admin', 'operator']}>
                   <CensusAuditForm />
                 </ProtectedRoute>
               } />

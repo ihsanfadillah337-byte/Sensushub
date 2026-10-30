@@ -48,9 +48,9 @@ export default function ScanAsset() {
   const reportFileRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Dual-Scan: Check if current visitor is an authenticated auditor/admin
-  const [auditorRole, setAuditorRole] = useState<AppRole | null>(null);
-  const [auditorCompanyId, setAuditorCompanyId] = useState<string | null>(null);
+  // Dual-Scan: Check if current visitor is an authenticated operator/admin
+  const [operatorRole, setOperatorRole] = useState<AppRole | null>(null);
+  const [operatorCompanyId, setOperatorCompanyId] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
       try {
@@ -61,9 +61,9 @@ export default function ScanAsset() {
           .select("role, company_id")
           .eq("id", session.user.id)
           .maybeSingle();
-        if (profile?.role === "auditor" || profile?.role === "super_admin") {
-          setAuditorRole(profile.role as AppRole);
-          setAuditorCompanyId(profile.company_id);
+        if (profile?.role === "operator" || profile?.role === "super_admin") {
+          setOperatorRole(profile.role as AppRole);
+          setOperatorCompanyId(profile.company_id);
         }
       } catch { /* silent — public page */ }
     })();
@@ -94,7 +94,7 @@ export default function ScanAsset() {
         .maybeSingle();
       return data?.sensus_active ?? false;
     },
-    enabled: !!asset?.company_id && !!auditorRole,
+    enabled: !!asset?.company_id && !!operatorRole,
   });
 
   // Check if there are open tickets for this asset
@@ -422,8 +422,8 @@ export default function ScanAsset() {
         <div className="h-16" />
       </div>
 
-      {/* Dual-Scan: Auditor Banner */}
-      {auditorRole && sensusActive && (
+      {/* Dual-Scan: Operator Banner */}
+      {operatorRole && sensusActive && (
         <div className="fixed bottom-16 inset-x-0 px-4 z-20">
           <div className="mx-auto max-w-md">
             <button
@@ -435,7 +435,7 @@ export default function ScanAsset() {
               </div>
               <div className="text-left flex-1">
                 <p className="text-sm font-semibold">Masuk Mode Audit Sensus</p>
-                <p className="text-xs opacity-80">Anda terdeteksi sebagai {auditorRole === 'super_admin' ? 'Admin' : 'Auditor'}</p>
+                <p className="text-xs opacity-80">Anda terdeteksi sebagai {operatorRole === 'super_admin' ? 'Admin' : 'Operator'}</p>
               </div>
               <ChevronRight className="h-5 w-5 opacity-60" />
             </button>
@@ -444,7 +444,7 @@ export default function ScanAsset() {
       )}
 
       {/* Dual-Scan: Read-Only mode when census is inactive */}
-      {auditorRole && sensusActive === false && (
+      {operatorRole && sensusActive === false && (
         <div className="fixed bottom-16 inset-x-0 px-4 z-20">
           <div className="mx-auto max-w-md">
             <div className="w-full flex items-center gap-3 px-4 py-3 rounded-md bg-muted border border-border">

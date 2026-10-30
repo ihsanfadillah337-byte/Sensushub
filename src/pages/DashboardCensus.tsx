@@ -86,7 +86,7 @@ export default function DashboardCensus() {
       const { error } = await supabase.from("companies").update({ sensus_active: newVal }).eq("id", companyId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["sensus-active"] });
-      toast.success(newVal ? "Sensus DIAKTIFKAN. Auditor kini bisa mengisi form audit." : "Sensus DINONAKTIFKAN. Auditor hanya bisa melihat profil aset.");
+      toast.success(newVal ? "Sensus DIAKTIFKAN. Operator kini bisa mengisi form audit." : "Sensus DINONAKTIFKAN. Operator hanya bisa melihat profil aset.");
     } catch (e: any) {
       toast.error("Gagal mengubah status sensus: " + e.message);
     } finally {
@@ -796,7 +796,7 @@ export default function DashboardCensus() {
                     <div>
                       <h3 className="text-sm font-semibold text-foreground">Sensus Tidak Aktif</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Tekan tombol "Aktifkan Sensus" di atas untuk membuka akses Form Audit bagi para Auditor lapangan. Selama nonaktif, scan QR hanya menampilkan profil aset tanpa form input.
+                        Tekan tombol "Aktifkan Sensus" di atas untuk membuka akses Form Audit bagi para Operator lapangan. Selama nonaktif, scan QR hanya menampilkan profil aset tanpa form input.
                       </p>
                     </div>
                   </CardContent>

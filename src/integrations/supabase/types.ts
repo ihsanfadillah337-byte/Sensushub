@@ -410,7 +410,7 @@ export type Database = {
       get_auth_company_id: { Args: Record<string, never>; Returns: string }
     }
     Enums: {
-      app_role: "super_admin" | "operator" | "auditor" | "staf_bkad"
+      app_role: "super_admin" | "operator" | "staf_bkad"
     }
     CompositeTypes: {
       [_ in never]: never

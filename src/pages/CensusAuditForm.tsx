@@ -179,7 +179,7 @@ export default function CensusAuditForm() {
       return;
     }
     if (!rekomendasiAuditor) {
-      toast.error("Pilih rekomendasi auditor terlebih dahulu.");
+      toast.error("Pilih rekomendasi operator terlebih dahulu.");
       return;
     }
 
@@ -588,10 +588,10 @@ export default function CensusAuditForm() {
             />
           </div>
 
-          {/* Rekomendasi Auditor */}
+          {/* Rekomendasi Operator */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
-              Rekomendasi Auditor <span className="text-destructive">*</span>
+              Rekomendasi Operator <span className="text-destructive">*</span>
             </Label>
             <Select value={rekomendasiAuditor} onValueChange={setRekomendasiAuditor}>
               <SelectTrigger><SelectValue placeholder="Pilih rekomendasi…" /></SelectTrigger>
@@ -606,7 +606,7 @@ export default function CensusAuditForm() {
           {/* Catatan */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
-              Catatan Auditor
+              Catatan Operator
               {(kondisi === "Rusak Berat" || kesesuaianKib === "Tidak Sesuai" || rekomendasiAuditor === "Pengajuan Perubahan Kondisi (Rusak Berat)") && (
                 <span className="text-destructive ml-1">*</span>
               )}

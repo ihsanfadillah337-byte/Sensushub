@@ -2,7 +2,7 @@
 // Digunakan sebagai referensi tipe di seluruh frontend
 
 // === RBAC Types ===
-export type AppRole = 'super_admin' | 'operator' | 'auditor' | 'staf_bkad';
+export type AppRole = 'super_admin' | 'operator' | 'staf_bkad';
 
 export interface UserProfile {
   id: string;
