@@ -695,6 +695,14 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
 
   // Footer di halaman lampiran
   const dateLine = `Soreang, ${dateSP}`;
+  
+  // Cek ruang halaman lampiran (Landscape A4 = 210mm height)
+  // Butuh ruang sekitar 60-70mm untuk blok tanda tangan.
+  if (ly > 140) { 
+    doc.addPage("a4", "landscape");
+    ly = _baMargin + 10;
+  }
+
   _baSignRight(doc, ly, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { 
     skipMengetahui: true, 
     selakuLabel: "Selaku Pengguna BMD," 
