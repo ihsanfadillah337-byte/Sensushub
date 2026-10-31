@@ -70,7 +70,7 @@ const _spTableHeaders = [
   "ASAL USUL", "HARGA PEROLEHAN (RP)",
 ];
 
-const _baMargin = 15; // Margin diperlebar agar tidak mepet ke samping
+const _baMargin = 12;
 
 function _baRowGet(row: any, keys: string[]): string {
   if (!row) return "";
@@ -193,24 +193,8 @@ function _baRenderUniversalTable(doc: any, startY: number, assets: any[]): numbe
     foot,
     showFoot: "lastPage",
     theme: "grid",
-    styles: { 
-      font: "helvetica", 
-      fontSize: 8, 
-      cellPadding: 2, 
-      lineColor: [0, 0, 0], 
-      lineWidth: 0.1, 
-      textColor: [0, 0, 0], 
-      overflow: "linebreak", 
-      valign: "middle" 
-    },
-    headStyles: { 
-      fillColor: [255, 255, 255], 
-      textColor: [0, 0, 0], 
-      fontStyle: "bold", 
-      halign: "center", 
-      valign: "middle", 
-      fontSize: 8 
-    },
+    styles: { font: "times", fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0], overflow: "linebreak", valign: "middle" },
+    headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold", halign: "center", valign: "middle", fontSize: 8 },
     footStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontSize: 8 },
     columnStyles: {
       0: { halign: "center", cellWidth: 10 },
@@ -244,8 +228,8 @@ function _spRenderUniversalTable(doc: any, startY: number, assets: any[]): numbe
     showFoot: "lastPage",
     theme: "grid",
     styles: { 
-      font: "helvetica", 
-      fontSize: 7.5, 
+      font: "times", 
+      fontSize: 7.5, // Sedikit diperbesar
       cellPadding: 1.5, 
       lineColor: [0, 0, 0], 
       lineWidth: 0.1, 
@@ -259,7 +243,7 @@ function _spRenderUniversalTable(doc: any, startY: number, assets: any[]): numbe
       fontStyle: "bold", 
       halign: "center", 
       valign: "middle", 
-      fontSize: 8 
+      fontSize: 8 // Header lebih besar
     },
     // Styling khusus untuk baris nomor kolom (baris pertama di body)
     didParseCell: (data) => {
@@ -284,25 +268,29 @@ function _spRenderUniversalTable(doc: any, startY: number, assets: any[]): numbe
 function _baDrawKop(doc: any, st: any): number {
   const pageW = doc.internal.pageSize.getWidth();
   let y = 15;
-  doc.setFont("helvetica", "bold");
+  doc.setFont("times", "bold");
   doc.setFontSize(st.font_size_pemda || 14);
   doc.text(String(st.pemda_name || "").toUpperCase(), pageW / 2 + 10, y, { align: "center" });
   y += 7;
-  doc.setFontSize(st.font_size_dinas || 18);
+  doc.setFontSize(st.font_size_dinas || 18); // Diperbesar ke 18
   doc.text(String(st.dinas_name || "").toUpperCase(), pageW / 2 + 10, y, { align: "center" });
   y += 5;
-  doc.setFont("helvetica", "normal");
+  doc.setFont("times", "normal");
   doc.setFontSize(st.font_size_address || 10);
   doc.text(String(st.dinas_address || ""), pageW / 2 + 10, y, { align: "center" });
   
+  // Note: Logo skipped as requested
+  
   y += 4;
-  doc.setLineWidth(1.0);
+  // Garis ganda: satu tebal di atas, satu tipis di bawah
+  doc.setLineWidth(1.0); // Lebih tebal (1.0)
   doc.line(_baMargin, y, pageW - _baMargin, y);
-  doc.setLineWidth(0.3);
-  doc.line(_baMargin, y + 1.5, pageW - _baMargin, y + 1.5);
+  doc.setLineWidth(0.3); // Garis tipis (0.3)
+  doc.line(_baMargin, y + 1.5, pageW - _baMargin, y + 1.5); // Jarak 1.5mm
   return y + 10;
 }
 
+// Paragraf rata kanan-kiri dengan auto-wrap; mengembalikan Y berikutnya.
 function _baParagraph(doc: any, text: string, y: number, opts?: { 
   fontSize?: number; 
   indent?: number; 
@@ -315,7 +303,7 @@ function _baParagraph(doc: any, text: string, y: number, opts?: {
   const indent = opts?.indent ?? 0;
   const lineHeight = opts?.lineHeight ?? 1.5; 
   
-  doc.setFont("helvetica", opts?.bold ? "bold" : "normal");
+  doc.setFont("times", opts?.bold ? "bold" : "normal");
   doc.setFontSize(fontSize);
   
   const maxW = pageW - _baMargin * 2 - indent;
@@ -324,11 +312,12 @@ function _baParagraph(doc: any, text: string, y: number, opts?: {
   return y + lines.length * fontSize * (lineHeight * 0.35) + 3;
 }
 
+// Blok tanda tangan kanan (Kepala SKPD).
 function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, nama: string, nip: string, opts?: { pangkat?: string; skipMengetahui?: boolean; selakuLabel?: string }): number {
   const pageW = doc.internal.pageSize.getWidth();
-  const xRight = pageW - _baMargin - 40; // Sesuaikan agar seimbang
+  const xRight = pageW - _baMargin - 45; // Sedikit geser ke kiri untuk proporsi F4
   
-  doc.setFont("helvetica", "normal");
+  doc.setFont("times", "normal");
   doc.setFontSize(11);
   doc.text(dateLine, xRight, y, { align: "center" });
   y += 5;
@@ -338,28 +327,30 @@ function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, na
     y += 5;
   }
   
-  doc.setFont("helvetica", "bold");
+  doc.setFont("times", "bold");
   doc.text("KEPALA", xRight, y, { align: "center" });
   y += 5;
   doc.text(String(DEFAULT_SETTINGS.dinas_name).toUpperCase(), xRight, y, { align: "center" });
   y += 5;
-  doc.setFont("helvetica", "normal");
+  doc.setFont("times", "normal");
   
+  // Menghapus duplikasi "selaku Pengguna BMD" jika ada
   let label = opts?.selakuLabel || "Selaku Pengguna Barang Milik Daerah,";
   doc.text(label, xRight, y, { align: "center" });
   
-  y += 28; 
+  y += 28; // Ruang tanda tangan lebih luas
   
   const namaUpper = (nama || "").toUpperCase();
-  doc.setFont("helvetica", "bold");
+  doc.setFont("times", "bold");
   doc.text(namaUpper, xRight, y, { align: "center" });
   
+  // Underline nama penandatangan
   const textWidth = doc.getTextWidth(namaUpper);
   doc.setLineWidth(0.5);
   doc.line(xRight - textWidth / 2, y + 1, xRight + textWidth / 2, y + 1);
   
   y += 5;
-  doc.setFont("helvetica", "normal");
+  doc.setFont("times", "normal");
   if (opts?.pangkat) {
     doc.text(opts.pangkat, xRight, y, { align: "center" });
     y += 5;
@@ -369,11 +360,12 @@ function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, na
   return y;
 }
 
+// Blok tanda tangan kiri (Tim Pemeriksa).
 function _baSignLeftTim(doc: any, y: number, tim: { nama: string; nip: string; pangkat: string }[]): number {
-  const xLeft = _baMargin;
-  const xDotted = xLeft + 60; // Geser dotted line sedikit
+  const xLeft = _baMargin + 5;
+  const xDotted = xLeft + 65;
   
-  doc.setFont("helvetica", "normal");
+  doc.setFont("times", "normal");
   doc.setFontSize(11);
   doc.text("Tim Pemeriksa,", xLeft, y);
   y += 10;
@@ -383,16 +375,16 @@ function _baSignLeftTim(doc: any, y: number, tim: { nama: string; nip: string; p
     doc.text(num, xLeft, y);
     
     const startX = xLeft + 5;
-    doc.setFont("helvetica", "bold");
+    doc.setFont("times", "bold");
     doc.text((t.nama || "").toUpperCase(), startX, y);
     y += 5;
-    doc.setFont("helvetica", "normal");
+    doc.setFont("times", "normal");
     doc.text(`NIP. ${t.nip || "-"}`, startX, y);
     
-    // Pendekkan dotted line agar tidak bertabrakan dengan kolom kanan
-    doc.text("...................................", xDotted, y);
+    // Dotted line for signature
+    doc.text("...........................................", xDotted, y);
     
-    y += 12; 
+    y += 12; // Gap between members
   });
   
   return y;
@@ -425,12 +417,12 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
   const container = document.createElement("div");
   container.style.width = "210mm";
   container.style.minHeight = "297mm";
-  container.style.padding = "20mm 25mm"; // Margin diperlebar agar tidak mepet
+  container.style.padding = "15mm 20mm";
   container.style.backgroundColor = "white";
-  container.style.fontFamily = "Arial, Helvetica, sans-serif"; // Font Sans-Serif sesuai format BKAD
+  container.style.fontFamily = "'Times New Roman', Times, serif";
   container.style.color = "black";
   container.style.fontSize = "12pt";
-  container.style.lineHeight = "1.4";
+  container.style.lineHeight = "1.3";
   container.style.position = "fixed";
   container.style.top = "-10000px";
   container.style.left = "-10000px";
@@ -442,7 +434,7 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
   const dinasName = String(st.dinas_name).toUpperCase();
 
   const timHtml = (input.timPemeriksa || []).slice(0, 2).map((t, i) => `
-    <div style="margin-left: 20px; margin-bottom: 12px;">
+    <div style="margin-left: 20px; margin-bottom: 10px;">
       <table style="width: 100%; border-collapse: collapse;">
         <tr>
           <td style="width: 25px; vertical-align: top;">${i + 1}.</td>
@@ -467,9 +459,9 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
   `).join("");
 
   container.innerHTML = `
-    <div style="display: flex; align-items: center; margin-bottom: 5px;">
-      <img src="/logo.png" style="width: 80px; height: auto; margin-right: 20px;" />
-      <div style="flex: 1; text-align: center; margin-right: 80px;">
+    <div style="display: flex; align-items: center; margin-bottom: 2px;">
+      <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
+      <div style="flex: 1; text-align: center; margin-right: 25mm;">
         <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${st.pemda_name.toUpperCase()}</div>
         <div style="font-weight: bold; font-size: 18pt; margin-bottom: 2px;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: 10pt;">${st.dinas_address}</div>
@@ -572,9 +564,9 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
   const container = document.createElement("div");
   container.style.width = "210mm";
   container.style.minHeight = "297mm";
-  container.style.padding = "20mm 25mm"; // Margin diperlebar agar tidak mepet
+  container.style.padding = "15mm 20mm";
   container.style.backgroundColor = "white";
-  container.style.fontFamily = "Arial, Helvetica, sans-serif"; // Font Sans-Serif sesuai format BKAD
+  container.style.fontFamily = "'Times New Roman', Times, serif";
   container.style.color = "black";
   container.style.fontSize = "12pt";
   container.style.lineHeight = "1.5";
@@ -598,9 +590,9 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
     .join("");
 
   container.innerHTML = `
-    <div style="display: flex; align-items: center; margin-bottom: 5px;">
-      <img src="/logo.png" style="width: 80px; height: auto; margin-right: 20px;" />
-      <div style="flex: 1; text-align: center; margin-right: 80px;">
+    <div style="display: flex; align-items: center; margin-bottom: 2px;">
+      <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
+      <div style="flex: 1; text-align: center; margin-right: 25mm;">
         <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${st.pemda_name.toUpperCase()}</div>
         <div style="font-weight: bold; font-size: 18pt; margin-bottom: 2px;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: 10pt;">${st.dinas_address}</div>
