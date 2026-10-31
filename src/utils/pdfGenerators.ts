@@ -119,10 +119,10 @@ function _baBuildUniversalRows(assets: any[]): { body: any[][]; total: number } 
     );
     total += harga;
     
-    // Pencarian key tahun perolehan yang lebih luas
-    const tahunVal = _baRowGet(a, [
-      "Tahun Perolehan", "tahun_perolehan", "tahun", "Tahun", 
+    // Pencarian key tanggal perolehan yang lebih luas (menampilkan full date sesuai database)
+    const tglRaw = _baRowGet(a, [
       "Tanggal Perolehan", "tanggal_perolehan", 
+      "Tahun Perolehan", "tahun_perolehan", "tahun", "Tahun", 
       "Tahun Pembelian", "tahun_pembelian", 
       "tanggal_pembelian", "waktu_perolehan"
     ]);
@@ -136,7 +136,7 @@ function _baBuildUniversalRows(assets: any[]): { body: any[][]; total: number } 
       _baDash(_baRowGet(a, ["Nomor Mesin", "nomor_mesin", "mesin", "No Mesin"])),
       _baDash(_baRowGet(a, ["Nomor BPKB", "nomor_bpkb", "bpkb", "No BPKB"])),
       _baDash(_baRowGet(a, ["Bahan", "bahan"])),
-      _baExtractYear(tahunVal),
+      _baDash(tglRaw), // Menggunakan tglRaw langsung (full date)
       new Intl.NumberFormat("id-ID").format(harga),
     ];
   });
@@ -407,104 +407,145 @@ export interface DualPdfInput {
 }
 
 // ─── Generator 1: Berita Acara (BA) ────────────────────
-export function generateBeritaAcaraPDF(input: DualPdfInput): Blob {
+export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob> {
   const st = { ...DEFAULT_SETTINGS, ...(input.tenantSettings || {}) };
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [215, 330] });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
 
-  let y = _baDrawKop(doc, st);
+  // ─── Halaman 1: Render via html2canvas (Hybrid Approach) ───
+  const container = document.createElement("div");
+  container.style.width = "210mm";
+  container.style.minHeight = "297mm";
+  container.style.padding = "15mm 20mm";
+  container.style.backgroundColor = "white";
+  container.style.fontFamily = "'Times New Roman', Times, serif";
+  container.style.color = "black";
+  container.style.fontSize = "12pt";
+  container.style.lineHeight = "1.3";
+  container.style.position = "fixed";
+  container.style.top = "-10000px";
+  container.style.left = "-10000px";
+  container.style.zIndex = "-1000";
 
-  // Title
-  doc.setFont("times", "bold");
-  doc.setFontSize(13); // Sedikit lebih besar
-  const judulStr = "BERITA ACARA HASIL PENELITIAN/ PEMERIKSAAN FISIK KENDARAAN";
-  doc.text(judulStr, pageW / 2, y, { align: "center" });
-  // Underline
-  const judulW = doc.getTextWidth(judulStr);
-  doc.setLineWidth(0.5);
-  doc.line(pageW / 2 - judulW / 2, y + 1, pageW / 2 + judulW / 2, y + 1);
-  y += 6;
-  doc.setFont("times", "normal");
-  doc.setFontSize(12);
-  doc.text(`Nomor : ${input.nomorBA || "-"}`, pageW / 2, y, { align: "center" });
-  y += 15;
-
-  // Paragraph 1
   const dayName = _baGetDayName(input.tanggalBA);
   const dateWords = _baDateToWords(input.tanggalBA);
   const dateShort = new Date(input.tanggalBA).toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-");
-  
-  y = _baParagraph(
-    doc,
-    "       " + `Pada hari ini  ${dayName} tanggal  ${dateWords} (${dateShort}), kami yang bertanda tangan dibawah ini:`,
-    y,
-    { align: "justify", lineHeight: 1.3 }
-  );
-
-  // Examiners list
-  (input.timPemeriksa || []).slice(0, 2).forEach((t, i) => {
-    const startX = _baMargin + 15;
-    doc.text(`${i + 1}. Nama`, startX, y);
-    doc.text(`: ${t.nama.toUpperCase() || "-"}`, startX + 35, y);
-    y += 7;
-    doc.text("   NIP", startX, y);
-    doc.text(`: ${t.nip || "-"}`, startX + 35, y);
-    y += 7;
-    doc.text("   Pangkat/Golongan", startX, y);
-    doc.text(`: ${t.pangkat || "-"}`, startX + 35, y);
-    y += 8;
-  });
-
-  // Paragraph 2
   const dinasName = String(st.dinas_name).toUpperCase();
-  y = _baParagraph(
-    doc,
-    "       " + `Selaku Pengurus Barang Pengguna dan Pengurus Barang Pembantu pada ${dinasName} Kabupaten Bandung yang ditetapkan berdasarkan Keputusan Bupati Bandung Tanggal 31 Desember 2025 Nomor 000.2.5/KEP.809-BKAD/2025 tentang Penetapan Pengurus Barang Pengguna dan Pengurus Barang Pembantu di Lingkungan Pemerintah Kabupaten Bandung, telah melaksanakan penelitian/pemeriksaan fisik Barang Milik Daerah berupa kendaraan sepeda motor yang tercatat sebagai Barang Milik Daerah pada ${dinasName} Kabupaten Bandung.`,
-    y,
-    { align: "justify", lineHeight: 1.3 }
-  );
 
-  y = _baParagraph(
-    doc,
-    "       " + "Adapun hasil penelitian/pemeriksaan fisik terhadap kendaraan dimaksud adalah sebagai berikut:",
-    y,
-    { align: "justify", lineHeight: 1.3 }
-  );
+  const timHtml = (input.timPemeriksa || []).slice(0, 2).map((t, i) => `
+    <div style="margin-left: 20px; margin-bottom: 10px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="width: 25px; vertical-align: top;">${i + 1}.</td>
+          <td style="width: 150px; vertical-align: top;">Nama</td>
+          <td style="width: 20px; vertical-align: top;">:</td>
+          <td style="font-weight: bold; vertical-align: top;">${t.nama.toUpperCase() || "-"}</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td style="vertical-align: top;">NIP</td>
+          <td style="vertical-align: top;">:</td>
+          <td style="vertical-align: top;">${t.nip || "-"}</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td style="vertical-align: top;">Pangkat/Golongan</td>
+          <td style="vertical-align: top;">:</td>
+          <td style="vertical-align: top;">${t.pangkat || "-"}</td>
+        </tr>
+      </table>
+    </div>
+  `).join("");
 
-  // Table
-  y = _baRenderUniversalTable(doc, y, input.assets);
-  y += 10;
+  container.innerHTML = `
+    <div style="text-align: center; margin-bottom: 2px;">
+      <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${st.pemda_name.toUpperCase()}</div>
+      <div style="font-weight: bold; font-size: 18pt; margin-bottom: 2px;">${st.dinas_name.toUpperCase()}</div>
+      <div style="font-size: 10pt;">${st.dinas_address}</div>
+    </div>
+    
+    <!-- Double Line Kop Surat -->
+    <div style="border-bottom: 2.5pt solid black; margin-top: 8px;"></div>
+    <div style="border-bottom: 0.5pt solid black; margin-top: 2px; margin-bottom: 15px;"></div>
 
-  // Paragraph 3 (Results)
+    <div style="text-align: center; margin-bottom: 20px;">
+      <div style="font-weight: bold; text-decoration: underline; font-size: 13pt;">BERITA ACARA HASIL PENELITIAN/ PEMERIKSAAN FISIK KENDARAAN</div>
+      <div style="font-size: 12pt;">Nomor : ${input.nomorBA || "-"}</div>
+    </div>
+
+    <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 15px; font-size: 12pt;">
+      Pada hari ini ${dayName} tanggal ${dateWords} (${dateShort}), kami yang bertanda tangan dibawah ini:
+    </div>
+
+    ${timHtml}
+
+    <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 15px; font-size: 12pt;">
+      Selaku Pengurus Barang Pengguna dan Pengurus Barang Pembantu pada ${dinasName} Kabupaten Bandung yang ditetapkan berdasarkan Keputusan Bupati Bandung Tanggal 31 Desember 2025 Nomor 000.2.5/KEP.809-BKAD/2025 tentang Penetapan Pengurus Barang Pengguna dan Pengurus Barang Pembantu di Lingkungan Pemerintah Kabupaten Bandung, telah melaksanakan penelitian/pemeriksaan fisik Barang Milik Daerah berupa kendaraan sepeda motor yang tercatat sebagai Barang Milik Daerah pada ${dinasName} Kabupaten Bandung.
+    </div>
+
+    <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 10px; font-size: 12pt;">
+      Adapun hasil penelitian/pemeriksaan fisik terhadap kendaraan dimaksud adalah sebagai berikut:
+    </div>
+  `;
+
+  document.body.appendChild(container);
+  const canvas = await html2canvas(container, { 
+    scale: 2,
+    useCORS: true,
+    logging: false
+  });
+  document.body.removeChild(container);
+
+  const imgData = canvas.toDataURL("image/jpeg", 0.95);
+  doc.addImage(imgData, "JPEG", 0, 0, pageW, pageH);
+
+  // ─── Tabel Aset & Paginasi Dinamis ───
+  let currentY = 185; // Estimasi posisi setelah teks pembuka (bisa dinamis bila perlu)
+  
+  // Render Tabel
+  const finalY = _baRenderUniversalTable(doc, currentY, input.assets);
+  
+  // Paragraf Penutup & Tanda Tangan
   const count = input.assets.length;
   const countWords = _baTerbilang(count);
-  y = _baParagraph(
+  const dateLine = `Soreang, ${_baFmtDate(input.tanggalBA)}`;
+
+  // Gunakan doc.addPage() jika finalY sudah terlalu bawah
+  let nextY = finalY + 10;
+  if (nextY > 250) {
+    doc.addPage();
+    nextY = 20;
+  }
+
+  nextY = _baParagraph(
     doc,
     "       " + `Berdasarkan hasil penelitian/pemeriksaan fisik sebagaimana tersebut di atas, diperoleh hasil bahwa Barang Milik Daerah berupa ${count} (${countWords}) unit kendaraan sepeda motor tersebut dalam kondisi rusak berat dan sudah tidak dapat digunakan secara optimal untuk menunjang pelaksanaan tugas kedinasan.`,
-    y,
+    nextY,
     { align: "justify", lineHeight: 1.3 }
   );
 
-  y = _baParagraph(
+  if (nextY > 260) { doc.addPage(); nextY = 20; }
+  nextY = _baParagraph(
     doc,
     "       " + "Hasil penelitian/pemeriksaan fisik ini selanjutnya menjadi bahan pertimbangan dan dasar dalam proses pengajuan perubahan kondisi Barang Milik Daerah dari kondisi sebelumnya menjadi kondisi rusak berat, sesuai dengan ketentuan pengelolaan Barang Milik Daerah yang berlaku.",
-    y,
+    nextY,
     { align: "justify", lineHeight: 1.3 }
   );
 
-  y = _baParagraph(
+  if (nextY > 260) { doc.addPage(); nextY = 20; }
+  nextY = _baParagraph(
     doc,
     "       " + "Demikian Berita Acara Hasil Penelitian ini dibuat dengan sebenarnya berdasarkan hasil penelitian/pemeriksaan fisik di lapangan, untuk dapat dipergunakan sebagaimana mestinya.",
-    y,
+    nextY,
     { align: "justify", lineHeight: 1.3 }
   );
 
-  y += 12;
+  nextY += 10;
+  if (nextY > 220) { doc.addPage(); nextY = 20; }
   
-  // Signatures
-  const dateLine = `Soreang, ${_baFmtDate(input.tanggalBA)}`;
-  _baSignLeftTim(doc, y, input.timPemeriksa);
-  _baSignRight(doc, y, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { pangkat: "Pembina Utama Muda, IV/c" });
+  _baSignLeftTim(doc, nextY, input.timPemeriksa);
+  _baSignRight(doc, nextY, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { pangkat: "Pembina Utama Muda, IV/c" });
 
   return doc.output("blob");
 }

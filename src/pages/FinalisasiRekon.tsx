@@ -209,7 +209,7 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: ArchiveRow; onCl
     try {
       const input = buildInput();
       const blob = kind === "BA" 
-        ? generateBeritaAcaraPDF(input) 
+        ? await generateBeritaAcaraPDF(input) 
         : await generateSuratPernyataanPDF(input);
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener");

@@ -699,7 +699,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
     try {
       const input = buildDualPdfInput();
       const blob = kind === "BA" 
-        ? generateBeritaAcaraPDF(input) 
+        ? await generateBeritaAcaraPDF(input) 
         : await generateSuratPernyataanPDF(input);
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener");
@@ -722,7 +722,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 
       // 1. Generate kedua dokumen PDF di background (Blob)
       const pdfInput: DualPdfInput = { ...buildDualPdfInput(), assets: assetSnapshotFull };
-      const baBlob = generateBeritaAcaraPDF(pdfInput);
+      const baBlob = await generateBeritaAcaraPDF(pdfInput);
       const spBlob = await generateSuratPernyataanPDF(pdfInput);
 
       // 2. Unggah kedua Blob ke bucket "dokumen_usulan" (hentikan bila gagal)
