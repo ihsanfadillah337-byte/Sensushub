@@ -204,11 +204,13 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: ArchiveRow; onCl
     tglPenelusuran: arc.tanggal_penelusuran || "",
   });
 
-  const openDraft = (kind: "BA" | "SP") => {
+  const openDraft = async (kind: "BA" | "SP") => {
     setPreviewing(kind);
     try {
       const input = buildInput();
-      const blob = kind === "BA" ? generateBeritaAcaraPDF(input) : generateSuratPernyataanPDF(input);
+      const blob = kind === "BA" 
+        ? generateBeritaAcaraPDF(input) 
+        : await generateSuratPernyataanPDF(input);
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener");
       setTimeout(() => URL.revokeObjectURL(url), 60_000);

@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 // ─── Util numerik bersama ────────────────────────────────
 export function _psNumber(v: unknown): number {
@@ -89,18 +90,17 @@ function _baExtractYear(v: any): string {
   const s = String(v).trim();
   if (!s) return "-";
   
-  // Jika sudah 4 digit angka, langsung return
-  if (/^\d{4}$/.test(s)) return s;
-  
+  // Mencari 4 digit tahun (19xx atau 20xx)
+  const match = s.match(/\b(19|20)\d{2}\b/);
+  if (match) return match[0];
+
   // Coba parse sebagai tanggal
   const d = new Date(s);
   if (!isNaN(d.getTime())) {
     return String(d.getFullYear());
   }
   
-  // Fallback: cari 4 digit angka berurutan di dalam string
-  const match = s.match(/\d{4}/);
-  return match ? match[0] : "-";
+  return "-";
 }
 
 function _baFmtDate(v?: string): string {
@@ -119,9 +119,11 @@ function _baBuildUniversalRows(assets: any[]): { body: any[][]; total: number } 
     );
     total += harga;
     
+    // Pencarian key tahun perolehan yang lebih luas
     const tahunVal = _baRowGet(a, [
       "Tahun Perolehan", "tahun_perolehan", "tahun", "Tahun", 
-      "tanggal_perolehan", "Tahun Pembelian", "tahun_pembelian", 
+      "Tanggal Perolehan", "tanggal_perolehan", 
+      "Tahun Pembelian", "tahun_pembelian", 
       "tanggal_pembelian", "waktu_perolehan"
     ]);
 
@@ -150,9 +152,11 @@ function _spBuildUniversalRows(assets: any[]): { body: any[][]; total: number } 
     );
     total += harga;
 
+    // Pencarian key tahun perolehan yang lebih luas
     const tahunVal = _baRowGet(a, [
       "Tahun Perolehan", "tahun_perolehan", "tahun", "Tahun", 
-      "tanggal_perolehan", "Tahun Pembelian", "tahun_pembelian", 
+      "Tanggal Perolehan", "tanggal_perolehan", 
+      "Tahun Pembelian", "tahun_pembelian", 
       "tanggal_pembelian", "waktu_perolehan"
     ]);
 
@@ -506,115 +510,122 @@ export function generateBeritaAcaraPDF(input: DualPdfInput): Blob {
 }
 
 // ─── Generator 2: Surat Pernyataan (SP) ────────────────
-export function generateSuratPernyataanPDF(input: DualPdfInput): Blob {
+export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<Blob> {
   const st = { ...DEFAULT_SETTINGS, ...(input.tenantSettings || {}) };
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [215, 330] });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
-  const kontenW = pageW - _baMargin * 2;
+  const pageH = doc.internal.pageSize.getHeight();
 
-  let y = _baDrawKop(doc, st);
+  // ─── Halaman 1: Render via html2canvas (Hybrid Approach) ───
+  const container = document.createElement("div");
+  container.style.width = "210mm";
+  container.style.minHeight = "297mm";
+  container.style.padding = "15mm 20mm";
+  container.style.backgroundColor = "white";
+  container.style.fontFamily = "'Times New Roman', Times, serif";
+  container.style.color = "black";
+  container.style.fontSize = "12pt";
+  container.style.lineHeight = "1.5";
+  container.style.position = "fixed";
+  container.style.top = "-10000px";
+  container.style.left = "-10000px";
+  container.style.zIndex = "-1000";
 
-  // Title
-  doc.setFont("times", "bold");
-  doc.setFontSize(12);
-  const judulStr = "SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD";
-  doc.text(judulStr, pageW / 2, y, { align: "center" });
-  // Underline
-  const judulW = doc.getTextWidth(judulStr);
-  doc.setLineWidth(0.5);
-  doc.line(pageW / 2 - judulW / 2, y + 1, pageW / 2 + judulW / 2, y + 1);
-  y += 5;
-  doc.setFont("times", "normal");
-  doc.text(`Nomor : ${input.nomorSP || "-"}`, pageW / 2, y, { align: "center" });
-  y += 15;
-
-  y = _baParagraph(doc, "Yang bertandatangan dibawah ini:", y, { indent: 15 });
-  y += 2;
-
-  // Identity Section (Manual rendering for vertical colon alignment)
-  const identitasX = _baMargin + 15;
-  const colonX = identitasX + 25;
-  const valueX = colonX + 3;
+  const dateBA = _baFmtDate(input.tanggalBA);
+  const dateSP = _baFmtDate(input.tanggalSP || input.tanggalBA);
   
-  doc.setFont("times", "normal");
-  doc.setFontSize(12);
-  
-  // Nama
-  doc.text("Nama", identitasX, y);
-  doc.text(":", colonX, y);
-  doc.text(input.namaKadis.toUpperCase() || "-", valueX, y);
-  y += 7;
-  
-  // NIP
-  doc.text("NIP", identitasX, y);
-  doc.text(":", colonX, y);
-  doc.text(input.nipKadis || "-", valueX, y);
-  y += 7;
-  
-  // Jabatan (Clean duplication)
+  // Clean Jabatan duplication
   let jabatanStr = input.jabatanKadis || "-";
   if (jabatanStr.toLowerCase().includes("selaku pengguna bmd")) {
     jabatanStr = jabatanStr.replace(/,?\s*selaku pengguna bmd/gi, "");
   }
-  
-  doc.text("Jabatan", identitasX, y);
-  doc.text(":", colonX, y);
-  const jabLines = doc.splitTextToSize(`${jabatanStr}, selaku Pengguna BMD`, pageW - valueX - _baMargin) as string[];
-  doc.text(jabLines, valueX, y, { lineHeightFactor: 1.2 });
-  y += jabLines.length * 7 + 5;
 
-  const dateBA = _baFmtDate(input.tanggalBA);
-  
-  // Tiga paragraf utama dengan indentasi baris pertama (manual spaces) dan justify
-  y = _baParagraph(
-    doc,
-    "       " + `Berdasarkan Berita Acara Hasil Penelitian/ Pemeriksaan Fisik Kendaraan Tanggal ${dateBA} Nomor: ${input.nomorBA || "-"}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukung tugas pokok dan fungsi Perangkat Daerah kami.`,
-    y,
-    { align: "justify", lineHeight: 1.5 }
-  );
+  const tembusanHtml = (input.tembusan || [])
+    .filter(t => t && t.trim())
+    .map((t, i) => `<div style="margin-left: 20px; text-indent: -20px;">${i + 1}. ${t};</div>`)
+    .join("");
 
-  y = _baParagraph(
-    doc,
-    "       " + "Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.",
-    y,
-    { align: "justify", lineHeight: 1.5 }
-  );
+  container.innerHTML = `
+    <div style="text-align: center; margin-bottom: 2px;">
+      <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${st.pemda_name.toUpperCase()}</div>
+      <div style="font-weight: bold; font-size: 18pt; margin-bottom: 2px;">${st.dinas_name.toUpperCase()}</div>
+      <div style="font-size: 10pt;">${st.dinas_address}</div>
+    </div>
+    
+    <!-- Double Line Kop Surat -->
+    <div style="border-bottom: 2.5pt solid black; margin-top: 8px;"></div>
+    <div style="border-bottom: 0.5pt solid black; margin-top: 2px; margin-bottom: 20px;"></div>
 
-  y = _baParagraph(
-    doc,
-    "       " + "Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.",
-    y,
-    { align: "justify", lineHeight: 1.5 }
-  );
+    <div style="text-align: center; margin-bottom: 25px;">
+      <div style="font-weight: bold; text-decoration: underline; font-size: 13pt;">SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</div>
+      <div style="font-size: 12pt;">Nomor : ${input.nomorSP || "-"}</div>
+    </div>
 
-  y += 15;
+    <div style="margin-bottom: 12px; font-size: 12pt;">Yang bertandatangan dibawah ini:</div>
+    
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; margin-left: 20px; font-size: 12pt;">
+      <tr>
+        <td style="width: 100px; vertical-align: top;">Nama</td>
+        <td style="width: 20px; vertical-align: top;">:</td>
+        <td style="font-weight: bold; vertical-align: top;">${input.namaKadis.toUpperCase() || "-"}</td>
+      </tr>
+      <tr>
+        <td style="vertical-align: top;">NIP</td>
+        <td style="vertical-align: top;">:</td>
+        <td style="vertical-align: top;">${input.nipKadis || "-"}</td>
+      </tr>
+      <tr>
+        <td style="vertical-align: top;">Jabatan</td>
+        <td style="vertical-align: top;">:</td>
+        <td style="vertical-align: top;">${jabatanStr}, selaku Pengguna BMD</td>
+      </tr>
+    </table>
 
-  const dateLine = `Soreang, ${_baFmtDate(input.tanggalSP || input.tanggalBA)}`;
-  const yAfterSign = _baSignRight(doc, y, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { 
-    skipMengetahui: true, 
-    selakuLabel: "Selaku Pengguna BMD," 
+    <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 15px; font-size: 12pt;">
+      Berdasarkan Berita Acara Hasil Penelitian/ Pemeriksaan Fisik Kendaraan Tanggal ${dateBA} Nomor: ${input.nomorBA || "-"}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukung tugas pokok dan fungsi Perangkat Daerah kami.
+    </div>
+
+    <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 15px; font-size: 12pt;">
+      Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.
+    </div>
+
+    <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 45px; font-size: 12pt;">
+      Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.
+    </div>
+
+    <div style="float: right; text-align: center; width: 300px; font-size: 12pt;">
+      <div>Soreang, ${dateSP}</div>
+      <div style="font-weight: bold; margin-top: 5px;">KEPALA</div>
+      <div style="font-weight: bold;">${st.dinas_name.toUpperCase()}</div>
+      <div>Selaku Pengguna BMD,</div>
+      <div style="height: 2.5cm;"></div>
+      <div style="font-weight: bold; text-decoration: underline;">${input.namaKadis.toUpperCase() || "-"}</div>
+      <div>NIP. ${input.nipKadis || "-"}</div>
+    </div>
+    <div style="clear: both;"></div>
+
+    <div style="margin-top: 30px; font-size: 10pt;">
+      <div style="font-weight: bold; text-decoration: underline; margin-bottom: 5px;">Tembusan, kepada Yth:</div>
+      <div style="line-height: 1.2;">
+        ${tembusanHtml}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(container);
+  const canvas = await html2canvas(container, { 
+    scale: 2,
+    useCORS: true,
+    logging: false
   });
+  document.body.removeChild(container);
 
-  // Tembusan: bernomor, menjorok, spasi rapat
-  const tmb = (input.tembusan || []).filter(t => t && t.trim());
-  if (tmb.length) {
-    let ty = yAfterSign + 10;
-    doc.setFont("times", "normal");
-    doc.setFontSize(10);
-    doc.text("Tembusan, kepada Yth:", _baMargin, ty);
-    ty += 5;
-    tmb.forEach((t, i) => {
-      const num = `${i + 1}. `;
-      const text = `${t};`;
-      doc.text(num, _baMargin + 5, ty);
-      const lines = doc.splitTextToSize(text, pageW - _baMargin * 2 - 10) as string[];
-      doc.text(lines, _baMargin + 10, ty, { lineHeightFactor: 1.0 }); // Single spacing
-      ty += lines.length * 4.5;
-    });
-  }
+  const imgData = canvas.toDataURL("image/jpeg", 0.95);
+  doc.addImage(imgData, "JPEG", 0, 0, pageW, pageH);
 
-  // ─── Halaman 2 (Lampiran, landscape): Tabel Universal 13 Kolom ───
-  doc.addPage([215, 330], "landscape");
+  // ─── Halaman 2 (Lampiran): Landscape & autoTable ───
+  doc.addPage("a4", "landscape");
+  const lW = doc.internal.pageSize.getWidth();
   let ly = _baMargin + 5;
 
   doc.setFont("times", "normal");
@@ -626,6 +637,8 @@ export function generateSuratPernyataanPDF(input: DualPdfInput): Blob {
   ly = _spRenderUniversalTable(doc, ly, input.assets);
   ly += 10;
 
+  // Footer di halaman lampiran
+  const dateLine = `Soreang, ${dateSP}`;
   _baSignRight(doc, ly, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { 
     skipMengetahui: true, 
     selakuLabel: "Selaku Pengguna BMD," 

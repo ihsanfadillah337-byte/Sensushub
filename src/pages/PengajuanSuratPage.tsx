@@ -694,11 +694,13 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 
   // ─── Pratinjau draf PDF (Blob → blob URL, dibuka di tab baru) ──
   const [previewing, setPreviewing] = useState<"" | "BA" | "SP">("");
-  const openDraftPreview = (kind: "BA" | "SP") => {
+  const openDraftPreview = async (kind: "BA" | "SP") => {
     setPreviewing(kind);
     try {
       const input = buildDualPdfInput();
-      const blob = kind === "BA" ? generateBeritaAcaraPDF(input) : generateSuratPernyataanPDF(input);
+      const blob = kind === "BA" 
+        ? generateBeritaAcaraPDF(input) 
+        : await generateSuratPernyataanPDF(input);
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener");
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -721,7 +723,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
       // 1. Generate kedua dokumen PDF di background (Blob)
       const pdfInput: DualPdfInput = { ...buildDualPdfInput(), assets: assetSnapshotFull };
       const baBlob = generateBeritaAcaraPDF(pdfInput);
-      const spBlob = generateSuratPernyataanPDF(pdfInput);
+      const spBlob = await generateSuratPernyataanPDF(pdfInput);
 
       // 2. Unggah kedua Blob ke bucket "dokumen_usulan" (hentikan bila gagal)
       const stamp = Date.now();
@@ -1220,11 +1222,13 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: ()
     tglPenelusuran: arc.tanggal_penelusuran || "",
   });
 
-  const openDraft = (kind: "BA" | "SP") => {
+  const openDraft = async (kind: "BA" | "SP") => {
     setPreviewing(kind);
     try {
       const input = buildInput();
-      const blob = kind === "BA" ? generateBeritaAcaraPDF(input) : generateSuratPernyataanPDF(input);
+      const blob = kind === "BA" 
+        ? generateBeritaAcaraPDF(input) 
+        : await generateSuratPernyataanPDF(input);
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener");
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
