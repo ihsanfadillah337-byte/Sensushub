@@ -84,6 +84,25 @@ function _baDash(v: string): string {
   return v && v.trim() ? v : "-";
 }
 
+function _baExtractYear(v: any): string {
+  if (!v) return "-";
+  const s = String(v).trim();
+  if (!s) return "-";
+  
+  // Jika sudah 4 digit angka, langsung return
+  if (/^\d{4}$/.test(s)) return s;
+  
+  // Coba parse sebagai tanggal
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return String(d.getFullYear());
+  }
+  
+  // Fallback: cari 4 digit angka berurutan di dalam string
+  const match = s.match(/\d{4}/);
+  return match ? match[0] : "-";
+}
+
 function _baFmtDate(v?: string): string {
   if (!v) return "-";
   const d = new Date(v);
@@ -99,6 +118,13 @@ function _baBuildUniversalRows(assets: any[]): { body: any[][]; total: number } 
       a?.["Nilai Perolehan"] ?? a?.["Nilai Aset"] ?? a?.nilai_perolehan ?? a?.harga
     );
     total += harga;
+    
+    const tahunVal = _baRowGet(a, [
+      "Tahun Perolehan", "tahun_perolehan", "tahun", "Tahun", 
+      "tanggal_perolehan", "Tahun Pembelian", "tahun_pembelian", 
+      "tanggal_pembelian", "waktu_perolehan"
+    ]);
+
     return [
       String(idx + 1),
       _baDash(_baRowGet(a, ["Merek/Type", "merek", "Merek", "Type", "Tipe"])),
@@ -108,7 +134,7 @@ function _baBuildUniversalRows(assets: any[]): { body: any[][]; total: number } 
       _baDash(_baRowGet(a, ["Nomor Mesin", "nomor_mesin", "mesin", "No Mesin"])),
       _baDash(_baRowGet(a, ["Nomor BPKB", "nomor_bpkb", "bpkb", "No BPKB"])),
       _baDash(_baRowGet(a, ["Bahan", "bahan"])),
-      _baDash(_baRowGet(a, ["Tahun Perolehan", "tahun_perolehan", "tahun", "Tahun"])),
+      _baExtractYear(tahunVal),
       new Intl.NumberFormat("id-ID").format(harga),
     ];
   });
@@ -123,6 +149,13 @@ function _spBuildUniversalRows(assets: any[]): { body: any[][]; total: number } 
       a?.["Nilai Perolehan"] ?? a?.["Nilai Aset"] ?? a?.nilai_perolehan ?? a?.harga
     );
     total += harga;
+
+    const tahunVal = _baRowGet(a, [
+      "Tahun Perolehan", "tahun_perolehan", "tahun", "Tahun", 
+      "tanggal_perolehan", "Tahun Pembelian", "tahun_pembelian", 
+      "tanggal_pembelian", "waktu_perolehan"
+    ]);
+
     return [
       String(idx + 1),
       _baDash(_baRowGet(a, ["kode_aset", "kode_barang", "Kode Barang"])),
@@ -134,7 +167,7 @@ function _spBuildUniversalRows(assets: any[]): { body: any[][]; total: number } 
       _baDash(_baRowGet(a, ["Nomor Mesin", "nomor_mesin", "mesin", "No Mesin"])),
       _baDash(_baRowGet(a, ["Nomor BPKB", "nomor_bpkb", "bpkb", "No BPKB"])),
       _baDash(_baRowGet(a, ["Bahan", "bahan"])),
-      _baDash(_baRowGet(a, ["Tahun Perolehan", "tahun_perolehan", "tahun", "Tahun"])),
+      _baExtractYear(tahunVal),
       _baDash(_baRowGet(a, ["Asal Usul", "asal_usul", "Metode Perolehan", "metode_perolehan", "Cara Perolehan", "Perolehan"])),
       new Intl.NumberFormat("id-ID").format(harga),
     ];
@@ -192,7 +225,7 @@ function _spRenderUniversalTable(doc: any, startY: number, assets: any[]): numbe
     theme: "grid",
     styles: { 
       font: "times", 
-      fontSize: 7, 
+      fontSize: 7.5, // Sedikit diperbesar
       cellPadding: 1.5, 
       lineColor: [0, 0, 0], 
       lineWidth: 0.1, 
@@ -206,16 +239,17 @@ function _spRenderUniversalTable(doc: any, startY: number, assets: any[]): numbe
       fontStyle: "bold", 
       halign: "center", 
       valign: "middle", 
-      fontSize: 7 
+      fontSize: 8 // Header lebih besar
     },
     // Styling khusus untuk baris nomor kolom (baris pertama di body)
     didParseCell: (data) => {
       if (data.section === 'body' && data.row.index === 0) {
         data.cell.styles.halign = 'center';
         data.cell.styles.fontStyle = 'normal';
+        data.cell.styles.fontSize = 7;
       }
     },
-    footStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontSize: 7 },
+    footStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontSize: 8 },
     columnStyles: {
       0: { halign: "center", cellWidth: 8 },
       12: { halign: "right", cellWidth: 25 },
@@ -234,7 +268,7 @@ function _baDrawKop(doc: any, st: any): number {
   doc.setFontSize(st.font_size_pemda || 14);
   doc.text(String(st.pemda_name || "").toUpperCase(), pageW / 2 + 10, y, { align: "center" });
   y += 7;
-  doc.setFontSize(st.font_size_dinas || 16);
+  doc.setFontSize(st.font_size_dinas || 18); // Diperbesar ke 18
   doc.text(String(st.dinas_name || "").toUpperCase(), pageW / 2 + 10, y, { align: "center" });
   y += 5;
   doc.setFont("times", "normal");
@@ -259,43 +293,25 @@ function _baParagraph(doc: any, text: string, y: number, opts?: {
   bold?: boolean; 
   align?: "left" | "justify" | "center"; 
   lineHeight?: number;
-  firstLineIndent?: number;
 }): number {
   const pageW = doc.internal.pageSize.getWidth();
   const fontSize = opts?.fontSize ?? 12;
   const indent = opts?.indent ?? 0;
-  const firstLineIndent = opts?.firstLineIndent ?? 0;
-  const lineHeight = opts?.lineHeight ?? 1.2; // Default kembali ke 1.2 untuk BA
+  const lineHeight = opts?.lineHeight ?? 1.5; 
   
   doc.setFont("times", opts?.bold ? "bold" : "normal");
   doc.setFontSize(fontSize);
   
   const maxW = pageW - _baMargin * 2 - indent;
-  
-  if (firstLineIndent > 0) {
-    // Trik untuk indentasi baris pertama: pisahkan baris pertama secara manual
-    const firstLineText = doc.splitTextToSize(text, maxW - firstLineIndent)[0];
-    doc.text(firstLineText, _baMargin + indent + firstLineIndent, y, { align: opts?.align ?? "left" });
-    
-    const remainingText = text.substring(firstLineText.length).trim();
-    if (remainingText) {
-      y += fontSize * (lineHeight * 0.35);
-      const lines = doc.splitTextToSize(remainingText, maxW) as string[];
-      doc.text(lines, _baMargin + indent, y, { align: opts?.align ?? "left", maxWidth: maxW, lineHeightFactor: lineHeight });
-      return y + lines.length * fontSize * (lineHeight * 0.35) + 3;
-    }
-    return y + fontSize * (lineHeight * 0.35) + 3;
-  } else {
-    const lines = doc.splitTextToSize(text, maxW) as string[];
-    doc.text(lines, _baMargin + indent, y, { align: opts?.align ?? "left", maxWidth: maxW, lineHeightFactor: lineHeight });
-    return y + lines.length * fontSize * (lineHeight * 0.35) + 3;
-  }
+  const lines = doc.splitTextToSize(text, maxW) as string[];
+  doc.text(lines, _baMargin + indent, y, { align: opts?.align ?? "left", maxWidth: maxW, lineHeightFactor: lineHeight });
+  return y + lines.length * fontSize * (lineHeight * 0.35) + 3;
 }
 
 // Blok tanda tangan kanan (Kepala SKPD).
 function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, nama: string, nip: string, opts?: { pangkat?: string; skipMengetahui?: boolean; selakuLabel?: string }): number {
   const pageW = doc.internal.pageSize.getWidth();
-  const xRight = pageW - _baMargin - 40; // Center of the right signature block
+  const xRight = pageW - _baMargin - 45; // Sedikit geser ke kiri untuk proporsi F4
   
   doc.setFont("times", "normal");
   doc.setFontSize(11);
@@ -318,7 +334,7 @@ function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, na
   let label = opts?.selakuLabel || "Selaku Pengguna Barang Milik Daerah,";
   doc.text(label, xRight, y, { align: "center" });
   
-  y += 25; // Space for signature
+  y += 28; // Ruang tanda tangan lebih luas
   
   const namaUpper = (nama || "").toUpperCase();
   doc.setFont("times", "bold");
@@ -391,23 +407,23 @@ export function generateBeritaAcaraPDF(input: DualPdfInput): Blob {
   const st = { ...DEFAULT_SETTINGS, ...(input.tenantSettings || {}) };
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [215, 330] });
   const pageW = doc.internal.pageSize.getWidth();
-  const kontenW = pageW - _baMargin * 2;
 
   let y = _baDrawKop(doc, st);
 
   // Title
   doc.setFont("times", "bold");
-  doc.setFontSize(12);
+  doc.setFontSize(13); // Sedikit lebih besar
   const judulStr = "BERITA ACARA HASIL PENELITIAN/ PEMERIKSAAN FISIK KENDARAAN";
   doc.text(judulStr, pageW / 2, y, { align: "center" });
   // Underline
   const judulW = doc.getTextWidth(judulStr);
   doc.setLineWidth(0.5);
   doc.line(pageW / 2 - judulW / 2, y + 1, pageW / 2 + judulW / 2, y + 1);
-  y += 5;
+  y += 6;
   doc.setFont("times", "normal");
+  doc.setFontSize(12);
   doc.text(`Nomor : ${input.nomorBA || "-"}`, pageW / 2, y, { align: "center" });
-  y += 12;
+  y += 15;
 
   // Paragraph 1
   const dayName = _baGetDayName(input.tanggalBA);
@@ -416,9 +432,9 @@ export function generateBeritaAcaraPDF(input: DualPdfInput): Blob {
   
   y = _baParagraph(
     doc,
-    `Pada hari ini  ${dayName} tanggal  ${dateWords} (${dateShort}), kami yang bertanda tangan dibawah ini:`,
+    "       " + `Pada hari ini  ${dayName} tanggal  ${dateWords} (${dateShort}), kami yang bertanda tangan dibawah ini:`,
     y,
-    { indent: 15, align: "justify" }
+    { align: "justify", lineHeight: 1.3 }
   );
 
   // Examiners list
@@ -426,60 +442,60 @@ export function generateBeritaAcaraPDF(input: DualPdfInput): Blob {
     const startX = _baMargin + 15;
     doc.text(`${i + 1}. Nama`, startX, y);
     doc.text(`: ${t.nama.toUpperCase() || "-"}`, startX + 35, y);
-    y += 6;
+    y += 7;
     doc.text("   NIP", startX, y);
     doc.text(`: ${t.nip || "-"}`, startX + 35, y);
-    y += 6;
+    y += 7;
     doc.text("   Pangkat/Golongan", startX, y);
     doc.text(`: ${t.pangkat || "-"}`, startX + 35, y);
-    y += 7;
+    y += 8;
   });
 
   // Paragraph 2
   const dinasName = String(st.dinas_name).toUpperCase();
   y = _baParagraph(
     doc,
-    `Selaku Pengurus Barang Pengguna dan Pengurus Barang Pembantu pada ${dinasName} Kabupaten Bandung yang ditetapkan berdasarkan Keputusan Bupati Bandung Tanggal 31 Desember 2025 Nomor 000.2.5/KEP.809-BKAD/2025 tentang Penetapan Pengurus Barang Pengguna dan Pengurus Barang Pembantu di Lingkungan Pemerintah Kabupaten Bandung, telah melaksanakan penelitian/pemeriksaan fisik Barang Milik Daerah berupa kendaraan sepeda motor yang tercatat sebagai Barang Milik Daerah pada ${dinasName} Kabupaten Bandung.`,
+    "       " + `Selaku Pengurus Barang Pengguna dan Pengurus Barang Pembantu pada ${dinasName} Kabupaten Bandung yang ditetapkan berdasarkan Keputusan Bupati Bandung Tanggal 31 Desember 2025 Nomor 000.2.5/KEP.809-BKAD/2025 tentang Penetapan Pengurus Barang Pengguna dan Pengurus Barang Pembantu di Lingkungan Pemerintah Kabupaten Bandung, telah melaksanakan penelitian/pemeriksaan fisik Barang Milik Daerah berupa kendaraan sepeda motor yang tercatat sebagai Barang Milik Daerah pada ${dinasName} Kabupaten Bandung.`,
     y,
-    { indent: 15, align: "justify" }
+    { align: "justify", lineHeight: 1.3 }
   );
 
   y = _baParagraph(
     doc,
-    "Adapun hasil penelitian/pemeriksaan fisik terhadap kendaraan dimaksud adalah sebagai berikut:",
+    "       " + "Adapun hasil penelitian/pemeriksaan fisik terhadap kendaraan dimaksud adalah sebagai berikut:",
     y,
-    { indent: 15, align: "justify" }
+    { align: "justify", lineHeight: 1.3 }
   );
 
   // Table
   y = _baRenderUniversalTable(doc, y, input.assets);
-  y += 8;
+  y += 10;
 
   // Paragraph 3 (Results)
   const count = input.assets.length;
   const countWords = _baTerbilang(count);
   y = _baParagraph(
     doc,
-    `Berdasarkan hasil penelitian/pemeriksaan fisik sebagaimana tersebut di atas, diperoleh hasil bahwa Barang Milik Daerah berupa ${count} (${countWords}) unit kendaraan sepeda motor tersebut dalam kondisi rusak berat dan sudah tidak dapat digunakan secara optimal untuk menunjang pelaksanaan tugas kedinasan.`,
+    "       " + `Berdasarkan hasil penelitian/pemeriksaan fisik sebagaimana tersebut di atas, diperoleh hasil bahwa Barang Milik Daerah berupa ${count} (${countWords}) unit kendaraan sepeda motor tersebut dalam kondisi rusak berat dan sudah tidak dapat digunakan secara optimal untuk menunjang pelaksanaan tugas kedinasan.`,
     y,
-    { indent: 15, align: "justify" }
+    { align: "justify", lineHeight: 1.3 }
   );
 
   y = _baParagraph(
     doc,
-    "Hasil penelitian/pemeriksaan fisik ini selanjutnya menjadi bahan pertimbangan dan dasar dalam proses pengajuan perubahan kondisi Barang Milik Daerah dari kondisi sebelumnya menjadi kondisi rusak berat, sesuai dengan ketentuan pengelolaan Barang Milik Daerah yang berlaku.",
+    "       " + "Hasil penelitian/pemeriksaan fisik ini selanjutnya menjadi bahan pertimbangan dan dasar dalam proses pengajuan perubahan kondisi Barang Milik Daerah dari kondisi sebelumnya menjadi kondisi rusak berat, sesuai dengan ketentuan pengelolaan Barang Milik Daerah yang berlaku.",
     y,
-    { indent: 15, align: "justify" }
+    { align: "justify", lineHeight: 1.3 }
   );
 
   y = _baParagraph(
     doc,
-    "Demikian Berita Acara Hasil Penelitian ini dibuat dengan sebenarnya berdasarkan hasil penelitian/pemeriksaan fisik di lapangan, untuk dapat dipergunakan sebagaimana mestinya.",
+    "       " + "Demikian Berita Acara Hasil Penelitian ini dibuat dengan sebenarnya berdasarkan hasil penelitian/pemeriksaan fisik di lapangan, untuk dapat dipergunakan sebagaimana mestinya.",
     y,
-    { indent: 15, align: "justify" }
+    { align: "justify", lineHeight: 1.3 }
   );
 
-  y += 10;
+  y += 12;
   
   // Signatures
   const dateLine = `Soreang, ${_baFmtDate(input.tanggalBA)}`;
@@ -549,26 +565,26 @@ export function generateSuratPernyataanPDF(input: DualPdfInput): Blob {
 
   const dateBA = _baFmtDate(input.tanggalBA);
   
-  // Tiga paragraf utama dengan indentasi baris pertama dan justify
+  // Tiga paragraf utama dengan indentasi baris pertama (manual spaces) dan justify
   y = _baParagraph(
     doc,
-    `Berdasarkan Berita Acara Hasil Penelitian/ Pemeriksaan Fisik Kendaraan Tanggal ${dateBA} Nomor: ${input.nomorBA || "-"}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukung tugas pokok dan fungsi Perangkat Daerah kami.`,
+    "       " + `Berdasarkan Berita Acara Hasil Penelitian/ Pemeriksaan Fisik Kendaraan Tanggal ${dateBA} Nomor: ${input.nomorBA || "-"}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukung tugas pokok dan fungsi Perangkat Daerah kami.`,
     y,
-    { firstLineIndent: 15, align: "justify", lineHeight: 1.5 }
+    { align: "justify", lineHeight: 1.5 }
   );
 
   y = _baParagraph(
     doc,
-    "Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.",
+    "       " + "Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.",
     y,
-    { firstLineIndent: 15, align: "justify", lineHeight: 1.5 }
+    { align: "justify", lineHeight: 1.5 }
   );
 
   y = _baParagraph(
     doc,
-    "Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.",
+    "       " + "Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.",
     y,
-    { firstLineIndent: 15, align: "justify", lineHeight: 1.5 }
+    { align: "justify", lineHeight: 1.5 }
   );
 
   y += 15;
