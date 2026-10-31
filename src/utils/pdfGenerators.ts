@@ -50,8 +50,8 @@ export const DEFAULT_SETTINGS = {
   dinas_name: "BADAN KEUANGAN DAN ASET DAERAH",
   dinas_address: "Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung",
   dinas_contact: "",
-  font_size_pemda: 16,
-  font_size_dinas: 18,
+  font_size_pemda: 14,
+  font_size_dinas: 16,
   font_size_address: 10,
   margin_top: 45,
 };
@@ -70,7 +70,7 @@ const _spTableHeaders = [
   "ASAL USUL", "HARGA PEROLEHAN (RP)",
 ];
 
-const _baMargin = 12;
+const _baMargin = 20; // Diperluas dari 12 ke 20 agar tidak terlalu mepet
 
 function _baRowGet(row: any, keys: string[]): string {
   if (!row) return "";
@@ -269,10 +269,10 @@ function _baDrawKop(doc: any, st: any): number {
   const pageW = doc.internal.pageSize.getWidth();
   let y = 15;
   doc.setFont("times", "bold");
-  doc.setFontSize(st.font_size_pemda || 16);
+  doc.setFontSize(st.font_size_pemda || 14);
   doc.text(String(st.pemda_name || "").toUpperCase(), pageW / 2 + 10, y, { align: "center" });
   y += 7;
-  doc.setFontSize(st.font_size_dinas || 20); 
+  doc.setFontSize(st.font_size_dinas || 18); 
   doc.text(String(st.dinas_name || "").toUpperCase(), pageW / 2 + 10, y, { align: "center" });
   y += 5;
   doc.setFont("times", "normal");
@@ -364,7 +364,7 @@ function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, na
 function _baSignLeftTim(doc: any, y: number, tim: { nama: string; nip: string; pangkat: string }[]): number {
   const pageW = doc.internal.pageSize.getWidth();
   const xLeft = _baMargin + 10; // Menjorok ke kanan sedikit
-  const xDottedEnd = pageW - _baMargin; // Garis titik-titik berakhir di margin kanan
+  const xDottedStart = xLeft + 65; // Mendekatkan titik-titik secara horizontal
   
   doc.setFont("times", "normal");
   doc.setFontSize(11);
@@ -382,8 +382,10 @@ function _baSignLeftTim(doc: any, y: number, tim: { nama: string; nip: string; p
     doc.setFont("times", "normal");
     doc.text(`NIP. ${t.nip || "-"}`, startX, y);
     
-    // Garis titik-titik panjang yang berakhir tepat di margin kanan
-    doc.text("......................................................................", xDottedEnd, y, { align: "right" });
+    // Garis titik-titik panjang dari posisi xDottedStart ke margin kanan
+    const dotsWidth = pageW - _baMargin - xDottedStart;
+    const dots = ".".repeat(Math.floor(dotsWidth / doc.getTextWidth(".")));
+    doc.text(dots, xDottedStart, y);
     
     y += 12; // Gap between members
   });
@@ -418,7 +420,7 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
   const container = document.createElement("div");
   container.style.width = "210mm";
   container.style.minHeight = "297mm";
-  container.style.padding = "15mm 12mm"; // Disamakan dengan _baMargin (12mm)
+  container.style.padding = "15mm 20mm"; // Kembali ke 20mm agar tidak terlalu mepet
   container.style.backgroundColor = "white";
   container.style.fontFamily = "'Times New Roman', Times, serif";
   container.style.color = "black";
@@ -463,8 +465,8 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
     <div style="display: flex; align-items: center; margin-bottom: 2px; width: 100%;">
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
       <div style="flex: 1; text-align: center; padding-right: 25mm;">
-        <div style="font-weight: bold; font-size: ${st.font_size_pemda || 16}pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 20}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_pemda || 14}pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 18}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: ${st.font_size_address || 10}pt;">${st.dinas_address}</div>
       </div>
     </div>
@@ -571,7 +573,7 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
   const container = document.createElement("div");
   container.style.width = "210mm";
   container.style.minHeight = "297mm";
-  container.style.padding = "15mm 12mm"; // Disamakan dengan _baMargin (12mm)
+  container.style.padding = "15mm 20mm"; // Kembali ke 20mm agar tidak terlalu mepet
   container.style.backgroundColor = "white";
   container.style.fontFamily = "'Times New Roman', Times, serif";
   container.style.color = "black";
@@ -600,8 +602,8 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
     <div style="display: flex; align-items: center; margin-bottom: 2px; width: 100%;">
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
       <div style="flex: 1; text-align: center; padding-right: 25mm;">
-        <div style="font-weight: bold; font-size: ${st.font_size_pemda || 16}pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 20}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_pemda || 14}pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 18}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: ${st.font_size_address || 10}pt;">${st.dinas_address}</div>
       </div>
     </div>
