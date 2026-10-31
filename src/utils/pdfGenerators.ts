@@ -171,25 +171,57 @@ function _baRenderUniversalTable(doc: any, startY: number, assets: any[]): numbe
 // Render Tabel SP (13 Kolom).
 function _spRenderUniversalTable(doc: any, startY: number, assets: any[]): number {
   const { body, total } = _spBuildUniversalRows(assets);
+  
+  // Menambahkan baris penomoran kolom (1-13) di bawah header
+  const bodyWithNumbering = [
+    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"],
+    ...body
+  ];
+
   const foot = [[
     { content: "TOTAL", colSpan: 12, styles: { halign: "center" as const, fontStyle: "bold" as const } },
     { content: new Intl.NumberFormat("id-ID").format(total), styles: { halign: "right" as const, fontStyle: "bold" as const } },
   ]];
+
   autoTable(doc, {
     startY,
     head: [_spTableHeaders],
-    body,
+    body: bodyWithNumbering,
     foot,
     showFoot: "lastPage",
     theme: "grid",
-    styles: { font: "times", fontSize: 7, cellPadding: 1.5, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0], overflow: "linebreak", valign: "middle" },
-    headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold", halign: "center", valign: "middle", fontSize: 7 },
+    styles: { 
+      font: "times", 
+      fontSize: 7, 
+      cellPadding: 1.5, 
+      lineColor: [0, 0, 0], 
+      lineWidth: 0.1, 
+      textColor: [0, 0, 0], 
+      overflow: "linebreak", 
+      valign: "middle" 
+    },
+    headStyles: { 
+      fillColor: [255, 255, 255], 
+      textColor: [0, 0, 0], 
+      fontStyle: "bold", 
+      halign: "center", 
+      valign: "middle", 
+      fontSize: 7 
+    },
+    // Styling khusus untuk baris nomor kolom (baris pertama di body)
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.row.index === 0) {
+        data.cell.styles.halign = 'center';
+        data.cell.styles.fontStyle = 'normal';
+      }
+    },
     footStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontSize: 7 },
     columnStyles: {
       0: { halign: "center", cellWidth: 8 },
       12: { halign: "right", cellWidth: 25 },
     },
     margin: { left: _baMargin, right: _baMargin, bottom: 20 },
+    pageBreak: 'auto', // Memastikan paginasi dinamis
   });
   return (doc as any).lastAutoTable?.finalY ?? startY;
 }
@@ -212,25 +244,52 @@ function _baDrawKop(doc: any, st: any): number {
   // Note: Logo skipped as requested
   
   y += 4;
-  doc.setLineWidth(0.8);
+  // Garis ganda: satu tebal di atas, satu tipis di bawah
+  doc.setLineWidth(1.0); // Lebih tebal (1.0)
   doc.line(_baMargin, y, pageW - _baMargin, y);
-  doc.setLineWidth(0.2);
-  doc.line(_baMargin, y + 1.2, pageW - _baMargin, y + 1.2);
-  return y + 8;
+  doc.setLineWidth(0.3); // Garis tipis (0.3)
+  doc.line(_baMargin, y + 1.5, pageW - _baMargin, y + 1.5); // Jarak 1.5mm
+  return y + 10;
 }
 
 // Paragraf rata kanan-kiri dengan auto-wrap; mengembalikan Y berikutnya.
-function _baParagraph(doc: any, text: string, y: number, opts?: { fontSize?: number; indent?: number; bold?: boolean; align?: "left" | "justify" | "center"; lineHeight?: number }): number {
+function _baParagraph(doc: any, text: string, y: number, opts?: { 
+  fontSize?: number; 
+  indent?: number; 
+  bold?: boolean; 
+  align?: "left" | "justify" | "center"; 
+  lineHeight?: number;
+  firstLineIndent?: number;
+}): number {
   const pageW = doc.internal.pageSize.getWidth();
   const fontSize = opts?.fontSize ?? 12;
   const indent = opts?.indent ?? 0;
-  const lineHeight = opts?.lineHeight ?? 1.2;
+  const firstLineIndent = opts?.firstLineIndent ?? 0;
+  const lineHeight = opts?.lineHeight ?? 1.2; // Default kembali ke 1.2 untuk BA
+  
   doc.setFont("times", opts?.bold ? "bold" : "normal");
   doc.setFontSize(fontSize);
+  
   const maxW = pageW - _baMargin * 2 - indent;
-  const lines = doc.splitTextToSize(text, maxW) as string[];
-  doc.text(lines, _baMargin + indent, y, { align: opts?.align ?? "left", maxWidth: maxW, lineHeightFactor: lineHeight });
-  return y + lines.length * fontSize * (lineHeight * 0.35) + 3;
+  
+  if (firstLineIndent > 0) {
+    // Trik untuk indentasi baris pertama: pisahkan baris pertama secara manual
+    const firstLineText = doc.splitTextToSize(text, maxW - firstLineIndent)[0];
+    doc.text(firstLineText, _baMargin + indent + firstLineIndent, y, { align: opts?.align ?? "left" });
+    
+    const remainingText = text.substring(firstLineText.length).trim();
+    if (remainingText) {
+      y += fontSize * (lineHeight * 0.35);
+      const lines = doc.splitTextToSize(remainingText, maxW) as string[];
+      doc.text(lines, _baMargin + indent, y, { align: opts?.align ?? "left", maxWidth: maxW, lineHeightFactor: lineHeight });
+      return y + lines.length * fontSize * (lineHeight * 0.35) + 3;
+    }
+    return y + fontSize * (lineHeight * 0.35) + 3;
+  } else {
+    const lines = doc.splitTextToSize(text, maxW) as string[];
+    doc.text(lines, _baMargin + indent, y, { align: opts?.align ?? "left", maxWidth: maxW, lineHeightFactor: lineHeight });
+    return y + lines.length * fontSize * (lineHeight * 0.35) + 3;
+  }
 }
 
 // Blok tanda tangan kanan (Kepala SKPD).
@@ -254,14 +313,18 @@ function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, na
   doc.text(String(DEFAULT_SETTINGS.dinas_name).toUpperCase(), xRight, y, { align: "center" });
   y += 5;
   doc.setFont("times", "normal");
-  doc.text(opts?.selakuLabel || "Selaku Pengguna Barang Milik Daerah,", xRight, y, { align: "center" });
+  
+  // Menghapus duplikasi "selaku Pengguna BMD" jika ada
+  let label = opts?.selakuLabel || "Selaku Pengguna Barang Milik Daerah,";
+  doc.text(label, xRight, y, { align: "center" });
   
   y += 25; // Space for signature
   
   const namaUpper = (nama || "").toUpperCase();
   doc.setFont("times", "bold");
   doc.text(namaUpper, xRight, y, { align: "center" });
-  // Underline
+  
+  // Underline nama penandatangan
   const textWidth = doc.getTextWidth(namaUpper);
   doc.setLineWidth(0.5);
   doc.line(xRight - textWidth / 2, y + 1, xRight + textWidth / 2, y + 1);
@@ -452,49 +515,71 @@ export function generateSuratPernyataanPDF(input: DualPdfInput): Blob {
   y = _baParagraph(doc, "Yang bertandatangan dibawah ini:", y, { indent: 15 });
   y += 2;
 
-  // Identity Table
-  autoTable(doc, {
-    startY: y,
-    body: [
-      ["Nama", ":", input.namaKadis.toUpperCase() || "-"],
-      ["NIP", ":", input.nipKadis || "-"],
-      ["Jabatan", ":", `${input.jabatanKadis || "-"}, selaku Pengguna BMD`],
-    ],
-    theme: "plain",
-    styles: { font: "times", fontSize: 12, cellPadding: { top: 1, bottom: 1, left: 0, right: 2 }, textColor: [0, 0, 0] },
-    columnStyles: { 0: { cellWidth: 26 }, 1: { cellWidth: 4 } },
-    margin: { left: _baMargin + 15, right: _baMargin },
-  });
-  y = ((doc as any).lastAutoTable?.finalY ?? y) + 8;
+  // Identity Section (Manual rendering for vertical colon alignment)
+  const identitasX = _baMargin + 15;
+  const colonX = identitasX + 25;
+  const valueX = colonX + 3;
+  
+  doc.setFont("times", "normal");
+  doc.setFontSize(12);
+  
+  // Nama
+  doc.text("Nama", identitasX, y);
+  doc.text(":", colonX, y);
+  doc.text(input.namaKadis.toUpperCase() || "-", valueX, y);
+  y += 7;
+  
+  // NIP
+  doc.text("NIP", identitasX, y);
+  doc.text(":", colonX, y);
+  doc.text(input.nipKadis || "-", valueX, y);
+  y += 7;
+  
+  // Jabatan (Clean duplication)
+  let jabatanStr = input.jabatanKadis || "-";
+  if (jabatanStr.toLowerCase().includes("selaku pengguna bmd")) {
+    jabatanStr = jabatanStr.replace(/,?\s*selaku pengguna bmd/gi, "");
+  }
+  
+  doc.text("Jabatan", identitasX, y);
+  doc.text(":", colonX, y);
+  const jabLines = doc.splitTextToSize(`${jabatanStr}, selaku Pengguna BMD`, pageW - valueX - _baMargin) as string[];
+  doc.text(jabLines, valueX, y, { lineHeightFactor: 1.2 });
+  y += jabLines.length * 7 + 5;
 
   const dateBA = _baFmtDate(input.tanggalBA);
+  
+  // Tiga paragraf utama dengan indentasi baris pertama dan justify
   y = _baParagraph(
     doc,
-    `Berdasarkan  Berita Acara Hasil Penelitian/ Pemeriksaan Fisik Kendaraan Tanggal ${dateBA} Nomor: ${input.nomorBA || "-"}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukung tugas pokok dan fungsi Perangkat Daerah kami.`,
+    `Berdasarkan Berita Acara Hasil Penelitian/ Pemeriksaan Fisik Kendaraan Tanggal ${dateBA} Nomor: ${input.nomorBA || "-"}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukung tugas pokok dan fungsi Perangkat Daerah kami.`,
     y,
-    { indent: 15, align: "justify" }
+    { firstLineIndent: 15, align: "justify", lineHeight: 1.5 }
   );
 
   y = _baParagraph(
     doc,
     "Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.",
     y,
-    { indent: 15, align: "justify" }
+    { firstLineIndent: 15, align: "justify", lineHeight: 1.5 }
   );
 
   y = _baParagraph(
     doc,
     "Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.",
     y,
-    { indent: 15, align: "justify" }
+    { firstLineIndent: 15, align: "justify", lineHeight: 1.5 }
   );
 
   y += 15;
 
   const dateLine = `Soreang, ${_baFmtDate(input.tanggalSP || input.tanggalBA)}`;
-  const yAfterSign = _baSignRight(doc, y, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { skipMengetahui: true, selakuLabel: "Selaku Pengguna BMD," });
+  const yAfterSign = _baSignRight(doc, y, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { 
+    skipMengetahui: true, 
+    selakuLabel: "Selaku Pengguna BMD," 
+  });
 
-  // Tembusan
+  // Tembusan: bernomor, menjorok, spasi rapat
   const tmb = (input.tembusan || []).filter(t => t && t.trim());
   if (tmb.length) {
     let ty = yAfterSign + 10;
@@ -503,15 +588,17 @@ export function generateSuratPernyataanPDF(input: DualPdfInput): Blob {
     doc.text("Tembusan, kepada Yth:", _baMargin, ty);
     ty += 5;
     tmb.forEach((t, i) => {
-      const lines = doc.splitTextToSize(`${i + 1}. ${t};`, kontenW - 8) as string[];
-      doc.text(lines, _baMargin + 4, ty);
+      const num = `${i + 1}. `;
+      const text = `${t};`;
+      doc.text(num, _baMargin + 5, ty);
+      const lines = doc.splitTextToSize(text, pageW - _baMargin * 2 - 10) as string[];
+      doc.text(lines, _baMargin + 10, ty, { lineHeightFactor: 1.0 }); // Single spacing
       ty += lines.length * 4.5;
     });
   }
 
   // ─── Halaman 2 (Lampiran, landscape): Tabel Universal 13 Kolom ───
   doc.addPage([215, 330], "landscape");
-  const lW = doc.internal.pageSize.getWidth();
   let ly = _baMargin + 5;
 
   doc.setFont("times", "normal");
@@ -523,7 +610,10 @@ export function generateSuratPernyataanPDF(input: DualPdfInput): Blob {
   ly = _spRenderUniversalTable(doc, ly, input.assets);
   ly += 10;
 
-  _baSignRight(doc, ly, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { skipMengetahui: true, selakuLabel: "Selaku Pengguna BMD," });
+  _baSignRight(doc, ly, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { 
+    skipMengetahui: true, 
+    selakuLabel: "Selaku Pengguna BMD," 
+  });
 
   return doc.output("blob");
 }
