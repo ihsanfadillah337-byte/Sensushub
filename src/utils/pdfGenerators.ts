@@ -51,7 +51,7 @@ export const DEFAULT_SETTINGS = {
   dinas_address: "Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung",
   dinas_contact: "",
   font_size_pemda: 14,
-  font_size_dinas: 18,
+  font_size_dinas: 16,
   font_size_address: 10,
   margin_top: 45,
 };
@@ -376,16 +376,16 @@ function _baSignLeftTim(doc: any, y: number, tim: { nama: string; nip: string; p
     doc.text(num, xLeft, y);
     
     const startX = xLeft + 5;
-    doc.setFont("times", "bold");
+    doc.setFont("times", "normal");
     doc.text((t.nama || "").toUpperCase(), startX, y);
     y += 5;
-    doc.setFont("times", "normal");
     doc.text(`NIP. ${t.nip || "-"}`, startX, y);
     
-    // Garis titik-titik panjang dari posisi xDottedStart ke margin kanan
-    const dotsWidth = pageW - _baMargin - xDottedStart;
+    // Garis titik-titik tanda tangan Tim Pemeriksa (diperpendek & digeser ke kanan)
+    const xDottedAdjusted = xDottedStart + 20;
+    const dotsWidth = pageW - _baMargin - xDottedAdjusted - 20; 
     const dots = ".".repeat(Math.floor(dotsWidth / doc.getTextWidth(".")));
-    doc.text(dots, xDottedStart, y);
+    doc.text(dots, xDottedAdjusted, y);
     
     y += 12; // Gap between members
   });
@@ -466,7 +466,7 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
       <div style="flex: 1; text-align: center; padding-right: 25mm;">
         <div style="font-weight: bold; font-size: ${st.font_size_pemda || 14}pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 18}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 16}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: ${st.font_size_address || 10}pt;">${st.dinas_address}</div>
       </div>
     </div>
@@ -490,7 +490,7 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
       Selaku Pengurus Barang Pengguna dan Pengurus Barang Pembantu pada ${dinasName} Kabupaten Bandung yang ditetapkan berdasarkan Keputusan Bupati Bandung Tanggal 31 Desember 2025 Nomor 000.2.5/KEP.809-BKAD/2025 tentang Penetapan Pengurus Barang Pengguna dan Pengurus Barang Pembantu di Lingkungan Pemerintah Kabupaten Bandung, telah melaksanakan penelitian/pemeriksaan fisik Barang Milik Daerah berupa peralatan dan mesin yang tercatat sebagai Barang Milik Daerah pada ${dinasName} Kabupaten Bandung.
     </div>
 
-    <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 10px; font-size: 12pt;">
+    <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 25px; font-size: 12pt;">
       Adapun hasil penelitian/pemeriksaan fisik terhadap peralatan dan mesin dimaksud adalah sebagai berikut:
     </div>
   `;
@@ -603,7 +603,7 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
       <div style="flex: 1; text-align: center; padding-right: 25mm;">
         <div style="font-weight: bold; font-size: ${st.font_size_pemda || 14}pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 18}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 16}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: ${st.font_size_address || 10}pt;">${st.dinas_address}</div>
       </div>
     </div>
