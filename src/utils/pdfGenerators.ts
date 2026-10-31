@@ -48,10 +48,10 @@ function _baDateToWords(dateStr?: string): string {
 export const DEFAULT_SETTINGS = {
   pemda_name: "PEMERINTAH KABUPATEN BANDUNG",
   dinas_name: "BADAN KEUANGAN DAN ASET DAERAH",
-  dinas_address: "Jl. Raya Soreang KM 17",
+  dinas_address: "Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung",
   dinas_contact: "",
-  font_size_pemda: 14,
-  font_size_dinas: 16,
+  font_size_pemda: 16,
+  font_size_dinas: 20,
   font_size_address: 10,
   margin_top: 45,
 };
@@ -269,10 +269,10 @@ function _baDrawKop(doc: any, st: any): number {
   const pageW = doc.internal.pageSize.getWidth();
   let y = 15;
   doc.setFont("times", "bold");
-  doc.setFontSize(st.font_size_pemda || 14);
+  doc.setFontSize(st.font_size_pemda || 16);
   doc.text(String(st.pemda_name || "").toUpperCase(), pageW / 2 + 10, y, { align: "center" });
   y += 7;
-  doc.setFontSize(st.font_size_dinas || 18); // Diperbesar ke 18
+  doc.setFontSize(st.font_size_dinas || 20); 
   doc.text(String(st.dinas_name || "").toUpperCase(), pageW / 2 + 10, y, { align: "center" });
   y += 5;
   doc.setFont("times", "normal");
@@ -315,7 +315,7 @@ function _baParagraph(doc: any, text: string, y: number, opts?: {
 // Blok tanda tangan kanan (Kepala SKPD).
 function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, nama: string, nip: string, opts?: { pangkat?: string; skipMengetahui?: boolean; selakuLabel?: string }): number {
   const pageW = doc.internal.pageSize.getWidth();
-  const xRight = pageW - _baMargin - 45; // Sedikit geser ke kiri untuk proporsi F4
+  const xRight = pageW - _baMargin - 40; // Lebih ke kanan untuk menghindari tabrakan
   
   doc.setFont("times", "normal");
   doc.setFontSize(11);
@@ -381,8 +381,8 @@ function _baSignLeftTim(doc: any, y: number, tim: { nama: string; nip: string; p
     doc.setFont("times", "normal");
     doc.text(`NIP. ${t.nip || "-"}`, startX, y);
     
-    // Dotted line for signature
-    doc.text("...........................................", xDotted, y);
+    // Perpendek garis titik-titik (dotted line) agar tidak menabrak tanda tangan kanan
+    doc.text("..........................", xDotted, y);
     
     y += 12; // Gap between members
   });
@@ -462,8 +462,8 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
     <div style="display: flex; align-items: center; margin-bottom: 2px; width: 100%;">
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
       <div style="flex: 1; text-align: center; padding-right: 25mm;">
-        <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: 16pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: 16pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: 20pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: 10pt;">${st.dinas_address}</div>
       </div>
     </div>
@@ -593,8 +593,8 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
     <div style="display: flex; align-items: center; margin-bottom: 2px; width: 100%;">
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
       <div style="flex: 1; text-align: center; padding-right: 25mm;">
-        <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: 16pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: 16pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: 20pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: 10pt;">${st.dinas_address}</div>
       </div>
     </div>
