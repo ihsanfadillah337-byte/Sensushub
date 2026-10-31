@@ -51,7 +51,7 @@ export const DEFAULT_SETTINGS = {
   dinas_address: "Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung",
   dinas_contact: "",
   font_size_pemda: 16,
-  font_size_dinas: 20,
+  font_size_dinas: 18,
   font_size_address: 10,
   margin_top: 45,
 };
@@ -315,7 +315,7 @@ function _baParagraph(doc: any, text: string, y: number, opts?: {
 // Blok tanda tangan kanan (Kepala SKPD).
 function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, nama: string, nip: string, opts?: { pangkat?: string; skipMengetahui?: boolean; selakuLabel?: string }): number {
   const pageW = doc.internal.pageSize.getWidth();
-  const xRight = pageW - _baMargin - 40; // Lebih ke kanan untuk menghindari tabrakan
+  const xRight = pageW - _baMargin - 45; // Kembali ke proporsi tengah-kanan
   
   doc.setFont("times", "normal");
   doc.setFontSize(11);
@@ -362,12 +362,13 @@ function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, na
 
 // Blok tanda tangan kiri (Tim Pemeriksa).
 function _baSignLeftTim(doc: any, y: number, tim: { nama: string; nip: string; pangkat: string }[]): number {
-  const xLeft = _baMargin + 5;
-  const xDotted = xLeft + 65;
+  const pageW = doc.internal.pageSize.getWidth();
+  const xLeft = _baMargin + 10; // Menjorok ke kanan sedikit
+  const xDottedEnd = pageW - _baMargin; // Garis titik-titik berakhir di margin kanan
   
   doc.setFont("times", "normal");
   doc.setFontSize(11);
-  doc.text("Tim Pemeriksa,", xLeft, y);
+  doc.text("Tim Pemeriksa,", _baMargin, y);
   y += 10;
   
   (tim || []).filter(t => (t?.nama || "").trim()).forEach((t, i) => {
@@ -381,8 +382,8 @@ function _baSignLeftTim(doc: any, y: number, tim: { nama: string; nip: string; p
     doc.setFont("times", "normal");
     doc.text(`NIP. ${t.nip || "-"}`, startX, y);
     
-    // Perpendek garis titik-titik (dotted line) agar tidak menabrak tanda tangan kanan
-    doc.text("..........................", xDotted, y);
+    // Garis titik-titik panjang yang berakhir tepat di margin kanan
+    doc.text("......................................................................", xDottedEnd, y, { align: "right" });
     
     y += 12; // Gap between members
   });
@@ -462,9 +463,9 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
     <div style="display: flex; align-items: center; margin-bottom: 2px; width: 100%;">
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
       <div style="flex: 1; text-align: center; padding-right: 25mm;">
-        <div style="font-weight: bold; font-size: 16pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: 20pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
-        <div style="font-size: 10pt;">${st.dinas_address}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_pemda || 16}pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 20}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
+        <div style="font-size: ${st.font_size_address || 10}pt;">${st.dinas_address}</div>
       </div>
     </div>
     
@@ -544,10 +545,16 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
     { align: "justify", lineHeight: 1.3 }
   );
 
-  nextY += 15; // Jarak lebih besar sebelum tanda tangan
+  nextY += 15; // Jarak setelah paragraf penutup
   if (nextY > 210) { doc.addPage(); nextY = 20; }
   
-  _baSignLeftTim(doc, nextY, input.timPemeriksa);
+  // Render Tim Pemeriksa di bagian ATAS
+  nextY = _baSignLeftTim(doc, nextY, input.timPemeriksa);
+  
+  // Render Tanda Tangan Kepala SKPD di bagian BAWAH (setelah Tim Pemeriksa)
+  nextY += 10; // Gap antara Tim Pemeriksa dan Kepala SKPD
+  if (nextY > 230) { doc.addPage(); nextY = 20; }
+  
   _baSignRight(doc, nextY, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { pangkat: "Pembina Utama Muda, IV/c" });
 
   return doc.output("blob");
@@ -593,9 +600,9 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
     <div style="display: flex; align-items: center; margin-bottom: 2px; width: 100%;">
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
       <div style="flex: 1; text-align: center; padding-right: 25mm;">
-        <div style="font-weight: bold; font-size: 16pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: 20pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
-        <div style="font-size: 10pt;">${st.dinas_address}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_pemda || 16}pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: ${st.font_size_dinas || 20}pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
+        <div style="font-size: ${st.font_size_address || 10}pt;">${st.dinas_address}</div>
       </div>
     </div>
     
