@@ -1,11 +1,11 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCustomColumns } from "@/contexts/CustomColumnsContext";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import autoTable from "jspdf-autotable";
 import {
   FileSignature, Plus, ArrowLeft, ArrowRight, Check, Trash2,
   FileText, Download, Loader2, AlertCircle, CheckCircle2, Printer,
@@ -253,74 +253,6 @@ function _psBuildLampiranRows(arc: ArchiveRow): { rows: any[]; headers: string[]
   return { rows, headers, nilaiKey, total };
 }
 
-// ─── PDF Generator Helper ───────────────────────────────
-async function generatePDF(page1Id: string, page2BaseId: string, filename: string) {
-  const el1 = document.getElementById(page1Id);
-  if (!el1) throw new Error("Page 1 element not found");
-
-  const canvas1 = await html2canvas(el1, { scale: 2, useCORS: true, logging: false });
-  const imgData1 = canvas1.toDataURL("image/png");
-
-  // F4 Portrait: 215 x 330 mm
-  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [215, 330] });
-  const pW = 215, pH = 330;
-  const margin = 15;
-  const contentW = pW - margin * 2;
-  const imgH1 = (canvas1.height * contentW) / canvas1.width;
-  pdf.addImage(imgData1, "PNG", margin, margin, contentW, Math.min(imgH1, pH - margin * 2));
-
-  // Loop through all landscape chunks
-  let i = 0;
-  while (true) {
-    const el2 = document.getElementById(`${page2BaseId}-${i}`);
-    if (!el2) break; // No more chunks
-    
-    const canvas2 = await html2canvas(el2, { scale: 2, useCORS: true, logging: false });
-    const imgData2 = canvas2.toDataURL("image/png");
-    
-    // F4 Landscape: 330 x 215 mm
-    pdf.addPage([215, 330], "landscape");
-    const lW = 330, lH = 215;
-    const cW2 = lW - margin * 2;
-    const imgH2 = (canvas2.height * cW2) / canvas2.width; // Kunci Proporsi
-    pdf.addImage(imgData2, "PNG", margin, margin, cW2, Math.min(imgH2, lH - margin * 2));
-    
-    i++;
-  }
-
-  pdf.save(filename);
-}
-
-// ─── Shared PDF Inline Styles ───────────────────────────
-const S = {
-  wrap1: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "900px", fontFamily: "Arial, sans-serif", color: "#000", background: "#fff" },
-  page1: { width: "900px", minHeight: "1300px", padding: "60px", backgroundColor: "#fff", color: "#000", fontSize: "18px", lineHeight: "1.6" as const },
-  kopBox: { display: "flex", alignItems: "center", gap: "20px", borderBottom: "4px solid #000", paddingBottom: "12px" },
-  kopLogo: { width: "130px", flexShrink: 0 },
-  kopTitle: { fontWeight: "bold" as const, fontSize: "28px", letterSpacing: "1px" },
-  kopSub: { fontWeight: "bold" as const, fontSize: "20px" },
-  kopAddr: { fontSize: "14px", marginTop: "4px" },
-  judul: { fontWeight: "bold" as const, textDecoration: "underline" as const, fontSize: "20px", textAlign: "center" as const },
-  nomor: { fontSize: "18px", marginTop: "6px", textAlign: "center" as const },
-  para: { textAlign: "justify" as const, marginBottom: "24px", fontSize: "18px", lineHeight: "1.6" },
-  paraIndent: { textAlign: "justify" as const, marginBottom: "24px", fontSize: "18px", lineHeight: "1.6", textIndent: "30px" },
-  idTable: { marginLeft: "30px", marginBottom: "24px", fontSize: "18px" },
-  idTd: { paddingRight: "24px", verticalAlign: "top" as const, fontSize: "18px" },
-  signBlock: { display: "flex", justifyContent: "flex-end", marginBottom: "60px" },
-  signInner: { textAlign: "center" as const, width: "380px", fontSize: "18px", lineHeight: "1.5" },
-  tembusanBox: { fontSize: "16px", lineHeight: "1.5", marginTop: "20px" },
-  wrap2: { position: "fixed" as const, top: "-9999px", left: "-9999px", width: "330mm", fontFamily: "Arial, sans-serif", color: "#000", background: "#fff" },
-  page2: { width: "330mm", minHeight: "215mm", padding: "15mm", backgroundColor: "#fff", color: "#000", boxSizing: "border-box" as const },
-  p2Header: { marginBottom: "12px", fontSize: "12px", lineHeight: "1.15" },
-  p2Title: { fontWeight: "bold" as const, textAlign: "center" as const, fontSize: "13px", marginBottom: "4px", lineHeight: "1.15" },
-  p2Sub: { fontWeight: "bold" as const, textAlign: "center" as const, fontSize: "12px", marginBottom: "16px", lineHeight: "1.15" },
-  tbl: { width: "100%", borderCollapse: "collapse" as const, tableLayout: "auto" as const, fontSize: "11px", lineHeight: "1.15" },
-  th: { border: "1px solid #000", padding: "8px 4px", fontWeight: "bold" as const, verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "11px" },
-  td: { border: "1px solid #000", padding: "8px 4px", verticalAlign: "middle" as const, wordWrap: "break-word" as const, fontSize: "11px" },
-  p2Sign: { display: "flex", justifyContent: "flex-end", marginTop: "30px" },
-  p2SignInner: { textAlign: "center" as const, fontSize: "12px", width: "300px", lineHeight: "1.15" },
-};
-
 const DEFAULT_SETTINGS = {
   pemda_name: "PEMERINTAH KABUPATEN BANDUNG",
   dinas_name: "DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN",
@@ -332,143 +264,352 @@ const DEFAULT_SETTINGS = {
   margin_top: 60,
 };
 
-// ─── Reusable Off-Screen PDF Pages ──────────────────────
-function PdfPages({ id1, id2, data, tenantSettings }: {
-  id1: string; id2: string;
-  data: { nomorSurat: string; tglSurat: string; tglPen: string; nama: string; nip: string; jabatan: string; tembusan: string[]; headers: string[]; rows: any[]; totalNilai: number; nilaiKey: string };
-  tenantSettings?: any;
-}) {
-  const { nomorSurat, tglSurat, tglPen, nama, nip, jabatan, tembusan, headers, rows, totalNilai, nilaiKey } = data;
-  const st = { ...DEFAULT_SETTINGS, ...(tenantSettings || {}) };
-  // Determine which column is the "nilai" column for right-align + total row
-  const nilaiIdx = headers.findIndex(h => h === nilaiKey);
-  
-  // LOGIKA CHUNKING MULTI-PAGE
-  const MAX_ROWS_PER_PAGE = 10;
-  const chunks: any[][] = [];
-  for (let i = 0; i < rows.length; i += MAX_ROWS_PER_PAGE) {
-    chunks.push(rows.slice(i, i + MAX_ROWS_PER_PAGE));
-  }
-  return (
-    <>
-      <div style={S.wrap1}>
-        <div id={id1} style={{ ...S.page1, paddingTop: `${st.margin_top}px` }}>
-          <div style={S.kopBox}>
-            <div style={S.kopLogo}>
-              <img src="/logo-bandung.png" alt="Logo" style={{ width: "100%", height: "auto", objectFit: "contain" }} crossOrigin="anonymous" />
-            </div>
-            <div style={{ textAlign: "center", flex: 1 }}>
-              <p style={{ ...S.kopTitle, fontSize: `${st.font_size_pemda}px` }}>{st.pemda_name}</p>
-              <p style={{ ...S.kopSub, fontSize: `${st.font_size_dinas}px` }}>{st.dinas_name}</p>
-              <p style={{ ...S.kopAddr, fontSize: `${st.font_size_address}px` }}>{st.dinas_address}</p>
-              <p style={{ fontSize: `${st.font_size_address}px` }}>{st.dinas_contact}</p>
-            </div>
-          </div>
-          <div style={{ borderBottom: "1px solid #000", marginTop: "2px", marginBottom: "30px" }} />
+// ─── Dual-PDF Generator (Berita Acara & Surat Pernyataan) ───────────────
+// Standar baku BKAD: Tabel Universal 13 Kolom + baris TOTAL. Murni jsPDF +
+// autoTable, mengembalikan Blob (bukan doc.save()) untuk di-upload ke Storage.
 
-          <div style={{ textAlign: "center", marginBottom: "30px" }}>
-            <p style={S.judul}>SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BMD</p>
-            <p style={S.nomor}>Nomor : {nomorSurat}</p>
-          </div>
-          <p style={S.paraIndent}>Berdasarkan hasil penelusuran fisik BMD yang dilakukan pada <strong>{tglPen}</strong>, yang bertanda tangan di bawah ini :</p>
-          <table style={S.idTable}><tbody>
-            <tr><td style={S.idTd}>Nama</td><td style={{ paddingRight: "10px" }}>:</td><td>{nama}</td></tr>
-            <tr><td style={S.idTd}>NIP</td><td style={{ paddingRight: "10px" }}>:</td><td>{nip}</td></tr>
-            <tr><td style={S.idTd}>Jabatan</td><td style={{ paddingRight: "10px" }}>:</td><td>{jabatan}</td></tr>
-          </tbody></table>
-          <p style={S.para}>Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukungi tugas pokok dan fungsi Perangkat Daerah kami.</p>
-          <p style={S.para}>Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.</p>
-          <p style={{ ...S.para, marginBottom: "48px" }}>Demikian untuk dapat diketahui, sebagai bahan lebih lanjut.</p>
-          <div style={S.signBlock}>
-            <div style={S.signInner}>
-              <p>Soreang, {tglSurat}</p>
-              <p style={{ marginTop: "6px" }}>{jabatan?.includes(",") ? jabatan.split(",")[0] + "," : jabatan}</p>
-              {jabatan?.includes(",") && <p>{jabatan.split(",").slice(1).join(",").trim()}</p>}
-              <div style={{ height: "120px" }} />
-              <div style={{ display: "inline-block", borderBottom: "2px solid #000", paddingBottom: "2px", fontWeight: "bold", marginBottom: "4px" }}>
-                {(nama || "").toUpperCase()}
-              </div>
-              <p>NIP. {nip}</p>
-            </div>
-          </div>
-          <div style={S.tembusanBox}>
-            <p style={{ marginBottom: "6px" }}><strong>Tembusan</strong>, Kepada Yth :</p>
-            <div>
-              {tembusan.filter(t => t.trim()).map((t, i) => (
-                <p key={i} style={{ paddingLeft: "24px", textIndent: "-24px", margin: 0, marginBottom: "4px" }}>
-                  {i + 1}. <span style={{ marginLeft: "4px" }}>{t};</span>
-                </p>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      {chunks.length > 0 && (
-        <div style={S.wrap2}>
-          {chunks.map((chunkRows, chunkIndex) => {
-            const isLastChunk = chunkIndex === chunks.length - 1;
-            const globalOffset = chunkIndex * MAX_ROWS_PER_PAGE;
-            return (
-              <div key={chunkIndex} id={`${id2}-${chunkIndex}`} style={{ ...S.page2 }}>
-                <div style={S.p2Header}>
-                  <p>Lampiran I (Rubah Kondisi BMD)</p>
-                  <p>Nomor : {nomorSurat}</p>
-                  <p>Tanggal : {tglSurat}</p>
-                </div>
-                <p style={S.p2Title}>DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI</p>
-                <p style={{ ...S.p2Sub }}>{st.dinas_name}</p>
-                <table style={S.tbl}>
-                  <thead><tr>
-                    <th style={{ ...S.th, textAlign: "center", width: "30px" }}>No</th>
-                    {headers.map((h, hi) => (
-                      <th key={hi} style={{ ...S.th, ...(hi === nilaiIdx ? { textAlign: "right", whiteSpace: "nowrap" } : {}) }}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>
-                    {chunkRows.map((r: any, i: number) => (
-                      <tr key={i}>
-                        <td style={{ ...S.td, textAlign: "center" }}>{globalOffset + i + 1}</td>
-                        {headers.map((h, hi) => {
-                          const val = r[h] ?? "";
-                          const isNilai = hi === nilaiIdx;
-                          return (
-                            <td key={hi} style={{ ...S.td, ...(isNilai ? { textAlign: "right", whiteSpace: "nowrap" } : {}) }}>
-                              {isNilai && Number(val) > 0 ? new Intl.NumberFormat('id-ID').format(Number(val)) : String(val)}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                    {isLastChunk && (
-                      <tr>
-                        <td style={{ ...S.td }} />
-                        <td colSpan={headers.length - 1} style={{ ...S.td, fontWeight: "bold", textAlign: "right", paddingRight: "12px" }}>TOTAL</td>
-                        <td style={{ ...S.td, fontWeight: "bold", textAlign: "right", whiteSpace: "nowrap" }}>{new Intl.NumberFormat('id-ID').format(totalNilai)}</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-                {isLastChunk && (
-                  <div style={S.p2Sign}>
-                    <div style={S.p2SignInner}>
-                      <p>Soreang, {tglSurat}</p>
-                      <p style={{ marginTop: "6px" }}>{jabatan?.includes(",") ? jabatan.split(",")[0] + "," : jabatan}</p>
-                      {jabatan?.includes(",") && <p>{jabatan.split(",").slice(1).join(",").trim()}</p>}
-                      <div style={{ height: "80px" }} />
-                      <div style={{ display: "inline-block", borderBottom: "2px solid #000", paddingBottom: "2px", fontWeight: "bold", marginBottom: "4px" }}>
-                        {(nama || "").toUpperCase()}
-                      </div>
-                      <p>NIP. {nip}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </>
+const _baTableHeaders = [
+  "NO", "KODE ASET", "NAMA ASET", "NO REG", "MERK/TYPE", "NOMOR POLISI",
+  "NOMOR RANGKA", "NOMOR MESIN", "NOMOR BPKB", "BAHAN", "TAHUN PEROLEHAN",
+  "ASAL USUL", "HARGA PEROLEHAN (RP)",
+];
+
+const _baMargin = 12;
+
+function _baRowGet(row: any, keys: string[]): string {
+  if (!row) return "";
+  for (const k of keys) {
+    const v = row[k];
+    if (v !== null && v !== undefined && String(v).trim() !== "") return String(v).trim();
+  }
+  return "";
+}
+
+function _baDash(v: string): string {
+  return v && v.trim() ? v : "-";
+}
+
+function _baFmtDate(v?: string): string {
+  if (!v) return "-";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return v;
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+}
+
+// Bangun body Tabel Universal 13 Kolom dari snapshot aset.
+function _baBuildUniversalRows(assets: any[]): { body: any[][]; total: number } {
+  let total = 0;
+  const body = (assets || []).map((a: any, idx: number) => {
+    const harga = _psNumber(
+      a?.["Nilai Perolehan"] ?? a?.["Nilai Aset"] ?? a?.nilai_perolehan ?? a?.harga
+    );
+    total += harga;
+    return [
+      String(idx + 1),
+      _baDash(_baRowGet(a, ["kode_aset", "kode_barang", "Kode Barang"])),
+      _baDash(_baRowGet(a, ["nama_aset", "nama_barang", "Nama Aset", "Nama Barang"])),
+      _baDash(_baRowGet(a, ["no_register", "nomor_register", "No Register", "Nomor Register", "no_reg", "No. Register"])),
+      _baDash(_baRowGet(a, ["Merek/Type", "merek", "Merek", "Type", "Tipe"])),
+      _baDash(_baRowGet(a, ["Nomor Polisi", "nomor_polisi", "nopol", "No Polisi"])),
+      _baDash(_baRowGet(a, ["Nomor Rangka", "nomor_rangka", "rangka", "No Rangka"])),
+      _baDash(_baRowGet(a, ["Nomor Mesin", "nomor_mesin", "mesin", "No Mesin"])),
+      _baDash(_baRowGet(a, ["Nomor BPKB", "nomor_bpkb", "bpkb", "No BPKB"])),
+      _baDash(_baRowGet(a, ["Bahan", "bahan"])),
+      _baDash(_baRowGet(a, ["Tahun Perolehan", "tahun_perolehan", "tahun", "Tahun"])),
+      _baDash(_baRowGet(a, ["Asal Usul", "asal_usul", "Metode Perolehan", "metode_perolehan", "Cara Perolehan", "Perolehan"])),
+      new Intl.NumberFormat("id-ID").format(harga),
+    ];
+  });
+  return { body, total };
+}
+
+// Render Tabel Universal 13 Kolom ke dokumen + baris TOTAL (colSpan 1-12).
+function _baRenderUniversalTable(doc: any, startY: number, assets: any[]): number {
+  const { body, total } = _baBuildUniversalRows(assets);
+  const foot = [[
+    { content: "TOTAL", colSpan: 12, styles: { halign: "right" as const, fontStyle: "bold" as const } },
+    { content: new Intl.NumberFormat("id-ID").format(total), styles: { halign: "right" as const, fontStyle: "bold" as const } },
+  ]];
+  autoTable(doc, {
+    startY,
+    head: [_baTableHeaders],
+    body,
+    foot,
+    showFoot: "lastPage",
+    theme: "grid",
+    styles: { fontSize: 6, cellPadding: 1.2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0], overflow: "linebreak", valign: "middle" },
+    headStyles: { fillColor: [235, 235, 235], textColor: [0, 0, 0], fontStyle: "bold", halign: "center", valign: "middle", fontSize: 6 },
+    footStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontSize: 6 },
+    columnStyles: {
+      0: { halign: "center", cellWidth: 7 },
+      12: { halign: "right", cellWidth: 26 },
+    },
+    margin: { left: _baMargin, right: _baMargin, bottom: 14 },
+  });
+  return (doc as any).lastAutoTable?.finalY ?? startY;
+}
+
+// Kop surat resmi (teks dua baris + garis ganda).
+function _baDrawKop(doc: any, st: any): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 16;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text(String(st.pemda_name || "").toUpperCase(), pageW / 2, y, { align: "center" });
+  y += 6;
+  doc.setFontSize(12);
+  doc.text(String(st.dinas_name || "").toUpperCase(), pageW / 2, y, { align: "center" });
+  y += 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text(String(st.dinas_address || ""), pageW / 2, y, { align: "center" });
+  y += 4;
+  doc.text(String(st.dinas_contact || ""), pageW / 2, y, { align: "center" });
+  y += 3;
+  doc.setLineWidth(0.8);
+  doc.line(_baMargin, y, pageW - _baMargin, y);
+  doc.setLineWidth(0.2);
+  doc.line(_baMargin, y + 1.4, pageW - _baMargin, y + 1.4);
+  return y + 9;
+}
+
+// Paragraf rata kanan-kiri dengan auto-wrap; mengembalikan Y berikutnya.
+function _baParagraph(doc: any, text: string, y: number, opts?: { fontSize?: number; indent?: number; bold?: boolean; align?: "left" | "justify" }): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  const fontSize = opts?.fontSize ?? 10;
+  const indent = opts?.indent ?? 0;
+  doc.setFont("helvetica", opts?.bold ? "bold" : "normal");
+  doc.setFontSize(fontSize);
+  const maxW = pageW - _baMargin * 2 - indent;
+  const lines = doc.splitTextToSize(text, maxW) as string[];
+  doc.text(lines, _baMargin + indent, y, { align: opts?.align ?? "left", maxWidth: maxW });
+  return y + lines.length * fontSize * 0.45 + 2;
+}
+
+// Blok tanda tangan kanan (Kepala SKPD).
+function _baSignRight(doc: any, y: number, dateLine: string, jabatan: string, nama: string, nip: string): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  const w = 72;
+  const xRight = pageW - _baMargin - 2;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(dateLine, xRight, y, { align: "right" });
+  let yy = y + 5;
+  const jabLines = (doc.splitTextToSize(jabatan || "", w) as string[]) || [];
+  if (jabLines.length) doc.text(jabLines, xRight, yy, { align: "right" });
+  yy += jabLines.length * 4.6 + 22;
+  const namaUpper = (nama || "").toUpperCase();
+  doc.setFont("helvetica", "bold");
+  doc.text(namaUpper, xRight, yy, { align: "right" });
+  doc.setLineWidth(0.3);
+  doc.line(xRight - doc.getTextWidth(namaUpper), yy + 1.2, xRight, yy + 1.2);
+  doc.setFont("helvetica", "normal");
+  doc.text(`NIP. ${nip || "-"}`, xRight, yy + 5.5, { align: "right" });
+  return yy + 10;
+}
+
+// Blok tanda tangan kiri (Tim Pemeriksa).
+function _baSignLeftTim(doc: any, y: number, tim: { nama: string; nip: string; pangkat: string }[]): number {
+  const xLeft = _baMargin + 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Tim Pemeriksa,", xLeft, y);
+  let yy = y + 6;
+  (tim || []).filter(t => (t?.nama || "").trim()).forEach((t) => {
+    doc.setFont("helvetica", "bold");
+    doc.text((t.nama || "").toUpperCase(), xLeft, yy);
+    doc.setFont("helvetica", "normal");
+    yy += 4.6;
+    if (t.pangkat && t.pangkat.trim()) { doc.text(t.pangkat, xLeft, yy); yy += 4.6; }
+    doc.text(`NIP. ${t.nip || "-"}`, xLeft, yy);
+    yy += 8;
+  });
+  return yy;
+}
+
+// Data masukan bersama untuk kedua dokumen.
+interface DualPdfInput {
+  tenantSettings?: any;
+  nomorBA: string;
+  tanggalBA: string;
+  nomorSP: string;
+  tanggalSP: string;
+  assets: any[];
+  namaKadis: string;
+  nipKadis: string;
+  jabatanKadis: string;
+  timPemeriksa: { nama: string; nip: string; pangkat: string }[];
+  tembusan: string[];
+  tglPenelusuran?: string;
+}
+
+// ─── Generator 1: Berita Acara (BA) ────────────────────
+function generateBeritaAcaraPDF(input: DualPdfInput): Blob {
+  const st = { ...DEFAULT_SETTINGS, ...(input.tenantSettings || {}) };
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [215, 330] });
+  const pageW = doc.internal.pageSize.getWidth();
+  const kontenW = pageW - _baMargin * 2;
+
+  let y = _baDrawKop(doc, st);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  const judul = doc.splitTextToSize("BERITA ACARA PENELUSURAN DAN PENETAPAN KONDISI BARANG MILIK DAERAH", kontenW) as string[];
+  doc.text(judul, pageW / 2, y, { align: "center", maxWidth: kontenW });
+  y += judul.length * 6 + 2;
+  doc.setFontSize(11);
+  doc.text(`Nomor : ${input.nomorBA || "-"}`, pageW / 2, y, { align: "center" });
+  y += 9;
+
+  y = _baParagraph(
+    doc,
+    `Pada hari ini, ${_baFmtDate(input.tanggalBA)}, telah dilakukan penelusuran fisik terhadap Barang Milik Daerah sebagaimana tercantum dalam lampiran Berita Acara ini, dengan hasil sebagaimana daftar di bawah. Berita Acara ini dibuat untuk dijadikan dasar penetapan kondisi Barang Milik Daerah.`,
+    y,
+    { align: "justify" }
   );
+  y += 3;
+
+  y = _baParagraph(doc, "Adapun Tim Pemeriksa yang ditunjuk adalah sebagai berikut :", y, { align: "justify" });
+  y += 1;
+
+  autoTable(doc, {
+    startY: y,
+    head: [["NO", "NAMA", "NIP", "PANGKAT/GOLONGAN"]],
+    body: (input.timPemeriksa || [])
+      .filter(t => (t?.nama || "").trim())
+      .map((t, i) => [String(i + 1), t.nama, t.nip || "-", t.pangkat || "-"]),
+    theme: "grid",
+    styles: { fontSize: 9, cellPadding: 1.6, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
+    headStyles: { fillColor: [235, 235, 235], textColor: [0, 0, 0], fontStyle: "bold", halign: "center" },
+    columnStyles: { 0: { halign: "center", cellWidth: 10 } },
+    margin: { left: _baMargin, right: _baMargin },
+  });
+  y = ((doc as any).lastAutoTable?.finalY ?? y) + 7;
+
+  y = _baParagraph(doc, "Daftar Barang Milik Daerah beserta kondisinya adalah sebagai berikut :", y, { align: "justify" });
+  y += 1;
+
+  y = _baRenderUniversalTable(doc, y, input.assets);
+  y += 10;
+
+  const dateLine = `Soreang, ${_baFmtDate(input.tanggalBA)}`;
+  _baSignLeftTim(doc, y, input.timPemeriksa);
+  _baSignRight(doc, y, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis);
+
+  return doc.output("blob");
+}
+
+// ─── Generator 2: Surat Pernyataan (SP) ────────────────
+function generateSuratPernyataanPDF(input: DualPdfInput): Blob {
+  const st = { ...DEFAULT_SETTINGS, ...(input.tenantSettings || {}) };
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [215, 330] });
+  const pageW = doc.internal.pageSize.getWidth();
+  const kontenW = pageW - _baMargin * 2;
+
+  let y = _baDrawKop(doc, st);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  const judul = doc.splitTextToSize("SURAT PERNYATAAN PENGAJUAN PERUBAHAN KONDISI BARANG MILIK DAERAH", kontenW) as string[];
+  doc.text(judul, pageW / 2, y, { align: "center", maxWidth: kontenW });
+  y += judul.length * 6 + 2;
+  doc.setFontSize(11);
+  doc.text(`Nomor : ${input.nomorSP || "-"}`, pageW / 2, y, { align: "center" });
+  y += 9;
+
+  // Cross-reference dinamis ke Berita Acara
+  y = _baParagraph(
+    doc,
+    `Berdasarkan Berita Acara Penelusuran dan Penetapan Kondisi Barang Milik Daerah Tanggal ${_baFmtDate(input.tanggalBA)} Nomor: ${input.nomorBA || "-"}, dengan ini kami yang bertanda tangan di bawah ini :`,
+    y,
+    { align: "justify" }
+  );
+  y += 2;
+
+  // Identitas penandatangan
+  autoTable(doc, {
+    startY: y,
+    body: [
+      ["Nama", ":", input.namaKadis || "-"],
+      ["NIP", ":", input.nipKadis || "-"],
+      ["Jabatan", ":", input.jabatanKadis || "-"],
+    ],
+    theme: "plain",
+    styles: { fontSize: 10, cellPadding: { top: 0.6, bottom: 0.6, left: 0, right: 2 }, textColor: [0, 0, 0] },
+    columnStyles: { 0: { cellWidth: 26 }, 1: { cellWidth: 4 } },
+    margin: { left: _baMargin + 12, right: _baMargin },
+  });
+  y = ((doc as any).lastAutoTable?.finalY ?? y) + 6;
+
+  y = _baParagraph(
+    doc,
+    "Menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukung tugas pokok dan fungsi Perangkat Daerah kami.",
+    y,
+    { align: "justify" }
+  );
+  y = _baParagraph(
+    doc,
+    "Untuk itu kami menyatakan pengajuan untuk merubah kondisi barang tersebut.",
+    y,
+    { align: "justify" }
+  );
+  y = _baParagraph(
+    doc,
+    "Demikian Surat Pernyataan ini dibuat untuk dapat diketahui dan dipergunakan sebagai bahan lebih lanjut.",
+    y,
+    { align: "justify" }
+  );
+  y += 6;
+
+  const dateLine = `Soreang, ${_baFmtDate(input.tanggalSP || input.tanggalBA)}`;
+  const yAfterSign = _baSignRight(doc, y, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis);
+
+  // Tembusan (kiri bawah)
+  const tmb = (input.tembusan || []).filter(t => t && t.trim());
+  if (tmb.length) {
+    let ty = yAfterSign + 6;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Tembusan, Kepada Yth :", _baMargin, ty);
+    ty += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    tmb.forEach((t, i) => {
+      const lines = doc.splitTextToSize(`${i + 1}. ${t};`, kontenW - 8) as string[];
+      doc.text(lines, _baMargin + 4, ty);
+      ty += lines.length * 4.2 + 0.8;
+    });
+  }
+
+  // ─── Halaman 2 (Lampiran, landscape): Tabel Universal 13 Kolom ───
+  doc.addPage([215, 330], "landscape");
+  const lW = doc.internal.pageSize.getWidth();
+  const lKontenW = lW - _baMargin * 2;
+  let ly = _baMargin + 2;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Lampiran Surat Pernyataan`, _baMargin, ly);
+  doc.text(`Nomor : ${input.nomorSP || "-"}`, _baMargin, ly + 4);
+  doc.text(`Tanggal : ${_baFmtDate(input.tanggalSP || input.tanggalBA)}`, _baMargin, ly + 8);
+  ly += 15;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  const ljudul = doc.splitTextToSize("DAFTAR BARANG MILIK DAERAH YANG DIUSULKAN PERUBAHAN KONDISI", lKontenW) as string[];
+  doc.text(ljudul, lW / 2, ly, { align: "center", maxWidth: lKontenW });
+  ly += ljudul.length * 5 + 1;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(String(st.dinas_name || ""), lW / 2, ly, { align: "center" });
+  ly += 6;
+
+  ly = _baRenderUniversalTable(doc, ly, input.assets);
+  ly += 10;
+
+  _baSignRight(doc, ly, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis);
+
+  return doc.output("blob");
 }
 
 // ─── Main Page ──────────────────────────────────────────
@@ -614,7 +755,6 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
   const { masterKib } = useCustomColumns();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const printRef = useRef<HTMLDivElement>(null);
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -627,6 +767,16 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
   const [namaKadis, setNamaKadis] = useState("");
   const [nipKadis, setNipKadis] = useState("");
   const [jabatanKadis, setJabatanKadis] = useState("Kepala Dinas Perumahan, Kawasan Permukiman Dan Pertanahan, selaku Pengguna BMD");
+
+  // Step 1b: Dokumen Berita Acara (BA) & Surat Pernyataan (SP)
+  const [nomorBA, setNomorBA] = useState("");
+  const [tanggalBA, setTanggalBA] = useState(new Date().toISOString().split("T")[0]);
+  const [nomorSP, setNomorSP] = useState("");
+  const [tanggalSP, setTanggalSP] = useState(new Date().toISOString().split("T")[0]);
+  const [timPemeriksa, setTimPemeriksa] = useState<{ nama: string; nip: string; pangkat: string }[]>([
+    { nama: "", nip: "", pangkat: "" },
+    { nama: "", nip: "", pangkat: "" },
+  ]);
 
   // Step 2
   const [jenisKib, setJenisKib] = useState("");
@@ -650,6 +800,12 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
   ]);
 
   const steps = ["Administrasi", "Pilih Aset", "Tembusan", "Preview & Cetak"];
+
+  // ─── Handler Tim Pemeriksa (minimal 2 slot) ─────────────
+  const addPemeriksa = () => setTimPemeriksa(prev => [...prev, { nama: "", nip: "", pangkat: "" }]);
+  const removePemeriksa = (i: number) => setTimPemeriksa(prev => prev.length <= 2 ? prev : prev.filter((_, j) => j !== i));
+  const updatePemeriksa = (i: number, key: "nama" | "nip" | "pangkat", val: string) =>
+    setTimPemeriksa(prev => prev.map((p, j) => j === i ? { ...p, [key]: val } : p));
 
   // ─── Dynamic Asset Selector Query (Hotfix: Company-only pull + stale cache) ──
   const { data: allCompanyAssets = [], isFetching: isFetchingApproved, error: queryError } = useQuery({
@@ -884,40 +1040,80 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
     }
   };
 
+  // ─── Bangun input generator ganda PDF dari state wizard ──
+  const buildDualPdfInput = (): DualPdfInput => ({
+    tenantSettings,
+    nomorBA: nomorBA || nomorSurat,
+    tanggalBA: tanggalBA || tglSurat,
+    nomorSP: nomorSP || nomorSurat,
+    tanggalSP: tanggalSP || tglSurat,
+    assets: selectedAssets.map((a: any) => _buildAssetSnapshot(a)),
+    namaKadis,
+    nipKadis,
+    jabatanKadis,
+    timPemeriksa,
+    tembusan: tembusan.map(t => t.trim()).filter(Boolean),
+    tglPenelusuran,
+  });
+
+  // ─── Pratinjau draf PDF (Blob → blob URL, dibuka di tab baru) ──
+  const [previewing, setPreviewing] = useState<"" | "BA" | "SP">("");
+  const openDraftPreview = (kind: "BA" | "SP") => {
+    setPreviewing(kind);
+    try {
+      const input = buildDualPdfInput();
+      const blob = kind === "BA" ? generateBeritaAcaraPDF(input) : generateSuratPernyataanPDF(input);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Gagal membuat pratinjau PDF.");
+    } finally {
+      setPreviewing("");
+    }
+  };
+
   // Tutup Periode & Save (Finalisasi Berita Acara)
   const handleSubmit = async () => {
     if (!companyId) return;
     setSubmitting(true);
     try {
-      // Debug: pastikan state parsedRows/selectedAssets terisi sebelum PDF di-generate
-      console.log("ISI PARSED ROWS:", parsedRows.length);
-      console.log("  -> selectedAssets:", selectedAssets.length);
-      console.log("  -> parsedHeaders:", parsedHeaders);
-      console.log("  -> parsedNilaiKey:", parsedNilaiKey);
-      console.log("  -> parsedTotalNilai:", parsedTotalNilai);
-
-      // Build pseudoArc + _psBuildLampiranRows SAMA PERSIS dengan render <PdfPages>
-      // agar kita bisa debug & pastikan data source untuk PDF 100% konsisten
-      const pseudoArc: any = {
-        data_otorisasi: { aset_detail: parsedRows },
-        kode_barang_list: parsedKodeBarang,
-        total_nilai: parsedTotalNilai,
-        total_aset: parsedRowCount,
-      };
-      const built = _psBuildLampiranRows(pseudoArc);
-      console.log("  -> built.rows (untuk PDF):", built.rows.length);
-      console.log("  -> built.headers:", built.headers);
-      console.log("  -> sample built row:", built.rows[0]);
-
       // Build payload snapshot full aset terpilih
       const assetSnapshotFull = selectedAssets.map((a: any) => _buildAssetSnapshot(a));
 
-      // 1. Save document archive — status: "Berita Acara Ditetapkan"
+      // 1. Generate kedua dokumen PDF di background (Blob)
+      const pdfInput: DualPdfInput = { ...buildDualPdfInput(), assets: assetSnapshotFull };
+      const baBlob = generateBeritaAcaraPDF(pdfInput);
+      const spBlob = generateSuratPernyataanPDF(pdfInput);
+
+      // 2. Unggah kedua Blob ke bucket "dokumen_usulan" (hentikan bila gagal)
+      const stamp = Date.now();
+      const baPath = `${companyId}/BA_${stamp}.pdf`;
+      const spPath = `${companyId}/SP_${stamp}.pdf`;
+      const { error: baUploadErr } = await supabase.storage
+        .from("dokumen_usulan")
+        .upload(baPath, baBlob, { contentType: "application/pdf", upsert: false });
+      if (baUploadErr) throw new Error(`Gagal mengunggah Berita Acara: ${baUploadErr.message}`);
+      const { error: spUploadErr } = await supabase.storage
+        .from("dokumen_usulan")
+        .upload(spPath, spBlob, { contentType: "application/pdf", upsert: false });
+      if (spUploadErr) throw new Error(`Gagal mengunggah Surat Pernyataan: ${spUploadErr.message}`);
+
+      const urlBeritaAcara = supabase.storage.from("dokumen_usulan").getPublicUrl(baPath).data.publicUrl;
+      const urlSuratPernyataan = supabase.storage.from("dokumen_usulan").getPublicUrl(spPath).data.publicUrl;
+
+      // 3. Save document archive — status: "Berita Acara Ditetapkan"
       //    data_otorisasi adalah ARRAY aset (mirip payload PapanRekonsiliasi) + metadata otorisasi
       const otorisasiPayload: any = {
         nama: namaKadis,
         nip: nipKadis,
         jabatan: jabatanKadis,
+        nomorBA: nomorBA || nomorSurat,
+        tanggalBA: tanggalBA || tglSurat,
+        nomorSP: nomorSP || nomorSurat,
+        tanggalSP: tanggalSP || tglSurat,
+        tim_pemeriksa: timPemeriksa.filter(t => (t.nama || "").trim()),
       };
       Object.assign(otorisasiPayload, { aset_detail: assetSnapshotFull });
       const { error: insertErr } = await supabase.from("document_archives").insert({
@@ -930,12 +1126,14 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         total_nilai: parsedTotalNilai,
         kode_barang_list: parsedKodeBarang as any,
         tembusan: tembusan as any,
+        url_berita_acara: urlBeritaAcara,
+        url_surat_pernyataan: urlSuratPernyataan,
         data_otorisasi: otorisasiPayload as any,
         status: "Berita Acara Ditetapkan",
       });
       if (insertErr) throw insertErr;
 
-      // 2. Bulk update assets — TAMBAHKAN FLAG Berita Acara, JANGAN UBAH KONDISI
+      // 4. Bulk update assets — TAMBAHKAN FLAG Berita Acara, JANGAN UBAH KONDISI
       if (parsedKodeBarang.length > 0 && selectedAssets.length > 0) {
         const updates = selectedAssets.map((asset: any) => {
           const cd = (typeof asset.custom_data === "object" && asset.custom_data) ? asset.custom_data as Record<string, any> : {};
@@ -966,7 +1164,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         }
       }
 
-      // 3. Invalidate caches (refresh kedua halaman arsip: verifikasi & BA final)
+      // 5. Invalidate caches (refresh kedua halaman arsip: verifikasi & BA final)
       queryClient.invalidateQueries({ queryKey: ["document-archives"] });
       queryClient.invalidateQueries({ queryKey: ["document-archives-verifikasi"] });
       queryClient.invalidateQueries({ queryKey: ["document-archives-ba"] });
@@ -976,8 +1174,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 
       toast.success("Berita Acara berhasil diterbitkan dan diarsipkan!");
 
-      // 4. Tampilkan pop-up sukses — JANGAN otomatis download PDF dari wizard
-      //    (download via Pusat Arsip Berita Acara lebih reliabel)
+      // 6. Tampilkan pop-up sukses
       setSuccessOpen(true);
     } catch (err: any) {
       console.error(err);
@@ -1055,6 +1252,58 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                 <Label className="text-xs font-medium">Jabatan</Label>
                 <Textarea rows={2} value={jabatanKadis} onChange={e => setJabatanKadis(e.target.value)} />
               </div>
+            </div>
+
+            <div className="rounded-md border border-gray-200 p-4 space-y-4 bg-gray-50">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Dokumen Berita Acara (BA) & Surat Pernyataan (SP)</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Nomor Berita Acara</Label>
+                  <Input placeholder="Contoh: 028/BA/2026" value={nomorBA} onChange={e => setNomorBA(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Tanggal Berita Acara</Label>
+                  <Input type="date" value={tanggalBA} onChange={e => setTanggalBA(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Nomor Surat Pernyataan</Label>
+                  <Input placeholder="Contoh: 028/SP/2026" value={nomorSP} onChange={e => setNomorSP(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Tanggal Surat Pernyataan</Label>
+                  <Input type="date" value={tanggalSP} onChange={e => setTanggalSP(e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-md border border-gray-200 p-4 space-y-3 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tim Pemeriksa (minimal 2)</p>
+                <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={addPemeriksa}>
+                  <Plus className="h-3.5 w-3.5" /> Tambah
+                </Button>
+              </div>
+              {timPemeriksa.map((p, i) => (
+                <div key={i} className="rounded-md border border-gray-200 bg-white p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-gray-600">Pemeriksa {i + 1}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive"
+                      disabled={timPemeriksa.length <= 2}
+                      onClick={() => removePemeriksa(i)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <Input placeholder="Nama" value={p.nama} onChange={e => updatePemeriksa(i, "nama", e.target.value)} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Input placeholder="NIP" value={p.nip} onChange={e => updatePemeriksa(i, "nip", e.target.value)} />
+                    <Input placeholder="Pangkat/Golongan" value={p.pangkat} onChange={e => updatePemeriksa(i, "pangkat", e.target.value)} />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -1242,32 +1491,19 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
               <p><strong>Pejabat Otorisasi:</strong> {namaKadis} (NIP. {nipKadis})</p>
               <p><strong>Tembusan:</strong> {tembusan.filter(t => t.trim()).length} pihak</p>
             </div>
-          </div>
-        )}
 
-        {/* ═══ OFF-SCREEN PDF Containers ═══ */}
-        {step === 4 && (
-          (() => {
-            const pseudoArc: any = {
-              data_otorisasi: { aset_detail: parsedRows },
-              kode_barang_list: parsedKodeBarang,
-              total_nilai: parsedTotalNilai,
-              total_aset: parsedRowCount,
-            };
-            const built = _psBuildLampiranRows(pseudoArc);
-            const totalNilaiDisplay = built.total > 0 ? built.total : parsedTotalNilai;
-            return (
-              <PdfPages id1="pdf-page-1" id2="pdf-page-2" data={{
-                nomorSurat, tglSurat: tglSuratFormatted, tglPen: tglPenelusuranFormatted,
-                nama: namaKadis, nip: nipKadis, jabatan: jabatanKadis,
-                tembusan,
-                headers: built.headers,
-                rows: built.rows,
-                totalNilai: totalNilaiDisplay,
-                nilaiKey: built.nilaiKey,
-              }} tenantSettings={tenantSettings} />
-            );
-          })()
+            <div className="rounded-md border border-blue-200 bg-blue-50 p-3 space-y-2">
+              <p className="text-xs font-medium text-blue-800">Pratinjau Draf Dokumen</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5 bg-white" disabled={previewing !== ""} onClick={() => openDraftPreview("BA")}>
+                  {previewing === "BA" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} Lihat Draf BA
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 bg-white" disabled={previewing !== ""} onClick={() => openDraftPreview("SP")}>
+                  {previewing === "SP" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} Lihat Draf SP
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Navigation */}
@@ -1323,22 +1559,45 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
 function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: () => void; tenantSettings?: any }) {
   const ot = arc.data_otorisasi || {};
   const tmb: string[] = (arc.tembusan || []).filter((t: string) => t?.trim());
-  const tglSurat = arc.tanggal_surat ? new Date(arc.tanggal_surat).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
-  const tglPen = arc.tanggal_penelusuran ? new Date(arc.tanggal_penelusuran).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : tglSurat;
-  const [downloading, setDownloading] = useState(false);
+  const tglSuratRaw = arc.tanggal_surat || "";
+  const tglSurat = tglSuratRaw ? new Date(tglSuratRaw).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—";
+  const [previewing, setPreviewing] = useState<"" | "BA" | "SP">("");
 
   const built = _psBuildLampiranRows(arc);
   const totalNilaiDisplay = built.total > 0 ? built.total : (typeof arc.total_nilai === "number" ? arc.total_nilai : 0);
   const jumlahAsetDisplay =
     (typeof arc.total_aset === "number" && arc.total_aset > 0) ? arc.total_aset : built.rows.length;
 
-  const handleDownload = async () => {
-    setDownloading(true);
+  // Rekonstruksi input generator dari data arsip (fallback ke metadata batch bila perlu).
+  const buildInput = (): DualPdfInput => ({
+    tenantSettings,
+    nomorBA: ot.nomorBA || arc.nomor_surat || "",
+    tanggalBA: ot.tanggalBA || tglSuratRaw,
+    nomorSP: ot.nomorSP || arc.nomor_surat || "",
+    tanggalSP: ot.tanggalSP || tglSuratRaw,
+    assets: Array.isArray(ot.aset_detail) ? ot.aset_detail : built.rows,
+    namaKadis: ot.nama || "",
+    nipKadis: ot.nip || "",
+    jabatanKadis: ot.jabatan || "",
+    timPemeriksa: Array.isArray(ot.tim_pemeriksa) ? ot.tim_pemeriksa : [],
+    tembusan: tmb,
+    tglPenelusuran: arc.tanggal_penelusuran || "",
+  });
+
+  const openDraft = (kind: "BA" | "SP") => {
+    setPreviewing(kind);
     try {
-      await new Promise(r => setTimeout(r, 300));
-      await generatePDF("reprint-page-1", "reprint-page-2", `Surat_${arc.nomor_surat?.replace(/\//g, "-") || "BMD"}.pdf`);
-    } catch (err) { console.error(err); toast.error("Gagal generate PDF."); }
-    finally { setDownloading(false); }
+      const input = buildInput();
+      const blob = kind === "BA" ? generateBeritaAcaraPDF(input) : generateSuratPernyataanPDF(input);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal membuat pratinjau PDF.");
+    } finally {
+      setPreviewing("");
+    }
   };
 
   return (
@@ -1355,23 +1614,15 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: ()
           <p><strong>Total Nilai:</strong> Rp {totalNilaiDisplay.toLocaleString("id-ID")}</p>
           <p><strong>Kepala Dinas:</strong> {ot.nama || "—"} (NIP. {ot.nip || "—"})</p>
         </div>
-        <div className="flex justify-end pt-3 border-t border-border">
-          <Button onClick={handleDownload} disabled={downloading} className="gap-1.5">
-            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {downloading ? "Memproses..." : "Unduh PDF"}
+        <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-border">
+          <Button variant="outline" onClick={() => openDraft("BA")} disabled={previewing !== ""} className="gap-1.5">
+            {previewing === "BA" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />} Lihat Draf BA
+          </Button>
+          <Button variant="outline" onClick={() => openDraft("SP")} disabled={previewing !== ""} className="gap-1.5">
+            {previewing === "SP" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />} Lihat Draf SP
           </Button>
         </div>
       </DialogContent>
-
-      <PdfPages id1="reprint-page-1" id2="reprint-page-2" data={{
-        nomorSurat: arc.nomor_surat || "", tglSurat, tglPen,
-        nama: ot.nama || "", nip: ot.nip || "", jabatan: ot.jabatan || "",
-        tembusan: tmb,
-        headers: built.headers,
-        rows: built.rows,
-        totalNilai: totalNilaiDisplay,
-        nilaiKey: built.nilaiKey,
-      }} tenantSettings={tenantSettings} />
     </Dialog>
   );
 }
