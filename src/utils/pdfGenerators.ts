@@ -417,7 +417,7 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
   const container = document.createElement("div");
   container.style.width = "210mm";
   container.style.minHeight = "297mm";
-  container.style.padding = "15mm 20mm";
+  container.style.padding = "15mm 12mm"; // Disamakan dengan _baMargin (12mm)
   container.style.backgroundColor = "white";
   container.style.fontFamily = "'Times New Roman', Times, serif";
   container.style.color = "black";
@@ -459,11 +459,11 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
   `).join("");
 
   container.innerHTML = `
-    <div style="display: flex; align-items: center; margin-bottom: 2px;">
+    <div style="display: flex; align-items: center; margin-bottom: 2px; width: 100%;">
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
-      <div style="flex: 1; text-align: center; margin-right: 25mm;">
-        <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: 18pt; margin-bottom: 2px;">${st.dinas_name.toUpperCase()}</div>
+      <div style="flex: 1; text-align: center; padding-right: 25mm;">
+        <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: 16pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: 10pt;">${st.dinas_address}</div>
       </div>
     </div>
@@ -473,7 +473,7 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
     <div style="border-bottom: 0.5pt solid black; margin-top: 2px; margin-bottom: 15px;"></div>
 
     <div style="text-align: center; margin-bottom: 20px;">
-      <div style="font-weight: bold; text-decoration: underline; font-size: 13pt;">BERITA ACARA HASIL PENELITIAN/ PEMERIKSAAN FISIK KENDARAAN</div>
+      <div style="font-weight: bold; text-decoration: underline; font-size: 13pt;">BERITA ACARA HASIL PENELITIAN/ PEMERIKSAAN PERALATAN DAN MESIN</div>
       <div style="font-size: 12pt;">Nomor : ${input.nomorBA || "-"}</div>
     </div>
 
@@ -484,11 +484,11 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
     ${timHtml}
 
     <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 15px; font-size: 12pt;">
-      Selaku Pengurus Barang Pengguna dan Pengurus Barang Pembantu pada ${dinasName} Kabupaten Bandung yang ditetapkan berdasarkan Keputusan Bupati Bandung Tanggal 31 Desember 2025 Nomor 000.2.5/KEP.809-BKAD/2025 tentang Penetapan Pengurus Barang Pengguna dan Pengurus Barang Pembantu di Lingkungan Pemerintah Kabupaten Bandung, telah melaksanakan penelitian/pemeriksaan fisik Barang Milik Daerah berupa kendaraan sepeda motor yang tercatat sebagai Barang Milik Daerah pada ${dinasName} Kabupaten Bandung.
+      Selaku Pengurus Barang Pengguna dan Pengurus Barang Pembantu pada ${dinasName} Kabupaten Bandung yang ditetapkan berdasarkan Keputusan Bupati Bandung Tanggal 31 Desember 2025 Nomor 000.2.5/KEP.809-BKAD/2025 tentang Penetapan Pengurus Barang Pengguna dan Pengurus Barang Pembantu di Lingkungan Pemerintah Kabupaten Bandung, telah melaksanakan penelitian/pemeriksaan fisik Barang Milik Daerah berupa peralatan dan mesin yang tercatat sebagai Barang Milik Daerah pada ${dinasName} Kabupaten Bandung.
     </div>
 
     <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 10px; font-size: 12pt;">
-      Adapun hasil penelitian/pemeriksaan fisik terhadap kendaraan dimaksud adalah sebagai berikut:
+      Adapun hasil penelitian/pemeriksaan fisik terhadap peralatan dan mesin dimaksud adalah sebagai berikut:
     </div>
   `;
 
@@ -523,7 +523,7 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
 
   nextY = _baParagraph(
     doc,
-    "       " + `Berdasarkan hasil penelitian/pemeriksaan fisik sebagaimana tersebut di atas, diperoleh hasil bahwa Barang Milik Daerah berupa ${count} (${countWords}) unit kendaraan sepeda motor tersebut dalam kondisi rusak berat dan sudah tidak dapat digunakan secara optimal untuk menunjang pelaksanaan tugas kedinasan.`,
+    "       " + `Berdasarkan hasil penelitian/pemeriksaan fisik sebagaimana tersebut di atas, diperoleh hasil bahwa Barang Milik Daerah berupa ${count} (${countWords}) unit peralatan dan mesin tersebut dalam kondisi rusak berat dan sudah tidak dapat digunakan secara optimal untuk menunjang pelaksanaan tugas kedinasan.`,
     nextY,
     { align: "justify", lineHeight: 1.3 }
   );
@@ -544,8 +544,8 @@ export async function generateBeritaAcaraPDF(input: DualPdfInput): Promise<Blob>
     { align: "justify", lineHeight: 1.3 }
   );
 
-  nextY += 10;
-  if (nextY > 220) { doc.addPage(); nextY = 20; }
+  nextY += 15; // Jarak lebih besar sebelum tanda tangan
+  if (nextY > 210) { doc.addPage(); nextY = 20; }
   
   _baSignLeftTim(doc, nextY, input.timPemeriksa);
   _baSignRight(doc, nextY, dateLine, input.jabatanKadis, input.namaKadis, input.nipKadis, { pangkat: "Pembina Utama Muda, IV/c" });
@@ -564,7 +564,7 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
   const container = document.createElement("div");
   container.style.width = "210mm";
   container.style.minHeight = "297mm";
-  container.style.padding = "15mm 20mm";
+  container.style.padding = "15mm 12mm"; // Disamakan dengan _baMargin (12mm)
   container.style.backgroundColor = "white";
   container.style.fontFamily = "'Times New Roman', Times, serif";
   container.style.color = "black";
@@ -590,11 +590,11 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
     .join("");
 
   container.innerHTML = `
-    <div style="display: flex; align-items: center; margin-bottom: 2px;">
+    <div style="display: flex; align-items: center; margin-bottom: 2px; width: 100%;">
       <img src="/logo-bandung.png" style="width: 25mm; height: auto; margin-right: 15px;" />
-      <div style="flex: 1; text-align: center; margin-right: 25mm;">
-        <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${st.pemda_name.toUpperCase()}</div>
-        <div style="font-weight: bold; font-size: 18pt; margin-bottom: 2px;">${st.dinas_name.toUpperCase()}</div>
+      <div style="flex: 1; text-align: center; padding-right: 25mm;">
+        <div style="font-weight: bold; font-size: 14pt; margin-bottom: 2px; white-space: nowrap;">${st.pemda_name.toUpperCase()}</div>
+        <div style="font-weight: bold; font-size: 16pt; margin-bottom: 2px; white-space: nowrap;">${st.dinas_name.toUpperCase()}</div>
         <div style="font-size: 10pt;">${st.dinas_address}</div>
       </div>
     </div>
@@ -629,7 +629,7 @@ export async function generateSuratPernyataanPDF(input: DualPdfInput): Promise<B
     </table>
 
     <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 15px; font-size: 12pt;">
-      Berdasarkan Berita Acara Hasil Penelitian/ Pemeriksaan Fisik Kendaraan Tanggal ${dateBA} Nomor: ${input.nomorBA || "-"}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukung tugas pokok dan fungsi Perangkat Daerah kami.
+      Berdasarkan Berita Acara Hasil Penelitian/ Pemeriksaan Peralatan dan Mesin Tanggal ${dateBA} Nomor: ${input.nomorBA || "-"}, menyatakan dengan sebenarnya bahwa barang dalam penguasaan kami sebagaimana terlampir sudah rusak berat dan tidak dapat dioperasionalkan kembali dalam pelayanan umum untuk mendukung tugas pokok dan fungsi Perangkat Daerah kami.
     </div>
 
     <div style="text-align: justify; text-indent: 1.27cm; margin-bottom: 15px; font-size: 12pt;">

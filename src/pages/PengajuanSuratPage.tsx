@@ -402,7 +402,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
   const [tglSurat, setTglSurat] = useState(new Date().toISOString().split("T")[0]);
   const [namaKadis, setNamaKadis] = useState("");
   const [nipKadis, setNipKadis] = useState("");
-  const [jabatanKadis, setJabatanKadis] = useState("Kepala Dinas Perumahan, Kawasan Permukiman Dan Pertanahan, selaku Pengguna BMD");
+  const [jabatanKadis, setJabatanKadis] = useState("Badan Keuangan dan Aset Daerah");
 
   // Step 1b: Dokumen Berita Acara (BA) & Surat Pernyataan (SP)
   const [nomorBA, setNomorBA] = useState("");
