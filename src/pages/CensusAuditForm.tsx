@@ -65,7 +65,7 @@ export default function CensusAuditForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, hasRole } = useAuth();
+  const { user } = useAuth();
 
   // Form state
   const [kondisi, setKondisi] = useState("");
@@ -211,18 +211,17 @@ export default function CensusAuditForm() {
       if (insertError) throw insertError;
 
       // ═══════════════════════════════════════════════════════════════════
-      // DUAL-APPROVAL AUTO-BUFFER INJECTION (Super Admin only)
+      // DUAL-APPROVAL AUTO-BUFFER INJECTION (semua role — super_admin & operator)
       //
       // Audit result is stored in asset_audits (Step 1 above — history, always kept).
       // Master asset.kondisi is NEVER directly changed here — enforces dual-approval
       // BKAD required for actual state change.
       //
-      // Namun JIKA audit dilakukan OLEH Super Admin (Pengurus Barang) sendiri:
-      // Hasil sensus dianggap "diverifikasi sendiri" — langsung inject ke Buffer Finalisasi.
-      // Aset muncul di Tab "Finalisasi Rekon" siap di-batch ke BKAD, tanpa lewat anomali.
+      // Temuan sensus ber-kondisi Rusak (Berat/Ringan) langsung di-inject ke Buffer
+      // Finalisasi Rekon dengan status_rekon = draft_pengajuan, sehingga otomatis
+      // muncul di Langkah 2 wizard Pengajuan Surat — tanpa harus lewat tab anomali.
       // ═══════════════════════════════════════════════════════════════════
-      const isSuperAdmin = hasRole("super_admin");
-      if (isSuperAdmin && (kondisi === "Rusak Berat" || kondisi === "Rusak Ringan")) {
+      if (kondisi === "Rusak Berat" || kondisi === "Rusak Ringan") {
         // Map kondisi → rekon_rekomendasi sesuai aturan mutlak
         let rekomendasi = "Usul Perbaikan";
         if (kondisi === "Rusak Berat") rekomendasi = "Pengajuan Perubahan Kondisi";
@@ -263,6 +262,7 @@ export default function CensusAuditForm() {
       queryClient.invalidateQueries({ queryKey: ["assets"] });
       queryClient.invalidateQueries({ queryKey: ["rekon-assets-joined"] });
       queryClient.invalidateQueries({ queryKey: ["rekon-assets-anomaly"] });
+      queryClient.invalidateQueries({ queryKey: ["approved-assets-for-ba"] });
 
       setSubmitted(true);
       toast.success("Audit berhasil disimpan!");
