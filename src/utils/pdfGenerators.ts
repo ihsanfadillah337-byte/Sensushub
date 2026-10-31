@@ -51,7 +51,7 @@ export const DEFAULT_SETTINGS = {
   dinas_address: "Jl. Raya Soreang KM 17 Telp. (022) 5893660 Soreang 40911 Kabupaten Bandung",
   dinas_contact: "",
   font_size_pemda: 14,
-  font_size_dinas: 16,
+  font_size_dinas: 18,
   font_size_address: 10,
   margin_top: 45,
 };
