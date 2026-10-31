@@ -628,14 +628,8 @@ export default function PengajuanSuratPage() {
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []).filter((arc: any) => {
-        const status = String(arc.status || "").trim();
-        // HANYA terima status murni "Disetujui BKAD"
-        // TOLAK keras apapun yang sudah menapak ke ranah Berita Acara / Ditetapkan
-        if (status.includes("Berita Acara")) return false;
-        if (status.includes("Ditetapkan")) return false;
-        return status === "Disetujui BKAD";
-      });
+      // Riwayat penuh: tampilkan seluruh arsip dokumen perusahaan apa adanya
+      return data ?? [];
     },
     enabled: !!companyId,
   });
@@ -669,7 +663,7 @@ export default function PengajuanSuratPage() {
             Penerbitan Berita Acara
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Tetapkan dan cetak dokumen Berita Acara Hasil Akhir untuk aset BMD yang telah disetujui BKAD.
+            Terbitkan Berita Acara & Surat Pernyataan untuk aset BMD pada tahap Finalisasi Rekon (pra-pengajuan ke BKAD).
           </p>
         </div>
         <Button className="gap-2 shrink-0 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium px-3 py-2" onClick={() => setWizardOpen(true)}>
@@ -700,6 +694,7 @@ export default function PengajuanSuratPage() {
                     <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Total Aset</TableHead>
                     <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Total Nilai</TableHead>
                     <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Status</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -723,6 +718,18 @@ export default function PengajuanSuratPage() {
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-right font-semibold">Rp {totalNilai.toLocaleString("id-ID")}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-green-50 text-green-700 border-green-200">{arc.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5 hover:bg-gray-50"
+                            onClick={() => setReprintArc(arc)}
+                            title="Buka dokumen Berita Acara & Surat Pernyataan"
+                          >
+                            <Printer className="h-4 w-4 text-blue-700" />
+                            <span className="text-[12px] font-medium text-blue-700">Cetak Ulang</span>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -844,11 +851,11 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         status_usulan: cd["status_usulan"]
       });
 
-      // 1. Status Rekon: lowercase case-insensitive match
+      // 1. Status Rekon: kolam PRA-PENGAJUAN (finalisasi rekon), BUKAN pasca-verifikasi staf
       //    Fallback chain: Cek kolom utama tabel dulu, lalu ke JSON custom_data
       const rawStatus = a.status_rekon || cd["status_rekon"] || "";
       const statusRekonRaw = String(rawStatus).trim().toLowerCase();
-      if (statusRekonRaw !== "disetujui") return false;
+      if (statusRekonRaw !== "draft_pengajuan") return false;
 
       // 2. Pencegah Duplikasi: Jangan ambil aset yang sudah dicetak BA
       const statusUsulan = String(cd["status_usulan"] || "").trim();
@@ -1331,7 +1338,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <ListChecks className="h-4 w-4 text-blue-700" />
                     <span>
-                      {isFetchingApproved ? "Memuat aset disetujui..." : `${filteredAssets.length} aset siap ditetapkan (status_rekon = disetujui)`}
+                      {isFetchingApproved ? "Memuat aset finalisasi rekon..." : `${filteredAssets.length} aset siap ditetapkan (status_rekon = draft_pengajuan)`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1383,7 +1390,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                         ) : filteredAssets.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={5} className="h-32 text-center text-[13px] text-gray-500">
-                              Belum ada aset dengan status <span className="font-medium">disetujui BKAD</span> untuk KIB ini, atau semua sudah ditetapkan dalam Berita Acara.
+                              Belum ada aset pada tahap <span className="font-medium">Finalisasi Rekon</span> untuk KIB ini, atau semua sudah diterbitkan Berita Acaranya.
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -1444,7 +1451,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
             ) : (
               <div className="rounded-md border border-dashed border-gray-300 p-8 text-center text-[13px] text-gray-500 bg-gray-50">
                 <ListChecks className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                Pilih Jenis KIB terlebih dahulu untuk melihat daftar aset yang telah disetujui BKAD.
+                Pilih Jenis KIB terlebih dahulu untuk melihat daftar aset pada tahap Finalisasi Rekon (pra-pengajuan).
               </div>
             )}
           </div>
