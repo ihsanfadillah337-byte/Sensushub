@@ -74,97 +74,64 @@ export default function Auth() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  // Improved prompt for a professional government/office building
-  const bkadImage = "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=modern%20indonesian%20government%20building%20architecture%20with%20red%20accents%20and%20glass%20windows%20clean%20white%20concrete%20walls%20professional%20office%20exterior%20bright%20daylight%20high%20quality%20photography&image_size=landscape_16_9";
-
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex overflow-hidden">
+    <div className="min-h-screen w-full bg-white flex overflow-hidden font-sans selection:bg-blue-100">
       <div className="w-full flex flex-col md:flex-row h-screen">
         
-        {/* Left Section: Branding & Image */}
-        <div className="relative w-full md:w-[60%] h-[40%] md:h-full overflow-hidden flex flex-col">
-          {/* Background Image */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ 
-              backgroundImage: `url(${bkadImage})`,
-              backgroundColor: '#1e293b' 
-            }}
-          />
-          {/* Dark Overlay for contrast */}
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" />
+        {/* Left Section: Branding & Minimal Aurora */}
+        <div className="relative w-full md:w-[58%] h-[35%] md:h-full overflow-hidden flex flex-col bg-[#F8FAFC]">
+          {/* Subtle architectural background effect */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+          <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-blue-100/30 rounded-full blur-[120px] pointer-events-none animate-pulse" />
           
           {/* Content Wrapper */}
-          <div className="relative h-full p-8 md:p-12 lg:p-16 flex flex-col z-10">
-            {/* Top Branding (Clean text only) */}
-            <div className="flex flex-col">
-              <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-black text-white tracking-tighter uppercase">SIPPA-BMD</h2>
-                <div className="px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/30">
-                  <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest">V1</span>
-                </div>
+          <div className="relative h-full p-12 md:p-24 flex flex-col z-10 text-left">
+            {/* Top Branding */}
+            <div className="flex flex-col mb-32">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-[#1E293B] tracking-tight">SIPPA-BMD</h2>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">V1 PRO</span>
               </div>
-              <span className="text-[10px] font-bold text-white/50 uppercase tracking-[0.3em] mt-1">Kabupaten Bandung</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Pemerintah Kabupaten Bandung</span>
             </div>
 
-            {/* Middle Content: Perfectly Centered */}
-            <div className="flex-1 flex flex-col justify-center items-center text-center">
-              <div className="max-w-2xl px-4">
-                <h1 className="text-5xl md:text-6xl lg:text-8xl font-black text-white leading-[1.05] mb-8 tracking-tighter">
-                  Transformasi <br />
-                  <span className="text-blue-400">Digital</span> Tata Kelola <br />
-                  Aset Daerah
-                </h1>
-                <p className="text-xl md:text-2xl text-white/70 font-medium leading-relaxed max-w-xl mx-auto">
-                  Platform akselerasi rekonsiliasi dan inventarisasi aset daerah berbasis teknologi digital terintegrasi.
-                </p>
-              </div>
+            {/* Middle Content: Clean Typography */}
+            <div className="my-auto max-w-xl space-y-6">
+              <h1 className="text-4xl md:text-5xl lg:text-[56px] font-bold text-[#0F172A] leading-[1.1] tracking-tight">
+                Transformasi Digital <br />
+                Tata Kelola Aset Daerah
+              </h1>
+              <p className="text-base md:text-lg text-slate-500 font-medium leading-relaxed max-w-md">
+                Platform rekonsiliasi, inventarisasi otomatis, dan audit real-time Barang Milik Daerah.
+              </p>
             </div>
 
-            {/* Bottom Left: Badges */}
-            <div className="flex flex-wrap gap-4 mt-auto">
-              <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-5 py-3 rounded-2xl">
-                <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <ShieldCheck className="h-5 w-5 text-blue-300" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-black text-white tracking-tight uppercase">Akuntabel</span>
-                  <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Terintegrasi</span>
-                </div>
+            {/* Bottom Left: Simple Badges */}
+            <div className="flex flex-wrap gap-3 mt-auto">
+              <div className="flex items-center gap-2.5 bg-white border border-slate-100 px-4 py-2.5 rounded-xl shadow-sm">
+                <ShieldCheck className="h-4 w-4 text-blue-500" />
+                <span className="text-xs font-bold text-slate-600">Akuntabel & Terintegrasi</span>
               </div>
-              <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-5 py-3 rounded-2xl">
-                <div className="h-8 w-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                  <QrCode className="h-5 w-5 text-emerald-300" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-black text-white tracking-tight uppercase">QR Code</span>
-                  <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Otomatis</span>
-                </div>
+              <div className="flex items-center gap-2.5 bg-white border border-slate-100 px-4 py-2.5 rounded-xl shadow-sm">
+                <QrCode className="h-4 w-4 text-blue-500" />
+                <span className="text-xs font-bold text-slate-600">QR Code Otomatis</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Section: Login Portal (The "Kotak Portal") */}
-        <div className="w-full md:w-[40%] flex flex-col justify-center items-center bg-slate-50 h-[60%] md:h-full relative px-6 lg:px-12">
-          {/* The Portal Card */}
-          <div className="w-full max-w-[460px] bg-white p-8 md:p-10 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 space-y-8">
-            {/* Header inside card */}
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                </span>
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Portal Akses Resmi</span>
-              </div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Portal SIPPA-BMD</h2>
+        {/* Right Section: Clean Login Portal */}
+        <div className="w-full md:w-[42%] flex flex-col justify-center items-center bg-white h-[65%] md:h-full relative px-10 lg:px-24">
+          <div className="w-full max-w-[400px] space-y-10">
+            {/* Header */}
+            <div className="space-y-2 text-left">
+              <h2 className="text-3xl font-bold text-[#0F172A] tracking-tight">Portal SIPPA-BMD</h2>
               <p className="text-slate-500 font-medium text-sm leading-relaxed">
                 Akses terpadu pengelola aset & tim rekon BKAD Kab. Bandung.
               </p>
@@ -172,8 +139,8 @@ export default function Auth() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="company-name" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Nama Instansi / Perusahaan</Label>
+                <div className="space-y-2 text-left">
+                  <Label htmlFor="company-name" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Nama Instansi / Perusahaan</Label>
                   <div className="relative">
                     <Input
                       id="company-name"
@@ -181,7 +148,7 @@ export default function Auth() {
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       disabled={loading}
-                      className="pl-11 h-14 bg-slate-50 border-slate-200 rounded-2xl focus:ring-blue-500 focus:border-blue-500 transition-all font-bold text-slate-700"
+                      className="pl-11 h-12 bg-white border-slate-200 rounded-xl focus:ring-blue-600 focus:border-blue-600 transition-all font-medium text-slate-700 shadow-none"
                     />
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                       <Mail className="h-4 w-4" />
@@ -190,8 +157,8 @@ export default function Auth() {
                 </div>
               )}
               
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Alamat Surel / NIP</Label>
+              <div className="space-y-2 text-left">
+                <Label htmlFor="email" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Alamat Surel Kedinasan / NIP</Label>
                 <div className="relative">
                   <Input
                     id="email"
@@ -200,7 +167,7 @@ export default function Auth() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    className="pl-11 h-14 bg-slate-50 border-slate-200 rounded-2xl focus:ring-blue-500 focus:border-blue-500 transition-all font-bold text-slate-700 border-2"
+                    className="pl-11 h-12 bg-white border-slate-200 rounded-xl focus:ring-blue-600 focus:border-blue-600 transition-all font-medium text-slate-700 shadow-none"
                   />
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                     <Mail className="h-4 w-4" />
@@ -208,20 +175,20 @@ export default function Auth() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <div className="flex justify-between items-center ml-1">
-                  <Label htmlFor="password" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Kata Sandi</Label>
-                  <button type="button" className="text-[10px] font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest">Lupa Password?</button>
+                  <Label htmlFor="password" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kata Sandi Portal</Label>
+                  <button type="button" className="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors tracking-tight">Lupa Password?</button>
                 </div>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="••••••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="pl-11 pr-11 h-14 bg-slate-50 border-slate-200 rounded-2xl focus:ring-blue-500 focus:border-blue-500 transition-all font-bold text-slate-700 border-2"
+                    className="pl-11 pr-11 h-12 bg-white border-slate-200 rounded-xl focus:ring-blue-600 focus:border-blue-600 transition-all font-medium text-slate-700 shadow-none"
                   />
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                     <Lock className="h-4 w-4" />
@@ -243,39 +210,43 @@ export default function Auth() {
                     id="remember" 
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
                   />
-                  <label htmlFor="remember" className="text-xs font-bold text-slate-500 cursor-pointer select-none tracking-tight">Ingat saya</label>
+                  <label htmlFor="remember" className="text-[11px] font-bold text-slate-500 cursor-pointer select-none">Ingat kredensial di perangkat ini</label>
+                </div>
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-tighter">SSL 256-Bit</span>
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4">
-                <Button type="submit" className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-xl shadow-blue-100 transition-all flex items-center justify-center gap-2 group" disabled={loading}>
+              <div className="space-y-4 pt-2">
+                <Button type="submit" className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-100 transition-all flex items-center justify-center gap-2" disabled={loading}>
                   {loading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
-                      {isLogin ? "Masuk ke Sistem" : "Buat Akun"}
-                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      <span>{isLogin ? "Masuk ke Sistem" : "Buat Akun"}</span>
+                      <ArrowRight className="h-4 w-4" />
                     </>
                   )}
                 </Button>
 
                 <Button 
                   type="button" 
-                  variant="ghost" 
+                  variant="outline" 
                   onClick={() => setIsLogin(!isLogin)}
-                  className="w-full h-14 rounded-2xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                  className="w-full h-12 rounded-xl text-slate-600 font-bold text-sm border-slate-200 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                 >
                   {isLogin ? (
                     <>
                       <UserPlus className="h-4 w-4" />
-                      Belum punya akun? <span className="text-blue-600 ml-1">Daftar</span>
+                      <span>Daftarkan Akun</span>
                     </>
                   ) : (
                     <>
                       <LogIn className="h-4 w-4" />
-                      Sudah punya akun? <span className="text-blue-600 ml-1">Masuk</span>
+                      <span>Sudah punya akun? Masuk</span>
                     </>
                   )}
                 </Button>
@@ -283,8 +254,8 @@ export default function Auth() {
             </form>
 
             {/* Footer Text */}
-            <div className="pt-8 text-center">
-              <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">
+            <div className="pt-10 text-center">
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">
                 &copy; 2026 & 2027 BKAD KABUPATEN BANDUNG • SIPPA-BMD
               </p>
             </div>
