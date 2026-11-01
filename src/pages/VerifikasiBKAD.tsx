@@ -220,7 +220,9 @@ export default function VerifikasiBKAD() {
   // ─────────────────────────────────────────────────────────────────────
   // APPROVE MUTATION — The Final Execution
   //   a. document_archives: status_approval=disetujui, approved_by, approved_at
-  //   b. assets: SET custom_data.Kondisi (master mutate!) + status_rekon=disetujui
+  //   b. assets: SET custom_data.Kondisi + status_rekon=disetujui +
+  //      MUTASI KIB → "04 - Aset Lainnya" (reklasifikasi ekstrakomptabel).
+  //      kode_aset / kode_barang TIDAK PERNAH diubah (aturan akuntansi).
   // ─────────────────────────────────────────────────────────────────────
   const approveMutation = useMutation({
     mutationFn: async (doc: DocumentArchiveRow) => {
@@ -264,6 +266,7 @@ export default function VerifikasiBKAD() {
             .from("assets")
             .update({
               status_rekon: "disetujui",
+              kib: "04 - Aset Lainnya",
               custom_data: cd,
             } as any)
             .eq("id", primaryKey)
@@ -775,7 +778,9 @@ export default function VerifikasiBKAD() {
                     </p>
                     <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
                       <li>Master <code className="bg-muted px-1 rounded">assets.custom_data.Kondisi</code> diubah sesuai rekomendasi usulan.</li>
+                      <li>Aset dimutasi ke <code className="bg-muted px-1 rounded">kib = "04 - Aset Lainnya"</code> (reklasifikasi ekstrakomptabel).</li>
                       <li><code className="bg-muted px-1 rounded">status_rekon</code> ditandai <code className="bg-muted px-1 rounded">disetujui</code>.</li>
+                      <li><code className="bg-muted px-1 rounded">kode_aset</code> tetap tidak berubah.</li>
                       <li>Tindakan ini <strong>tidak dapat dibatalkan</strong>.</li>
                     </ul>
                   </div>
