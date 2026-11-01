@@ -80,71 +80,92 @@ export default function Auth() {
     );
   }
 
-  const bkadImage = "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=modern%20two-story%20government%20building%20with%20beige%20and%20red%20facade%2C%20large%20windows%2C%20some%20trees%20in%20front%2C%20clear%20sky%2C%20professional%20architectural%20photography%2C%20Kabupaten%20Bandung%20office%20style&image_size=landscape_16_9";
+  // Improved prompt for a professional government/office building
+  const bkadImage = "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=modern%20indonesian%20government%20building%20architecture%20with%20red%20accents%20and%20glass%20windows%20clean%20white%20concrete%20walls%20professional%20office%20exterior%20bright%20daylight%20high%20quality%20photography&image_size=landscape_16_9";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f0f2f5] p-4 md:p-8">
-      <div className="w-full max-w-6xl bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[650px] border border-slate-200/50">
+    <div className="min-h-screen w-full bg-slate-50 flex overflow-hidden">
+      <div className="w-full flex flex-col md:flex-row h-screen">
         
         {/* Left Section: Branding & Image */}
-        <div className="relative w-full md:w-1/2 min-h-[400px] md:min-h-full overflow-hidden">
-          {/* Background Image with Gradient Overlay */}
+        <div className="relative w-full md:w-[60%] h-[40%] md:h-full overflow-hidden flex flex-col">
+          {/* Background Image */}
           <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
-            style={{ backgroundImage: `url(${bkadImage})` }}
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ 
+              backgroundImage: `url(${bkadImage})`,
+              backgroundColor: '#1e293b' 
+            }}
           />
-          <div className="absolute inset-0 bg-gradient-to-tr from-white/95 via-white/70 to-white/10" />
+          {/* Dark Overlay for contrast */}
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" />
           
           {/* Content Wrapper */}
-          <div className="relative h-full p-8 md:p-12 flex flex-col">
-            {/* Top Branding */}
-            <div className="flex items-start gap-4 mb-auto">
-              <div className="h-12 w-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-slate-100">
-                <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">S</div>
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-slate-800 tracking-tight">SIPPA-BMD</h2>
-                  <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-wider border border-slate-200">v4.2 PRO</span>
+          <div className="relative h-full p-8 md:p-12 lg:p-16 flex flex-col z-10">
+            {/* Top Branding (Clean text only) */}
+            <div className="flex flex-col">
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-black text-white tracking-tighter uppercase">SIPPA-BMD</h2>
+                <div className="px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/30">
+                  <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest">V1</span>
                 </div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest opacity-80">PEMERINTAH KABUPATEN BANDUNG</p>
               </div>
+              <span className="text-[10px] font-bold text-white/50 uppercase tracking-[0.3em] mt-1">Kabupaten Bandung</span>
             </div>
 
-            {/* Middle Content: Transformasi Digital */}
-            <div className="my-auto max-w-md">
-              <h1 className="text-4xl md:text-5xl font-black text-slate-800 leading-[1.1] mb-6 tracking-tight">
-                Transformasi Digital <span className="text-blue-600">Tata Kelola</span> Aset Daerah
-              </h1>
-              <p className="text-lg text-slate-600 font-medium leading-relaxed mb-8 opacity-90">
-                Platform rekonsiliasi, inventarisasi otomatis, dan audit real-time Barang Milik Daerah.
-              </p>
+            {/* Middle Content: Perfectly Centered */}
+            <div className="flex-1 flex flex-col justify-center items-center text-center">
+              <div className="max-w-2xl px-4">
+                <h1 className="text-5xl md:text-6xl lg:text-8xl font-black text-white leading-[1.05] mb-8 tracking-tighter">
+                  Transformasi <br />
+                  <span className="text-blue-400">Digital</span> Tata Kelola <br />
+                  Aset Daerah
+                </h1>
+                <p className="text-xl md:text-2xl text-white/70 font-medium leading-relaxed max-w-xl mx-auto">
+                  Platform akselerasi rekonsiliasi dan inventarisasi aset daerah berbasis teknologi digital terintegrasi.
+                </p>
+              </div>
             </div>
 
             {/* Bottom Left: Badges */}
-            <div className="flex flex-wrap gap-3 mt-auto">
-              <div className="flex items-center gap-2.5 bg-white/90 backdrop-blur-md border border-white px-4 py-2.5 rounded-2xl shadow-sm">
-                <div className="h-6 w-6 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <ShieldCheck className="h-4 w-4 text-blue-600" />
+            <div className="flex flex-wrap gap-4 mt-auto">
+              <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-5 py-3 rounded-2xl">
+                <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <ShieldCheck className="h-5 w-5 text-blue-300" />
                 </div>
-                <span className="text-xs font-bold text-slate-700">Akuntabel & Terintegrasi</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-white tracking-tight uppercase">Akuntabel</span>
+                  <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Terintegrasi</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2.5 bg-white/90 backdrop-blur-md border border-white px-4 py-2.5 rounded-2xl shadow-sm">
-                <div className="h-6 w-6 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <QrCode className="h-4 w-4 text-emerald-600" />
+              <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-5 py-3 rounded-2xl">
+                <div className="h-8 w-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <QrCode className="h-5 w-5 text-emerald-300" />
                 </div>
-                <span className="text-xs font-bold text-slate-700">QR Code Otomatis</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-white tracking-tight uppercase">QR Code</span>
+                  <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Otomatis</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Section: Form */}
-        <div className="w-full md:w-1/2 p-8 md:p-16 flex flex-col justify-center bg-white">
-          <div className="max-w-md w-full mx-auto space-y-8">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">Portal SIPPA-BMD</h2>
-              <p className="text-slate-500 font-medium text-sm">
+        {/* Right Section: Login Portal (The "Kotak Portal") */}
+        <div className="w-full md:w-[40%] flex flex-col justify-center items-center bg-slate-50 h-[60%] md:h-full relative px-6 lg:px-12">
+          {/* The Portal Card */}
+          <div className="w-full max-w-[460px] bg-white p-8 md:p-10 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 space-y-8">
+            {/* Header inside card */}
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Portal Akses Resmi</span>
+              </div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Portal SIPPA-BMD</h2>
+              <p className="text-slate-500 font-medium text-sm leading-relaxed">
                 Akses terpadu pengelola aset & tim rekon BKAD Kab. Bandung.
               </p>
             </div>
@@ -152,7 +173,7 @@ export default function Auth() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="company-name" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Instansi / Perusahaan</Label>
+                  <Label htmlFor="company-name" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Nama Instansi / Perusahaan</Label>
                   <div className="relative">
                     <Input
                       id="company-name"
@@ -160,17 +181,17 @@ export default function Auth() {
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       disabled={loading}
-                      className="pl-10 h-12 bg-slate-50 border-slate-200 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
+                      className="pl-11 h-14 bg-slate-50 border-slate-200 rounded-2xl focus:ring-blue-500 focus:border-blue-500 transition-all font-bold text-slate-700"
                     />
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                      <Mail className="h-5 w-5" />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <Mail className="h-4 w-4" />
                     </div>
                   </div>
                 </div>
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Alamat Surel Kedinasan / NIP</Label>
+                <Label htmlFor="email" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Alamat Surel / NIP</Label>
                 <div className="relative">
                   <Input
                     id="email"
@@ -179,18 +200,18 @@ export default function Auth() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    className="pl-10 h-12 bg-slate-50 border-slate-200 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
+                    className="pl-11 h-14 bg-slate-50 border-slate-200 rounded-2xl focus:ring-blue-500 focus:border-blue-500 transition-all font-bold text-slate-700 border-2"
                   />
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    <Mail className="h-5 w-5" />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Mail className="h-4 w-4" />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="password" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kata Sandi Portal</Label>
-                  <button type="button" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">Lupa Password?</button>
+                <div className="flex justify-between items-center ml-1">
+                  <Label htmlFor="password" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Kata Sandi</Label>
+                  <button type="button" className="text-[10px] font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest">Lupa Password?</button>
                 </div>
                 <div className="relative">
                   <Input
@@ -200,45 +221,41 @@ export default function Auth() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="pl-10 pr-10 h-12 bg-slate-50 border-slate-200 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
+                    className="pl-11 pr-11 h-14 bg-slate-50 border-slate-200 rounded-2xl focus:ring-blue-500 focus:border-blue-500 transition-all font-bold text-slate-700 border-2"
                   />
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    <Lock className="h-5 w-5" />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Lock className="h-4 w-4" />
                   </div>
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between py-1">
+              <div className="flex items-center justify-between py-1 ml-1">
                 <div className="flex items-center gap-2">
                   <input 
                     type="checkbox" 
                     id="remember" 
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
-                  <label htmlFor="remember" className="text-xs font-bold text-slate-600 cursor-pointer">Ingat kredensial di perangkat ini</label>
-                </div>
-                <div className="flex items-center gap-1.5 text-slate-400">
-                  <Lock className="h-3 w-3" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">SSL 256-Bit</span>
+                  <label htmlFor="remember" className="text-xs font-bold text-slate-500 cursor-pointer select-none tracking-tight">Ingat saya</label>
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2">
-                <Button type="submit" className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 group" disabled={loading}>
+              <div className="space-y-4 pt-4">
+                <Button type="submit" className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-xl shadow-blue-100 transition-all flex items-center justify-center gap-2 group" disabled={loading}>
                   {loading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
-                      {isLogin ? "Masuk ke Sistem" : "Buat Akun Sekarang"}
+                      {isLogin ? "Masuk ke Sistem" : "Buat Akun"}
                       <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
@@ -246,28 +263,29 @@ export default function Auth() {
 
                 <Button 
                   type="button" 
-                  variant="outline" 
+                  variant="ghost" 
                   onClick={() => setIsLogin(!isLogin)}
-                  className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                  className="w-full h-14 rounded-2xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                 >
                   {isLogin ? (
                     <>
                       <UserPlus className="h-4 w-4" />
-                      Daftarkan Akun
+                      Belum punya akun? <span className="text-blue-600 ml-1">Daftar</span>
                     </>
                   ) : (
                     <>
                       <LogIn className="h-4 w-4" />
-                      Kembali ke Login
+                      Sudah punya akun? <span className="text-blue-600 ml-1">Masuk</span>
                     </>
                   )}
                 </Button>
               </div>
             </form>
 
+            {/* Footer Text */}
             <div className="pt-8 text-center">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                &copy; 2024 BKAD KABUPATEN BANDUNG • SIPPA-BMD
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">
+                &copy; 2026 & 2027 BKAD KABUPATEN BANDUNG • SIPPA-BMD
               </p>
             </div>
           </div>
