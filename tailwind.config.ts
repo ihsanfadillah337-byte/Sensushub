@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["'Source Code Pro'", "'Courier New'", "monospace"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
         mono: ["'Source Code Pro'", "'Courier New'", "monospace"],
       },
       colors: {
