@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ImageIcon, MapPin, Building2, Tag, AlertTriangle, PackageX, ShieldAlert, ChevronRight,
-  ClipboardCheck, Eye, Camera, Loader2, X
+  ClipboardCheck, Camera, Loader2, X
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -81,20 +81,6 @@ export default function ScanAsset() {
       return data;
     },
     enabled: !!id,
-  });
-
-  // Check if census is active for the asset's company (must be after asset query)
-  const { data: sensusActive } = useQuery({
-    queryKey: ["sensus-active-scan", asset?.company_id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("sensus_active")
-        .eq("id", asset!.company_id)
-        .maybeSingle();
-      return data?.sensus_active ?? false;
-    },
-    enabled: !!asset?.company_id && !!operatorRole,
   });
 
   // Check if there are open tickets for this asset
@@ -423,7 +409,7 @@ export default function ScanAsset() {
       </div>
 
       {/* Dual-Scan: Operator Banner */}
-      {operatorRole && sensusActive && (
+      {operatorRole && (
         <div className="fixed bottom-16 inset-x-0 px-4 z-20">
           <div className="mx-auto max-w-md">
             <button
@@ -439,23 +425,6 @@ export default function ScanAsset() {
               </div>
               <ChevronRight className="h-5 w-5 opacity-60" />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Dual-Scan: Read-Only mode when census is inactive */}
-      {operatorRole && sensusActive === false && (
-        <div className="fixed bottom-16 inset-x-0 px-4 z-20">
-          <div className="mx-auto max-w-md">
-            <div className="w-full flex items-center gap-3 px-4 py-3 rounded-md bg-muted border border-border">
-              <div className="h-10 w-10 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
-                <Eye className="h-5 w-5 text-warning" />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-sm font-semibold text-foreground">Mode Hanya-Baca</p>
-                <p className="text-xs text-muted-foreground">Periode Sensus sedang tidak aktif.</p>
-              </div>
-            </div>
           </div>
         </div>
       )}

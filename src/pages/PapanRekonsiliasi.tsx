@@ -47,6 +47,7 @@ interface AnomalyItem {
   latestDate: string;
   reporterContact?: string;
   reportId?: string;
+  fotoUrl?: string;
   assetData: any;
 }
 
@@ -73,8 +74,8 @@ export default function PapanRekonsiliasi() {
         .from("assets")
         .select(`
           id, kode_aset, nama_aset, custom_data, kib,
-          asset_reports (id, judul, deskripsi, status, actual_condition, issue_category, reporter_contact, created_at),
-          asset_audits (kondisi, tindak_lanjut, catatan, created_at)
+          asset_reports (id, judul, deskripsi, status, actual_condition, issue_category, reporter_contact, image_url, created_at),
+          asset_audits (kondisi, tindak_lanjut, catatan, foto_url, created_at)
         `)
         .eq("company_id", companyId!)
         .order("kode_aset", { ascending: true });
@@ -142,6 +143,7 @@ export default function PapanRekonsiliasi() {
       let deskripsi = "";
       let latestDate = "";
       let reporterContact: string | undefined;
+      let fotoUrl: string | undefined;
 
       if (hasReport) {
         const latestRep = openReports[0];
@@ -149,6 +151,7 @@ export default function PapanRekonsiliasi() {
         deskripsi = latestRep.judul || latestRep.deskripsi || "";
         latestDate = latestRep.created_at;
         reporterContact = latestRep.reporter_contact || undefined;
+        if (latestRep.image_url) fotoUrl = latestRep.image_url;
       }
 
       if (hasAudit) {
@@ -159,6 +162,7 @@ export default function PapanRekonsiliasi() {
           if (!latestDate || new Date(latestAud.created_at) > new Date(latestDate)) {
             latestDate = latestAud.created_at;
           }
+          if (!fotoUrl && latestAud.foto_url) fotoUrl = latestAud.foto_url;
         } else if (hasArchivedAnomaly) {
           kondisi = masterKondisi || "Anomali";
           if (!deskripsi) deskripsi = cd["catatan_sensus"] || statusUsulan || "Aset anomali (Telah Diarsipkan)";
@@ -186,6 +190,7 @@ export default function PapanRekonsiliasi() {
           latestDate,
           reporterContact,
           reportId: hasReport ? openReports[0].id : undefined,
+          fotoUrl,
           assetData: asset,
         });
         return;
@@ -212,6 +217,7 @@ export default function PapanRekonsiliasi() {
         latestDate,
         reporterContact,
         reportId: hasReport ? openReports[0].id : undefined,
+        fotoUrl,
         assetData: asset,
       });
     });
@@ -1131,6 +1137,36 @@ export default function PapanRekonsiliasi() {
                     </Badge>
                   </div>
                 </div>
+
+                {selectedAnomaly.fotoUrl ? (
+                  <div className="space-y-2">
+                    <Label>Foto Bukti Lapangan</Label>
+                    <a
+                      href={selectedAnomaly.fotoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block group"
+                    >
+                      <img
+                        src={selectedAnomaly.fotoUrl}
+                        alt={`Foto bukti ${selectedAnomaly.namaAset}`}
+                        className="w-full max-h-64 object-cover rounded-md border border-gray-200 transition-opacity group-hover:opacity-90"
+                      />
+                      <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-primary group-hover:underline">
+                        <ExternalLink className="h-3 w-3" />
+                        Buka foto di tab baru untuk detail lebih jelas
+                      </span>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Foto Bukti Lapangan</Label>
+                    <div className="flex items-center justify-center rounded-md border border-dashed border-gray-200 bg-gray-50 py-6 text-xs text-muted-foreground">
+                      Tidak ada foto bukti terlampir.
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Rekomendasi Tindak Lanjut</Label>
                   <Select value={rekomendasi} onValueChange={setRekomendasi}>

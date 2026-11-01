@@ -1,17 +1,15 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
 import {
-  ClipboardCheck, CheckCircle2, XCircle, BarChart3,
-  Search, Package, Clock, ScanLine, Camera, FileText,
-  RotateCcw, AlertTriangle, CalendarDays, Power, ShieldAlert, Archive, Trash2, History
+  ClipboardCheck, Search, Package, ScanLine, Camera, FileText,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,24 +18,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Tabs, TabsContent, TabsList, TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 // ─── Helpers ────────────────────────────────────────────
 function getCd(asset: any): Record<string, unknown> | null {
   return typeof asset.custom_data === "object" && asset.custom_data && !Array.isArray(asset.custom_data)
     ? (asset.custom_data as Record<string, unknown>) : null;
-}
-
-function getTerakhirDiaudit(cd: Record<string, unknown> | null): string | null {
-  if (!cd) return null;
-  const v = cd["Terakhir Diaudit"];
-  return typeof v === "string" && v.length >= 8 ? v : null;
 }
 
 function formatTanggal(iso: string | null): string {
@@ -50,49 +38,13 @@ function formatTanggal(iso: string | null): string {
 // ─── Component ──────────────────────────────────────────
 export default function DashboardCensus() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { companyId } = useAuth();
-  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "belum" | "sudah">("all");
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [togglingCensus, setTogglingCensus] = useState(false);
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [archiveName, setArchiveName] = useState("");
   const scannerRef = useRef<any>(null);
   const scannedRef = useRef(false);
   const scannerContainerId = "qr-reader-census";
-
-  // ─── Sensus Active flag ────────────────────────────────
-  const { data: sensusActive = false } = useQuery({
-    queryKey: ["sensus-active", companyId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("sensus_active")
-        .eq("id", companyId!)
-        .maybeSingle();
-      return data?.sensus_active ?? false;
-    },
-    enabled: !!companyId,
-  });
-
-  const handleToggleCensus = async () => {
-    if (!companyId) return;
-    setTogglingCensus(true);
-    try {
-      const newVal = !sensusActive;
-      const { error } = await supabase.from("companies").update({ sensus_active: newVal }).eq("id", companyId);
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["sensus-active"] });
-      toast.success(newVal ? "Sensus DIAKTIFKAN. Operator kini bisa mengisi form audit." : "Sensus DINONAKTIFKAN. Operator hanya bisa melihat profil aset.");
-    } catch (e: any) {
-      toast.error("Gagal mengubah status sensus: " + e.message);
-    } finally {
-      setTogglingCensus(false);
-    }
-  };
 
   // ─── Data fetching ────────────────────────────────────
   const { data: assets = [], isLoading } = useQuery({
@@ -110,12 +62,12 @@ export default function DashboardCensus() {
   });
 
   // ─── Audit data from asset_audits (source of truth) ───
-  const { data: auditsRaw = [], isLoading: isLoadingAudits } = useQuery({
+  const { data: auditsRaw = [] } = useQuery({
     queryKey: ["census-audits", companyId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("asset_audits")
-        .select("id, asset_id, kondisi, tindak_lanjut, catatan, created_at")
+        .select("id, asset_id, kondisi, tindak_lanjut, catatan, kesesuaian_kib, rekomendasi_auditor, lokasi_aktual, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -125,37 +77,15 @@ export default function DashboardCensus() {
 
   // Build a map: asset_id → latest audit record
   const auditMap = useMemo(() => {
-    const map = new Map<string, { kondisi: string; tindak_lanjut: string; catatan: string | null; created_at: string }>();
+    const map = new Map<string, typeof auditsRaw[number]>();
     // Filter only audits for assets in this company
     const companyAssetIds = new Set(assets.map(a => a.id));
     auditsRaw.forEach((audit) => {
       if (!companyAssetIds.has(audit.asset_id)) return;
-      if (!map.has(audit.asset_id)) {
-        map.set(audit.asset_id, {
-          kondisi: audit.kondisi,
-          tindak_lanjut: audit.tindak_lanjut,
-          catatan: audit.catatan,
-          created_at: audit.created_at,
-        });
-      }
+      if (!map.has(audit.asset_id)) map.set(audit.asset_id, audit);
     });
     return map;
   }, [auditsRaw, assets]);
-
-  // ─── Sensus Archives (historical data) ─────────────────
-  const { data: archives = [] } = useQuery({
-    queryKey: ["sensus-archives", companyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sensus_archives")
-        .select("*")
-        .eq("company_id", companyId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!companyId,
-  });
 
   // ─── QR Scanner ───────────────────────────────────────
   const stopScanner = useCallback(async () => {
@@ -213,33 +143,6 @@ export default function DashboardCensus() {
     return () => { stopScanner(); };
   }, [scannerOpen, startScanner, stopScanner]);
 
-  // ─── Census statistics (based on DISTINCT asset_id in asset_audits) ───
-  const stats = useMemo(() => {
-    const total = assets.length;
-    let baik = 0, rusakRingan = 0, rusakBerat = 0;
-    const auditDates: string[] = [];
-
-    // Count by latest audit kondisi from auditMap
-    auditMap.forEach((audit) => {
-      auditDates.push(audit.created_at);
-      const k = audit.kondisi;
-      if (k === "Baik") baik++;
-      else if (k === "Rusak Ringan") rusakRingan++;
-      else if (k === "Rusak Berat" || k === "Dalam Perbaikan") rusakBerat++;
-    });
-
-    const audited = auditMap.size;
-    const belumDicek = total - audited;
-    const progress = total > 0 ? Math.round((audited / total) * 100) : 0;
-
-    // Periode: earliest and latest audit dates
-    auditDates.sort();
-    const periodeAwal = auditDates.length > 0 ? auditDates[0] : null;
-    const periodeAkhir = auditDates.length > 0 ? auditDates[auditDates.length - 1] : null;
-
-    return { total, baik, rusakRingan, rusakBerat, belumDicek, audited, progress, periodeAwal, periodeAkhir };
-  }, [assets, auditMap]);
-
   // ─── Filtered list ────────────────────────────────────
   const filteredAssets = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -253,171 +156,6 @@ export default function DashboardCensus() {
       return true;
     });
   }, [assets, searchQuery, statusFilter, auditMap]);
-
-  // ─── Archive & Reset Sensus ────────────────────────────
-  const handleArchiveAndReset = async () => {
-    if (!companyId || !archiveName.trim()) return;
-    setResetting(true);
-    try {
-      const assetIds = assets.map(a => a.id);
-
-      // Step A: Build audit snapshot from raw data
-      const companyAudits = auditsRaw.filter(a => assetIds.includes(a.asset_id));
-      const auditSnapshot = companyAudits.map(a => {
-        const asset = assets.find(x => x.id === a.asset_id);
-        const cd = getCd(asset) || {};
-        let nilaiRaw: any = asset?.nilai_perolehan || asset?.harga;
-        if (nilaiRaw === undefined || nilaiRaw === null || nilaiRaw === "") {
-          const cdKeys = Object.keys(cd);
-          const matchKey = cdKeys.find(k => {
-            const lower = k.toLowerCase();
-            return lower.includes("nilai") || lower.includes("harga");
-          });
-          if (matchKey) {
-            nilaiRaw = cd[matchKey];
-          }
-        }
-        return {
-          asset_id: a.asset_id,
-          kode_aset: asset?.kode_aset,
-          nama_aset: asset?.nama_aset,
-          kondisi: a.kondisi,
-          tindak_lanjut: a.tindak_lanjut,
-          kesesuaian_kib: a.kesesuaian_kib,
-          lokasi_aktual: a.lokasi_aktual,
-          rekomendasi_auditor: a.rekomendasi_auditor,
-          catatan: a.catatan,
-          nilai_perolehan: nilaiRaw,
-          created_at: a.created_at,
-        };
-      });
-
-      // Step B: INSERT archive record
-      const { error: archiveErr } = await supabase
-        .from("sensus_archives")
-        .insert({
-          company_id: companyId,
-          period_name: archiveName.trim(),
-          start_date: stats.periodeAwal,
-          end_date: stats.periodeAkhir,
-          total_assets: stats.total,
-          total_audited: stats.audited,
-          total_baik: stats.baik,
-          total_rusak_ringan: stats.rusakRingan,
-          total_rusak_berat: stats.rusakBerat,
-          audit_snapshot: auditSnapshot as any,
-        });
-      if (archiveErr) throw archiveErr;
-
-      // Step B.5: Persist Anomaly Metadata & Auto-Buffer Injection (DUAL-APPROVAL COMPLIANT)
-      // ──────────────────────────────────────────────────────────────────────────────────
-      // DUAL-APPROVAL RULE: Master asset Kondisi (assets.custom_data.Kondisi) TIDAK BOLEH
-      // di-overwrite langsung dari hasil sensus — hanya boleh berubah setelah disetujui BKAD.
-      //
-      // Yang DILAKUKAN pada step ini:
-      // 1. Tetap simpan metadata non-state: lokasi_aktual, kesesuaian_kib, catatan_sensus,
-      //    status_usulan (legacy tracking field, tidak mempengaruhi master kondisi)
-      // 2. JIKA audit hasilnya RUSAK (Berat/Ringan): INJECT BUFFER STATE (draft_pengajuan)
-      //    agar otomatis masuk Tab "Finalisasi Rekon" siap di-batch ke BKAD.
-      // 3. JIKA audit hasilnya BAIK: TIDAK suntik buffer (normal flow).
-      // ──────────────────────────────────────────────────────────────────────────────────
-      const anomalousAudits = companyAudits.filter(a => 
-        a.kondisi === "Rusak Berat" || 
-        a.kondisi === "Rusak Ringan" || 
-        a.kondisi === "Dalam Perbaikan" ||
-        a.kondisi === "Tidak Ditemukan" ||
-        a.tindak_lanjut === "Usul Perbaikan" ||
-        a.tindak_lanjut === "Pengajuan Perubahan Kondisi (Rusak Berat)" ||
-        a.tindak_lanjut === "Perbaikan" ||
-        a.tindak_lanjut === "Mutasi" ||
-        a.tindak_lanjut === "Usul Hapus" ||
-        a.rekomendasi_auditor === "Usul Perbaikan" ||
-        a.rekomendasi_auditor === "Pengajuan Perubahan Kondisi (Rusak Berat)" ||
-        a.kesesuaian_kib === "Tidak Sesuai"
-      );
-      
-      console.log(`[Archive] Persisting ${anomalousAudits.length} anomalies metadata + buffer injection...`);
-      for (const a of anomalousAudits) {
-        const asset = assets.find(x => x.id === a.asset_id);
-        if (!asset) continue;
-        const cd = getCd(asset) || {};
-
-        // ✅ Metadata non-state TETAP disimpan (bukan perubahan status kondisional)
-        const newCd: Record<string, unknown> = {
-          ...cd,
-          // ❌ "Kondisi": a.kondisi  —  DIHAPUS: DILARANG overwrite master Kondisi sebelum BKAD approve
-          "status_usulan": a.tindak_lanjut || a.rekomendasi_auditor || cd.status_usulan,
-          "lokasi_aktual": a.lokasi_aktual || cd.lokasi_aktual,
-          "kesesuaian_kib": a.kesesuaian_kib || cd.kesesuaian_kib,
-          "catatan_sensus": a.catatan || cd.catatan_sensus,
-        };
-
-        // ═══════════════════════════════════════════════════════════════════
-        // AUTO-BUFFER INJECTION (sesuai hasil sensus kondisi)
-        // ═══════════════════════════════════════════════════════════════════
-        if (a.kondisi === "Rusak Berat" || a.kondisi === "Rusak Ringan") {
-          // Skip jika aset SUDAH pernah diajukan (menunggu_bkad / disetujui)
-          const currentRekon = String(cd["status_rekon"] || "");
-          if (currentRekon === "menunggu_bkad" || currentRekon === "disetujui") continue;
-
-          newCd["status_rekon"] = "draft_pengajuan";
-          newCd["rekon_rekomendasi"] = a.kondisi === "Rusak Berat"
-            ? "Pengajuan Perubahan Kondisi"
-            : "Usul Perbaikan";
-          newCd["rekon_tanggal"] = new Date().toISOString();
-        }
-
-        const { error: updErr } = await supabase.from("assets").update({ custom_data: newCd }).eq("id", a.asset_id);
-        if (updErr) {
-          console.error(`[Archive] Failed to persist metadata for asset ${a.asset_id}:`, updErr);
-        }
-      }
-
-      // Step C: DELETE all audit records (robust: fetch IDs first, then delete by ID)
-      const auditIdsToDelete = companyAudits.map(a => a.id);
-      console.log(`[Archive] Deleting ${auditIdsToDelete.length} audit records...`);
-
-      if (auditIdsToDelete.length > 0) {
-        // Batch delete in chunks of 100 to avoid URL length limits
-        const chunkSize = 100;
-        for (let i = 0; i < auditIdsToDelete.length; i += chunkSize) {
-          const chunk = auditIdsToDelete.slice(i, i + chunkSize);
-          const { error: deleteErr, count } = await supabase
-            .from("asset_audits")
-            .delete({ count: "exact" })
-            .in("id", chunk);
-
-          if (deleteErr) {
-            console.error(`[Archive] DELETE chunk ${i}-${i + chunk.length} failed:`, deleteErr);
-            throw new Error(`Gagal menghapus data audit (batch ${Math.floor(i / chunkSize) + 1}): ${deleteErr.message}`);
-          }
-          console.log(`[Archive] Deleted chunk ${i}-${i + chunk.length}, count: ${count}`);
-        }
-      }
-
-      // Step D: Refresh all queries
-      queryClient.invalidateQueries({ queryKey: ["census-audits"] });
-      queryClient.invalidateQueries({ queryKey: ["census-assets"] });
-      queryClient.invalidateQueries({ queryKey: ["sensus-archives"] });
-      queryClient.invalidateQueries({ queryKey: ["assets"] });
-
-      // Deactivate census
-      await supabase.from("companies").update({ sensus_active: false }).eq("id", companyId);
-      queryClient.invalidateQueries({ queryKey: ["sensus-active"] });
-
-      toast.success(`Sensus "${archiveName.trim()}" berhasil diarsipkan. Progres kembali ke 0%.`);
-      setArchiveOpen(false);
-      setArchiveName("");
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Gagal mengarsipkan sensus: " + (err.message || "Coba lagi."));
-    } finally {
-      setResetting(false);
-    }
-  };
-
-
-
 
   const handleExportArchiveExcel = () => {
     const exportData = filteredAssets.filter((a) => auditMap.has(a.id));
@@ -434,8 +172,8 @@ export default function DashboardCensus() {
       const audit = auditMap.get(asset.id);
 
       // Sapu Jagat pencarian Nilai Perolehan / Harga
-      let nilaiRaw: any = asset.nilai_perolehan || asset.harga;
-      
+      let nilaiRaw: any = (asset as any).nilai_perolehan || (asset as any).harga;
+
       if (nilaiRaw === undefined || nilaiRaw === null || nilaiRaw === "") {
         const cdKeys = Object.keys(cd);
         const matchKey = cdKeys.find(k => {
@@ -449,7 +187,7 @@ export default function DashboardCensus() {
 
       let num = 0;
       if (nilaiRaw !== undefined && nilaiRaw !== null && nilaiRaw !== "") {
-        let strVal = String(nilaiRaw).split(",")[0];
+        const strVal = String(nilaiRaw).split(",")[0];
         const parsed = Number(strVal.replace(/[^0-9]/g, ""));
         if (!isNaN(parsed)) {
           num = parsed;
@@ -461,7 +199,7 @@ export default function DashboardCensus() {
 
       let tglPelaksanaan = "—";
       let waktu = "—";
-      const createdAt = audit?.waktu_sensus || audit?.created_at;
+      const createdAt = audit?.created_at;
       if (createdAt) {
         const d = new Date(createdAt);
         tglPelaksanaan = d.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -496,7 +234,7 @@ export default function DashboardCensus() {
       "Catatan / Keterangan": "",
       "Nilai Perolehan": totalNilai > 0 ? totalNilai.toLocaleString("id-ID") : "0",
     };
-    
+
     rows.push(totalRow as any);
 
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -517,97 +255,11 @@ export default function DashboardCensus() {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Arsip Sensus");
-    
+
     const dateStr = new Date().toISOString().split("T")[0];
     XLSX.writeFile(wb, `Arsip_Sensus_Excel_${dateStr}.xlsx`);
   };
 
-  const exportSpecificArchive = (arc: any) => {
-    const snapshots = arc.audit_snapshot || [];
-    if (snapshots.length === 0) {
-      toast.info("Tidak ada data audit di dalam arsip ini.");
-      return;
-    }
-
-    let totalNilai = 0;
-
-    const rows = snapshots.map((audit: any, index: number) => {
-      let num = 0;
-      let nilaiRaw = audit.nilai_perolehan;
-      if (nilaiRaw !== undefined && nilaiRaw !== null && nilaiRaw !== "") {
-        let strVal = String(nilaiRaw).split(",")[0];
-        const parsed = Number(strVal.replace(/[^0-9]/g, ""));
-        if (!isNaN(parsed)) {
-          num = parsed;
-        }
-      }
-
-      totalNilai += num;
-      const nilaiFormatted = num === 0 ? "0" : num.toLocaleString("id-ID");
-
-      let tglPelaksanaan = "—";
-      let waktu = "—";
-      const createdAt = audit.waktu_sensus || audit.created_at;
-      if (createdAt) {
-        const d = new Date(createdAt);
-        tglPelaksanaan = d.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
-        waktu = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(":", ".");
-      }
-
-      return {
-        "No": index + 1,
-        "Tgl Pelaksanaan": tglPelaksanaan,
-        "Waktu": waktu,
-        "Kode Barang": audit.kode_aset || "—",
-        "Nama Barang": audit.nama_aset || "—",
-        "Lokasi Aktual": audit.lokasi_aktual || "—",
-        "Kondisi": audit.kondisi || "—",
-        "Kesesuaian KIB": audit.kesesuaian_kib || "—",
-        "Rekomendasi": audit.rekomendasi_auditor || audit.tindak_lanjut || "—",
-        "Catatan / Keterangan": audit.catatan || "—",
-        "Nilai Perolehan": nilaiFormatted,
-      };
-    });
-
-    const totalRow = {
-      "No": "",
-      "Tgl Pelaksanaan": "",
-      "Waktu": "",
-      "Kode Barang": "",
-      "Nama Barang": "TOTAL KESELURUHAN",
-      "Lokasi Aktual": "",
-      "Kondisi": "",
-      "Kesesuaian KIB": "",
-      "Rekomendasi": "",
-      "Catatan / Keterangan": "",
-      "Nilai Perolehan": totalNilai > 0 ? totalNilai.toLocaleString("id-ID") : "0",
-    };
-    
-    rows.push(totalRow as any);
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-
-    ws["!cols"] = [
-      { wch: 5 },  // No
-      { wch: 15 }, // Tgl Pelaksanaan
-      { wch: 10 }, // Waktu
-      { wch: 20 }, // Kode Barang
-      { wch: 35 }, // Nama Barang
-      { wch: 25 }, // Lokasi Aktual
-      { wch: 15 }, // Kondisi
-      { wch: 15 }, // Kesesuaian KIB
-      { wch: 25 }, // Rekomendasi
-      { wch: 40 }, // Catatan
-      { wch: 20 }, // Nilai Perolehan
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Arsip Sensus");
-    
-    XLSX.writeFile(wb, `Arsip_${arc.period_name}_Excel.xlsx`);
-  };
-
-  // ─── Helpers ──────────────────────────────────────────
   function assetLocation(a: typeof assets[0]) {
     return getSmartLocation(getCd(a), a.kode_divisi);
   }
@@ -623,58 +275,9 @@ export default function DashboardCensus() {
     return formatTanggal(audit?.created_at ?? null);
   }
 
-  const metricCards = [
-    { title: "Total Aset", value: stats.total, icon: Package, color: "text-primary", bgColor: "bg-primary/10" },
-    { title: "Sudah Diaudit", value: stats.audited, icon: CheckCircle2, color: "text-chart-3", bgColor: "bg-chart-3/10" },
-    { title: "Belum Dicek", value: stats.belumDicek, icon: Clock, color: "text-warning", bgColor: "bg-warning/10" },
-    { title: "Rusak Berat", value: stats.rusakBerat, icon: XCircle, color: "text-destructive", bgColor: "bg-destructive/10" },
-  ];
-
   // ─── Render ───────────────────────────────────────────
   return (
     <div className="space-y-6">
-      {/* Sensus Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <Badge className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${sensusActive ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}>
-            {sensusActive ? "SENSUS AKTIF" : "SENSUS NONAKTIF"}
-          </Badge>
-          <div className="flex items-center gap-1.5">
-            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <p className="text-xs text-muted-foreground truncate">
-              {stats.periodeAwal
-                ? `${formatTanggal(stats.periodeAwal)} s/d ${formatTanggal(stats.periodeAkhir)}`
-                : "Belum dimulai"}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 self-start">
-          {/* State Machine: Show one button based on sensus status */}
-          {!sensusActive ? (
-            <Button
-              className="gap-2 animate-pulse"
-              size="sm"
-              onClick={handleToggleCensus}
-              disabled={togglingCensus}
-            >
-              <Power className="h-4 w-4" />
-              Aktifkan Sensus
-            </Button>
-          ) : (
-            <Button
-              className="gap-2"
-              size="sm"
-              variant="destructive"
-              disabled={resetting || stats.audited === 0}
-              onClick={() => setArchiveOpen(true)}
-            >
-              <Archive className="h-4 w-4" />
-              Tutup & Arsipkan
-            </Button>
-          )}
-        </div>
-      </div>
-
       {/* QR Scanner Dialog */}
       <Dialog open={scannerOpen} onOpenChange={(open) => { if (!open) { stopScanner(); setScannerOpen(false); } }}>
         <DialogContent className="max-w-sm">
@@ -693,342 +296,125 @@ export default function DashboardCensus() {
         </DialogContent>
       </Dialog>
 
-      {/* Tabs */}
-      <Tabs value={searchParams.get("sub") === "list" ? "list" : "overview"} onValueChange={(val) => setSearchParams(prev => { prev.set("sub", val); return prev; })} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="overview" className="gap-1.5">
-            <BarChart3 className="h-4 w-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="list" className="gap-1.5">
-            <ScanLine className="h-4 w-4" />
-            Daftar Aset
-          </TabsTrigger>
-        </TabsList>
+      {/* Mulai Audit Lapangan */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="h-12 w-12 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
+            <ScanLine className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-foreground">Mulai Audit Lapangan</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Tekan "Scan Sekarang" atau pilih aset dari daftar di bawah untuk mulai mengaudit.
+            </p>
+          </div>
+          <Button className="gap-1.5 shrink-0" onClick={() => setScannerOpen(true)}>
+            <Camera className="h-4 w-4" />
+            Scan Sekarang
+          </Button>
+        </CardContent>
+      </Card>
 
-        {/* ========== TAB 1: OVERVIEW ========== */}
-        <TabsContent value="overview" className="mt-6 space-y-6">
-          {isLoading || isLoadingAudits ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-md" />)}
+      {/* Daftar Aset */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari kode atau nama aset…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-0.5 self-start">
+            {[
+              { key: "all" as const, label: "Semua" },
+              { key: "belum" as const, label: "Belum Dicek" },
+              { key: "sudah" as const, label: "Sudah Diaudit" },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setStatusFilter(opt.key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  statusFilter === opt.key
+                    ? "bg-white text-gray-900"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            className="gap-2 self-start border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50"
+            onClick={handleExportArchiveExcel}
+          >
+            <FileText className="h-4 w-4 text-primary" />
+            Export Arsip (Excel)
+          </Button>
+        </div>
+
+        <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
+          {isLoading ? (
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
+          ) : filteredAssets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Package className="h-10 w-10 mb-3 opacity-40" />
+              <p className="text-sm font-medium">Tidak ada aset ditemukan</p>
             </div>
           ) : (
-            <>
-              {/* Metric Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {metricCards.map((m) => (
-                  <Card key={m.title} className="bg-white border border-gray-200 rounded-md">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className={`h-9 w-9 rounded-lg ${m.bgColor} flex items-center justify-center`}>
-                          <m.icon className={`h-4.5 w-4.5 ${m.color}`} />
-                        </div>
-                      </div>
-                      <p className="text-2xl font-bold text-foreground">{m.value}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{m.title}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Progress Bar */}
-              <Card className="bg-white border border-gray-200 rounded-md">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold">Progres Sensus</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {stats.audited} dari {stats.total} aset sudah punya catatan audit
-                    </span>
-                    <span className="font-bold text-foreground">{stats.progress}%</span>
-                  </div>
-                  <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-primary to-chart-3 rounded-full transition-all duration-700 ease-out"
-                      style={{ width: `${stats.progress}%` }}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-chart-3" />
-                      <span className="text-xs text-muted-foreground">Baik: <strong className="text-foreground">{stats.baik}</strong></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-warning" />
-                      <span className="text-xs text-muted-foreground">Rusak Ringan: <strong className="text-foreground">{stats.rusakRingan}</strong></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-destructive" />
-                      <span className="text-xs text-muted-foreground">Rusak Berat: <strong className="text-foreground">{stats.rusakBerat}</strong></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-muted-foreground/30" />
-                      <span className="text-xs text-muted-foreground">Belum Dicek: <strong className="text-foreground">{stats.belumDicek}</strong></span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Action */}
-              {sensusActive ? (
-                <Card className="border-primary/20 bg-primary/5">
-                  <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <div className="h-12 w-12 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
-                      <ScanLine className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-foreground">Mulai Audit Lapangan</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Tekan "Scan QR" atau pilih aset dari tab "Daftar Aset" untuk mulai mengaudit.
-                      </p>
-                    </div>
-                    <Button className="gap-1.5 shrink-0" onClick={() => setScannerOpen(true)}>
-                      <Camera className="h-4 w-4" />
-                      Scan Sekarang
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border-warning/30 bg-warning/5">
-                  <CardContent className="p-5 flex items-start gap-3">
-                    <ShieldAlert className="h-5 w-5 text-warning mt-0.5 shrink-0" />
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground">Sensus Tidak Aktif</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Tekan tombol "Aktifkan Sensus" di atas untuk membuka akses Form Audit bagi para Operator lapangan. Selama nonaktif, scan QR hanya menampilkan profil aset tanpa form input.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Archive History */}
-              {archives.length > 0 && (
-                <Card className="bg-white border border-gray-200 rounded-md">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
-                      <History className="h-4 w-4 text-muted-foreground" />
-                      Riwayat Sensus Sebelumnya
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="hover:bg-transparent">
-                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Periode</TableHead>
-                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tanggal</TableHead>
-                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Aset</TableHead>
-                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Diaudit</TableHead>
-                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center hidden sm:table-cell">Baik</TableHead>
-                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center hidden sm:table-cell">Rusak</TableHead>
-                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">%</TableHead>
-                            <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {archives.map((arc) => {
-                            const pct = arc.total_assets > 0 ? Math.round((arc.total_audited / arc.total_assets) * 100) : 0;
-                            return (
-                              <TableRow key={arc.id} className="hover:bg-gray-50">
-                                <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 font-medium">{arc.period_name}</TableCell>
-                                <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-500 whitespace-nowrap">
-                                  {arc.start_date ? formatTanggal(arc.start_date) : "—"}
-                                  {" s/d "}
-                                  {arc.end_date ? formatTanggal(arc.end_date) : "—"}
-                                </TableCell>
-                                <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center">{arc.total_assets}</TableCell>
-                                <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center font-medium">{arc.total_audited}</TableCell>
-                                <TableCell className="py-1.5 px-2.5 text-[13px] text-chart-3 text-center hidden sm:table-cell">{arc.total_baik}</TableCell>
-                                <TableCell className="py-1.5 px-2.5 text-[13px] text-destructive text-center hidden sm:table-cell">{arc.total_rusak_ringan + arc.total_rusak_berat}</TableCell>
-                                <TableCell className="py-1.5 px-2.5 text-center">
-                                  <Badge variant="outline" className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${pct === 100 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                    {pct}%
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="py-1.5 px-2.5 text-right">
-                                  <Button variant="ghost" size="sm" onClick={() => exportSpecificArchive(arc)} title="Unduh Excel">
-                                    <FileText className="h-4 w-4 text-primary" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kode Aset</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Nama Aset</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden md:table-cell">Lokasi</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kondisi</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Terakhir Cek</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAssets.map((asset) => {
+                    const kondisiStyle = assetKondisi(asset);
+                    const tglCek = assetTerakhirDiaudit(asset);
+                    return (
+                      <TableRow key={asset.id} className="hover:bg-gray-50">
+                        <TableCell className="py-1.5 px-2.5 text-[13px] font-mono font-medium text-gray-800 max-w-[90px] sm:max-w-none truncate">{asset.kode_aset}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 max-w-[120px] sm:max-w-none truncate">{asset.nama_aset}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-500 hidden md:table-cell truncate max-w-[140px]">{assetLocation(asset)}</TableCell>
+                        <TableCell className="py-1.5 px-2.5">
+                          <Badge className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${kondisiStyle.bg} ${kondisiStyle.color} ${kondisiStyle.border}`}>
+                            {kondisiStyle.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-500 hidden sm:table-cell">{tglCek}</TableCell>
+                        <TableCell className="py-1.5 px-2.5 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 rounded-md text-xs"
+                            onClick={() => navigate(`/dashboard/census/audit/${asset.id}`)}
+                          >
+                            <ClipboardCheck className="h-3.5 w-3.5" />
+                            Audit
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
-        </TabsContent>
-
-        {/* ========== TAB 2: DAFTAR ASET ========== */}
-        <TabsContent value="list" className="mt-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari kode atau nama aset…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-0.5 self-start">
-              {[
-                { key: "all" as const, label: "Semua" },
-                { key: "belum" as const, label: "Belum Dicek" },
-                { key: "sudah" as const, label: "Sudah Diaudit" },
-              ].map((opt) => (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => setStatusFilter(opt.key)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    statusFilter === opt.key
-                      ? "bg-white text-gray-900"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <Button
-              variant="outline"
-              className="gap-2 self-start border border-gray-300 bg-white text-gray-700 rounded-md text-xs hover:bg-gray-50"
-              onClick={handleExportArchiveExcel}
-            >
-              <FileText className="h-4 w-4 text-primary" />
-              Export Arsip (Excel)
-            </Button>
-          </div>
-
-          <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
-            {isLoading ? (
-              <div className="p-6 space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-              </div>
-            ) : filteredAssets.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <Package className="h-10 w-10 mb-3 opacity-40" />
-                <p className="text-sm font-medium">Tidak ada aset ditemukan</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kode Aset</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Nama Aset</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden md:table-cell">Lokasi</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kondisi</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Terakhir Cek</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAssets.map((asset) => {
-                      const kondisiStyle = assetKondisi(asset);
-                      const tglCek = assetTerakhirDiaudit(asset);
-                      return (
-                        <TableRow key={asset.id} className="hover:bg-gray-50">
-                          <TableCell className="py-1.5 px-2.5 text-[13px] font-mono font-medium text-gray-800 max-w-[90px] sm:max-w-none truncate">{asset.kode_aset}</TableCell>
-                          <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 max-w-[120px] sm:max-w-none truncate">{asset.nama_aset}</TableCell>
-                          <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-500 hidden md:table-cell truncate max-w-[140px]">{assetLocation(asset)}</TableCell>
-                          <TableCell className="py-1.5 px-2.5">
-                            <Badge className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${kondisiStyle.bg} ${kondisiStyle.color} ${kondisiStyle.border}`}>
-                              {kondisiStyle.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-500 hidden sm:table-cell">{tglCek}</TableCell>
-                          <TableCell className="py-1.5 px-2.5 text-right">
-                            <Button
-                              size="sm"
-                              variant={sensusActive ? "outline" : "ghost"}
-                              className="gap-1.5 rounded-md text-xs"
-                              disabled={!sensusActive}
-                              onClick={() => navigate(`/dashboard/census/audit/${asset.id}`)}
-                            >
-                              <ClipboardCheck className="h-3.5 w-3.5" />
-                              {sensusActive ? "Audit" : "Nonaktif"}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Archive & Reset Dialog */}
-      <Dialog open={archiveOpen} onOpenChange={(open) => !open && setArchiveOpen(false)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Archive className="h-5 w-5 text-primary" />
-              Tutup & Arsipkan Sensus
-            </DialogTitle>
-            <DialogDescription>
-              Data sensus saat ini ({stats.audited} aset diaudit dari {stats.total}) akan disimpan sebagai arsip historis, lalu progres direset ke 0%.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="archive-name">Nama Periode Sensus <span className="text-destructive">*</span></Label>
-              <Input
-                id="archive-name"
-                placeholder='Contoh: "Sensus Semester 1 2026"'
-                value={archiveName}
-                onChange={(e) => setArchiveName(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rangkuman Yang Akan Diarsipkan</p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                <span className="text-muted-foreground">Total Aset</span>
-                <span className="font-medium text-foreground">{stats.total}</span>
-                <span className="text-muted-foreground">Sudah Diaudit</span>
-                <span className="font-medium text-foreground">{stats.audited}</span>
-                <span className="text-muted-foreground">Baik</span>
-                <span className="font-medium text-chart-3">{stats.baik}</span>
-                <span className="text-muted-foreground">Rusak Ringan</span>
-                <span className="font-medium text-warning">{stats.rusakRingan}</span>
-                <span className="text-muted-foreground">Rusak Berat</span>
-                <span className="font-medium text-destructive">{stats.rusakBerat}</span>
-              </div>
-            </div>
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-              <p className="text-xs text-destructive">
-                Setelah diarsipkan, seluruh data audit lapangan akan dihapus dan progres kembali ke 0%. Tindakan ini tidak dapat dibatalkan.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setArchiveOpen(false)} disabled={resetting}>
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleArchiveAndReset}
-              disabled={resetting || !archiveName.trim()}
-              className="gap-2"
-            >
-              {resetting && <RotateCcw className="h-4 w-4 animate-spin" />}
-              Simpan Arsip & Reset
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     </div>
   );
 }
