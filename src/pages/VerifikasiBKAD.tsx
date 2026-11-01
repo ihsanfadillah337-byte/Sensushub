@@ -5,7 +5,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ShieldCheck, Eye, CheckCircle2, XCircle, FileText, Clock,
-  Package, Users, AlertTriangle, Loader2
+  Package, Users, AlertTriangle, Loader2, ExternalLink
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -312,7 +312,8 @@ export default function VerifikasiBKAD() {
   // ─────────────────────────────────────────────────────────────────────
   // REJECT MUTATION
   //   a. document_archives: status_approval=ditolak, catatan_bkad, approved_by, approved_at
-  //   b. assets: status_rekon=ditolak — master Kondisi TETAP AMAN (tidak berubah!)
+  //   b. assets: status_rekon=draft_pengajuan — dikembalikan ke buffer agar
+  //      operator dapat memperbaiki & mengajukan ulang. Master Kondisi TETAP AMAN.
   // ─────────────────────────────────────────────────────────────────────
   const rejectMutation = useMutation({
     mutationFn: async ({ doc, catatan }: { doc: DocumentArchiveRow; catatan: string }) => {
@@ -335,7 +336,7 @@ export default function VerifikasiBKAD() {
             ? { ...(row.custom_data as Record<string, unknown>) }
             : {};
 
-          cd["status_rekon"] = "ditolak";
+          cd["status_rekon"] = "draft_pengajuan";
           cd["rekon_ditolak_at"] = timestamp;
           cd["rekon_ditolak_by"] = user.id;
           cd["rekon_catatan_bkad"] = catatan;
@@ -345,7 +346,7 @@ export default function VerifikasiBKAD() {
             supabase
               .from("assets")
               .update({
-                status_rekon: "ditolak",
+                status_rekon: "draft_pengajuan",
                 custom_data: cd,
               } as any)
               .eq("id", primaryKey)
@@ -378,7 +379,7 @@ export default function VerifikasiBKAD() {
       return assetList.length;
     },
     onSuccess: () => {
-      toast.info("ℹ️ Pengajuan ditolak. Master data aset tetap aman (tidak berubah).");
+      toast.info("ℹ️ Pengajuan ditolak. Aset dikembalikan ke buffer perbaikan operator.");
       queryClient.invalidateQueries({ queryKey: ["bkad-pending-documents"] });
       queryClient.invalidateQueries({ queryKey: ["document-archives"] });
       queryClient.invalidateQueries({ queryKey: ["assets"] });
@@ -607,6 +608,38 @@ export default function VerifikasiBKAD() {
                 <div className="rounded-md border border-gray-200 overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5" />
+                      Berkas Scan Surat Pernyataan
+                    </p>
+                  </div>
+                  <div className="p-4">
+                    {selectedDoc.dokumen_url ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900">Dokumen bertanda tangan basah</p>
+                          <p className="text-[11px] text-muted-foreground truncate" title={selectedDoc.dokumen_url}>
+                            {selectedDoc.dokumen_url}
+                          </p>
+                        </div>
+                        <Button asChild size="sm" variant="outline" className="shrink-0">
+                          <a href={selectedDoc.dokumen_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                            Lihat Berkas
+                          </a>
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-amber-700 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        Berkas scan belum diunggah oleh operator.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-gray-200 overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                       <Users className="h-3.5 w-3.5" />
                       Tembusan
                     </p>
@@ -690,8 +723,31 @@ export default function VerifikasiBKAD() {
               </>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDetailOpen(false)}>Tutup</Button>
+            <Button
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => {
+                const d = selectedDoc;
+                setDetailOpen(false);
+                if (d) handleReject(d);
+              }}
+            >
+              <XCircle className="h-4 w-4 mr-1.5" />
+              Tolak
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => {
+                const d = selectedDoc;
+                setDetailOpen(false);
+                if (d) handleApprove(d);
+              }}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-1.5" />
+              Setujui
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -764,7 +820,7 @@ export default function VerifikasiBKAD() {
               <p className="font-semibold text-red-700 mb-1">⚠️ Catatan Penting</p>
               <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
                 <li>Master data kondisi <strong>TETAP AMAN</strong> (tidak diubah).</li>
-                <li>Aset yang ditolak ditandai <code className="bg-muted px-1 rounded">status_rekon=ditolak</code>.</li>
+                <li>Aset yang ditolak dikembalikan ke buffer <code className="bg-muted px-1 rounded">status_rekon=draft_pengajuan</code> agar operator dapat memperbaiki & mengajukan ulang.</li>
                 <li>Catatan penolakan akan dikirimkan kembali ke Pengurus Barang.</li>
               </ul>
             </div>
