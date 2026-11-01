@@ -24,6 +24,7 @@ import ScanAsset from "./pages/ScanAsset";
 import PengajuanSuratPage from "./pages/PengajuanSuratPage";
 import FinalisasiRekon from "./pages/FinalisasiRekon";
 import VerifikasiBKAD from "./pages/VerifikasiBKAD";
+import ArsipBKAD from "./pages/ArsipBKAD";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,11 @@ const App = () => (
               <Route path="verifikasi-bkad" element={
                 <ProtectedRoute allowedRoles={['staf_bkad', 'super_admin']}>
                   <VerifikasiBKAD />
+                </ProtectedRoute>
+              } />
+              <Route path="arsip-bkad" element={
+                <ProtectedRoute allowedRoles={['staf_bkad', 'super_admin']}>
+                  <ArsipBKAD />
                 </ProtectedRoute>
               } />
               <Route index element={<Navigate to="overview" replace />} />

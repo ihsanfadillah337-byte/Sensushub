@@ -1226,15 +1226,17 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: any; onClose: ()
     setPreviewing(kind);
     try {
       const input = buildInput();
-      const blob = kind === "BA" 
-        ? generateBeritaAcaraPDF(input) 
+      // CATATAN: generateBeritaAcaraPDF mengembalikan Promise<Blob> — WAJIB di-await,
+      // jika tidak, URL.createObjectURL() menerima Promise dan langsung melempar TypeError.
+      const blob = kind === "BA"
+        ? await generateBeritaAcaraPDF(input)
         : await generateSuratPernyataanPDF(input);
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener");
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Gagal membuat pratinjau PDF.");
+      toast.error(`Gagal membuat pratinjau ${kind}: ${err?.message || "kesalahan tidak diketahui"}`);
     } finally {
       setPreviewing("");
     }

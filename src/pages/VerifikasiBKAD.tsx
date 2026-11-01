@@ -267,6 +267,7 @@ export default function VerifikasiBKAD() {
             .update({
               status_rekon: "disetujui",
               kib: "04 - Aset Lainnya",
+              kategori: "Aset Lain-lain",
               custom_data: cd,
             } as any)
             .eq("id", primaryKey)
@@ -778,7 +779,7 @@ export default function VerifikasiBKAD() {
                     </p>
                     <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
                       <li>Master <code className="bg-muted px-1 rounded">assets.custom_data.Kondisi</code> diubah sesuai rekomendasi usulan.</li>
-                      <li>Aset dimutasi ke <code className="bg-muted px-1 rounded">kib = "04 - Aset Lainnya"</code> (reklasifikasi ekstrakomptabel).</li>
+                      <li>Aset dimutasi ke <code className="bg-muted px-1 rounded">kib = "04 - Aset Lainnya"</code> &amp; <code className="bg-muted px-1 rounded">kategori = "Aset Lain-lain"</code> (reklasifikasi ekstrakomptabel).</li>
                       <li><code className="bg-muted px-1 rounded">status_rekon</code> ditandai <code className="bg-muted px-1 rounded">disetujui</code>.</li>
                       <li><code className="bg-muted px-1 rounded">kode_aset</code> tetap tidak berubah.</li>
                       <li>Tindakan ini <strong>tidak dapat dibatalkan</strong>.</li>

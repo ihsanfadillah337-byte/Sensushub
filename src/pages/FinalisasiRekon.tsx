@@ -388,7 +388,7 @@ export default function FinalisasiRekon() {
   const [reprintArc, setReprintArc] = useState<ArchiveRow | null>(null);
   const [uploadArc, setUploadArc] = useState<ArchiveRow | null>(null);
 
-  // Fetch document_archives (hanya yang BERITA ACARA DITETAPKAN — sorted newest first)
+  // Fetch document_archives — seluruh riwayat pengajuan operator (sorted newest first)
   const { data: archives = [], isLoading } = useQuery({
     queryKey: ["document-archives-ba", companyId],
     queryFn: async () => {
@@ -398,15 +398,9 @@ export default function FinalisasiRekon() {
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []).filter((arc: any) => {
-        const status = String(arc.status || "").trim();
-        // TOLAK mentah-mentah jika status masih antrean BKAD
-        if (status === "Disetujui BKAD") return false;
-        // Arsip yang sudah diajukan tetap tampil agar progres status terlihat jelas
-        if (arc.status_approval === "menunggu_bkad") return true;
-        // HANYA lolos jika ada indikasi kuat sudah menjadi arsip Berita Acara
-        return status.includes("Berita Acara") || status.includes("Ditetapkan");
-      }) as ArchiveRow[];
+      // Tanpa filter status: draft, menunggu_bkad, disetujui, maupun ditolak
+      // tetap tampil permanen sebagai riwayat di Pusat Arsip operator.
+      return (data ?? []) as ArchiveRow[];
     },
     enabled: !!companyId,
     staleTime: 1000 * 60 * 2,
