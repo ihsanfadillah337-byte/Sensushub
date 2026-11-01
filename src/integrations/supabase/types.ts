@@ -159,6 +159,7 @@ export type Database = {
           tembusan: Json
           url_surat_pernyataan: string | null
           url_berita_acara: string | null
+          dokumen_url: string | null
           data_otorisasi: Json
           status: string
           status_approval: "draft" | "menunggu_bkad" | "disetujui" | "ditolak"
@@ -180,6 +181,7 @@ export type Database = {
           tembusan?: Json
           url_surat_pernyataan?: string | null
           url_berita_acara?: string | null
+          dokumen_url?: string | null
           data_otorisasi?: Json
           status?: string
           status_approval?: "draft" | "menunggu_bkad" | "disetujui" | "ditolak"
@@ -201,6 +203,7 @@ export type Database = {
           tembusan?: Json
           url_surat_pernyataan?: string | null
           url_berita_acara?: string | null
+          dokumen_url?: string | null
           data_otorisasi?: Json
           status?: string
           status_approval?: "draft" | "menunggu_bkad" | "disetujui" | "ditolak"

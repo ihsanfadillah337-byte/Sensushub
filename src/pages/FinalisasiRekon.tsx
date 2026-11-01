@@ -5,11 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCustomColumns } from "@/contexts/CustomColumnsContext";
 import {
   Archive, Search, ChevronLeft, ChevronRight, Loader2, Package,
-  Printer, Download, Filter, Calendar, FileCheck2, FileText
+  Printer, Download, Filter, Calendar, FileCheck2, FileText, Upload, CheckCircle2
 } from "lucide-react";
 import { generateBeritaAcaraPDF, generateSuratPernyataanPDF, type DualPdfInput } from "@/utils/pdfGenerators";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -38,6 +39,8 @@ interface ArchiveRow {
   tembusan?: any;
   data_otorisasi?: any;
   status?: string | null;
+  status_approval?: string | null;
+  dokumen_url?: string | null;
   created_at?: string | null;
 }
 
@@ -249,6 +252,123 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: ArchiveRow; onCl
   );
 }
 
+// ─── Upload Scan Dialog ───────────────────────────────────
+function UploadScanDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; onClose: () => void; onSuccess: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async () => {
+    if (!file) {
+      toast.error("Silakan pilih file terlebih dahulu.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${arc.id}_${Date.now()}.${fileExt}`;
+      const filePath = `arsip/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("dokumen_usulan")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("dokumen_usulan")
+        .getPublicUrl(filePath);
+
+      // Update document_archives
+      const { error: updateArcError } = await supabase
+        .from("document_archives")
+        .update({
+          status: "Menunggu Verifikasi BKAD",
+          status_approval: "menunggu_bkad",
+          dokumen_url: publicUrl
+        })
+        .eq("id", arc.id);
+
+      if (updateArcError) throw updateArcError;
+
+      // Update status_rekon seluruh aset yang terikat dengan batch ini.
+      // ID aset diambil dari snapshot `data_otorisasi` (kode_barang_list hanya
+      // menyimpan kode barang, bukan UUID aset).
+      const assetIds = Array.from(new Set(
+        _psFlatten(arc)
+          .map((a: any) => a?.id || a?.asset_id)
+          .filter((v: any) => typeof v === "string" && v)
+      ));
+
+      if (assetIds.length > 0) {
+        // custom_data adalah JSONB; ambil dulu agar field lain tidak hilang saat di-merge.
+        const { data: assets, error: fetchError } = await supabase
+          .from("assets")
+          .select("id, custom_data")
+          .in("id", assetIds);
+        if (fetchError) throw fetchError;
+
+        const updates = (assets ?? []).map((a: any) => {
+          const cd = (typeof a.custom_data === "object" && a.custom_data) ? a.custom_data : {};
+          return supabase
+            .from("assets")
+            .update({ custom_data: { ...cd, status_rekon: "menunggu_bkad" } })
+            .eq("id", a.id);
+        });
+        const results = await Promise.all(updates);
+        const firstErr = results.find((r: any) => r.error);
+        if (firstErr?.error) throw firstErr.error;
+      }
+
+      toast.success("Dokumen berhasil diunggah dan diajukan ke BKAD.");
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal mengunggah dokumen.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Upload className="h-5 w-5 text-blue-700" /> Unggah & Ajukan Scan Dokumen
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="text-[13px] text-gray-600 space-y-2">
+            <p>Silakan unggah file scan Surat Pernyataan yang telah ditandatangani basah untuk melanjutkan proses pengajuan ke BKAD.</p>
+            <p className="font-medium text-amber-700">Format yang didukung: PDF, Gambar (JPG, PNG)</p>
+          </div>
+          
+          <div className="grid w-full items-center gap-1.5">
+            <Label htmlFor="scan-file">Pilih File</Label>
+            <Input
+              id="scan-file"
+              type="file"
+              accept=".pdf,image/*"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              disabled={uploading}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-3 border-t border-border">
+          <Button variant="outline" onClick={onClose} disabled={uploading}>
+            Batal
+          </Button>
+          <Button onClick={handleUpload} disabled={!file || uploading} className="gap-1.5 bg-blue-700 hover:bg-blue-800">
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Simpan & Ajukan
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Constants ───────────────────────────────────────────
 const ITEMS_PER_PAGE = 10;
 
@@ -266,6 +386,7 @@ export default function FinalisasiRekon() {
   const [tglTo, setTglTo] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [reprintArc, setReprintArc] = useState<ArchiveRow | null>(null);
+  const [uploadArc, setUploadArc] = useState<ArchiveRow | null>(null);
 
   // Fetch document_archives (hanya yang BERITA ACARA DITETAPKAN — sorted newest first)
   const { data: archives = [], isLoading } = useQuery({
@@ -281,6 +402,8 @@ export default function FinalisasiRekon() {
         const status = String(arc.status || "").trim();
         // TOLAK mentah-mentah jika status masih antrean BKAD
         if (status === "Disetujui BKAD") return false;
+        // Arsip yang sudah diajukan tetap tampil agar progres status terlihat jelas
+        if (arc.status_approval === "menunggu_bkad") return true;
         // HANYA lolos jika ada indikasi kuat sudah menjadi arsip Berita Acara
         return status.includes("Berita Acara") || status.includes("Ditetapkan");
       }) as ArchiveRow[];
@@ -379,8 +502,9 @@ export default function FinalisasiRekon() {
       <div className="flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
         <Archive className="h-4 w-4 text-blue-700 mt-0.5 shrink-0" />
         <p className="text-[13px] text-blue-800 leading-relaxed">
-          Dokumen yang diterbitkan oleh Wizard akan langsung muncul di sini. Gunakan tombol aksi <strong>Cetak Ulang</strong> di sisi kanan
-          tabel untuk mengunduh PDF lengkap dengan lampiran daftar aset (format 12 kolom resmi).
+          Dokumen yang diterbitkan oleh Wizard akan langsung muncul di sini. Gunakan tombol <strong>Cetak</strong> untuk mengunduh ulang
+          PDF lengkap dengan lampiran, atau <strong>Ajukan</strong> untuk mengunggah scan Surat Pernyataan bertanda tangan basah
+          dan meneruskannya ke meja verifikasi BKAD.
         </p>
       </div>
 
@@ -483,7 +607,7 @@ export default function FinalisasiRekon() {
                     <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Jumlah Aset</TableHead>
                     <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Total Nilai</TableHead>
                     <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Status</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center w-32">Aksi</TableHead>
+                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center w-48">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -506,21 +630,43 @@ export default function FinalisasiRekon() {
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center">{jumlahAset}</TableCell>
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-right font-semibold">Rp {totalNilai.toLocaleString("id-ID")}</TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-green-50 text-green-700 border-green-200">
+                          <Badge 
+                            variant="outline" 
+                            className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${
+                              arc.status_approval === "menunggu_bkad" 
+                                ? "bg-amber-50 text-amber-700 border-amber-200" 
+                                : "bg-green-50 text-green-700 border-green-200"
+                            }`}
+                          >
                             {arc.status || "—"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1.5 hover:bg-gray-50"
-                            onClick={() => setReprintArc(arc)}
-                            title="Cetak ulang Berita Acara lengkap dengan lampiran aset"
-                          >
-                            <Printer className="h-4 w-4 text-blue-700" />
-                            <span className="text-xs font-medium text-blue-700">Cetak Ulang</span>
-                          </Button>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 hover:bg-gray-50"
+                              onClick={() => setReprintArc(arc)}
+                              title="Cetak ulang Berita Acara lengkap dengan lampiran aset"
+                            >
+                              <Printer className="h-4 w-4 text-blue-700" />
+                              <span className="text-xs font-medium text-blue-700">Cetak</span>
+                            </Button>
+                            
+                            {(arc.status_approval === "draft" || !arc.status_approval) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1.5 hover:bg-gray-50"
+                                onClick={() => setUploadArc(arc)}
+                                title="Unggah scan dokumen & ajukan ke BKAD"
+                              >
+                                <Upload className="h-4 w-4 text-amber-600" />
+                                <span className="text-xs font-medium text-amber-600">Ajukan</span>
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -579,6 +725,14 @@ export default function FinalisasiRekon() {
           arc={reprintArc}
           onClose={() => setReprintArc(null)}
           tenantSettings={tenantSettings}
+        />
+      )}
+
+      {uploadArc && (
+        <UploadScanDialog
+          arc={uploadArc}
+          onClose={() => setUploadArc(null)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ["document-archives-ba"] })}
         />
       )}
     </div>
