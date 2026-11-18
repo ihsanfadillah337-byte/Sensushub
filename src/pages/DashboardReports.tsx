@@ -292,7 +292,7 @@ export default function DashboardReports() {
 
           {/* TAB 1: KELUHAN PUBLIK */}
           <TabsContent value="public_reports" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
-            <div className="flex justify-between items-center bg-white p-3 rounded-md border border-gray-200">
+            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100">
               <div className="flex items-center gap-2">
                 {Object.entries(counts).map(([status, count]) => (
                   <Badge key={status} variant="outline" className={statusConfig[status]?.class}>
@@ -319,7 +319,7 @@ export default function DashboardReports() {
               </div>
             </div>
 
-        <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
+        <div className="rounded-xl border border-slate-100 overflow-hidden">
           {isLoading ? (
             <div className="p-4 space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -338,15 +338,15 @@ export default function DashboardReports() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tanggal</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Aset</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Pelapor</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kendala</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden lg:table-cell">Kategori & Kondisi</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden xl:table-cell">Lokasi</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Bukti</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Status</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
+                    <TableHead className="text-slate-500">Tanggal</TableHead>
+                    <TableHead className="text-slate-500">Aset</TableHead>
+                    <TableHead className="text-slate-500 hidden sm:table-cell">Pelapor</TableHead>
+                    <TableHead className="text-slate-500">Kendala</TableHead>
+                    <TableHead className="text-slate-500 hidden lg:table-cell">Kategori & Kondisi</TableHead>
+                    <TableHead className="text-slate-500 hidden xl:table-cell">Lokasi</TableHead>
+                    <TableHead className="text-slate-500 text-center">Bukti</TableHead>
+                    <TableHead className="text-slate-500">Status</TableHead>
+                    <TableHead className="text-slate-500 text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -516,7 +516,7 @@ export default function DashboardReports() {
 
         {/* TAB 2: TEMUAN SENSUS */}
         <TabsContent value="census_audits" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
-          <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
+          <div className="rounded-xl border border-slate-100 overflow-hidden">
             {isLoadingAudits ? (
               <div className="p-4 space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -533,12 +533,12 @@ export default function DashboardReports() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tgl Sensus</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Operator</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Informasi Aset</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kondisi</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden md:table-cell">Rekomendasi</TableHead>
-                      <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Bukti</TableHead>
+                      <TableHead className="text-slate-500">Tgl Sensus</TableHead>
+                      <TableHead className="text-slate-500 hidden sm:table-cell">Operator</TableHead>
+                      <TableHead className="text-slate-500">Informasi Aset</TableHead>
+                      <TableHead className="text-slate-500">Kondisi</TableHead>
+                      <TableHead className="text-slate-500 hidden md:table-cell">Rekomendasi</TableHead>
+                      <TableHead className="text-slate-500 text-center">Bukti</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -693,7 +693,7 @@ export default function DashboardReports() {
               return (
                 <div className="space-y-5 py-2">
                   {/* Asset Info */}
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informasi Aset</p>
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -756,7 +756,7 @@ export default function DashboardReports() {
                   {detailReport.image_url && (
                     <div>
                       <p className="text-[11px] text-muted-foreground font-medium mb-1.5">Foto Bukti</p>
-                      <div className="rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                      <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50">
                         <img
                           src={detailReport.image_url}
                           alt="Bukti Laporan"
@@ -803,7 +803,7 @@ export default function DashboardReports() {
             <DialogHeader>
               <DialogTitle>Foto Bukti Temuan Sensus</DialogTitle>
             </DialogHeader>
-            <div className="p-2 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="p-2 border border-slate-200 rounded-xl bg-slate-50">
               {selectedPhoto && (
                 <img 
                   src={selectedPhoto} 

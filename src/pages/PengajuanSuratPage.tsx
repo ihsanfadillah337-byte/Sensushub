@@ -289,18 +289,18 @@ export default function PengajuanSuratPage() {
         <div>
           <h1 className="text-xl font-semibold text-gray-900 tracking-tight flex items-center gap-2">
             <FileSignature className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700" />
-            Penerbitan Berita Acara
+            Pengajuan Reklasifikasi
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Terbitkan Berita Acara & Surat Pernyataan untuk aset BMD pada tahap Finalisasi Rekon (pra-pengajuan ke BKAD).
+            Buat BA &amp; Surat Pernyataan untuk aset BMD pada tahap Finalisasi Rekon (pra-pengajuan ke BKAD).
           </p>
         </div>
-        <Button className="gap-2 shrink-0 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium px-3 py-2" onClick={() => setWizardOpen(true)}>
-          <Plus className="h-4 w-4" /> Terbitkan Berita Acara Baru
+        <Button className="gap-2 shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-2" onClick={() => setWizardOpen(true)}>
+          <Plus className="h-4 w-4" /> Buat BA &amp; Surat Pernyataan
         </Button>
       </div>
 
-      <Card className="bg-white border border-gray-200 rounded-md">
+      <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold text-gray-900">Riwayat Arsip Dokumen</CardTitle>
         </CardHeader>
@@ -310,20 +310,20 @@ export default function PengajuanSuratPage() {
           ) : archives.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
               <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm font-medium">Belum ada arsip Berita Acara.</p>
+              <p className="text-sm font-medium">Belum ada arsip BA &amp; Surat Pernyataan.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">ID Unik Batch</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tanggal</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Jenis KIB</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Total Aset</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Total Nilai</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Status</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Aksi</TableHead>
+                    <TableHead className="text-slate-500">ID Unik Batch</TableHead>
+                    <TableHead className="text-slate-500">Tanggal</TableHead>
+                    <TableHead className="text-slate-500">Jenis KIB</TableHead>
+                    <TableHead className="text-slate-500 text-center">Total Aset</TableHead>
+                    <TableHead className="text-slate-500 text-right">Total Nilai</TableHead>
+                    <TableHead className="text-slate-500 text-center">Status</TableHead>
+                    <TableHead className="text-slate-500 text-center">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -838,7 +838,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSignature className="h-5 w-5 text-blue-700" />
-            Terbitkan Berita Acara
+            Buat BA &amp; Surat Pernyataan
           </DialogTitle>
         </DialogHeader>
 
@@ -993,18 +993,18 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
                   </div>
                 </div>
 
-                <div className="rounded-md border border-gray-200 overflow-hidden">
+                <div className="rounded-xl border border-slate-100 overflow-hidden">
                   <div className="max-h-[360px] overflow-y-auto overflow-x-auto">
                     <Table>
                       <TableHeader className="sticky top-0 bg-gray-50 z-10 border-b border-gray-200">
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-12 bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">
+                          <TableHead className="w-12 text-slate-500 text-center">
                             <span className="sr-only">Select</span>
                           </TableHead>
-                          <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 whitespace-nowrap">Kode Barang</TableHead>
-                          <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Nama Barang</TableHead>
-                          <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 whitespace-nowrap">Kondisi</TableHead>
-                          <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 whitespace-nowrap text-right">Nilai Perolehan</TableHead>
+                          <TableHead className="text-slate-500 whitespace-nowrap">Kode Barang</TableHead>
+                          <TableHead className="text-slate-500">Nama Barang</TableHead>
+                          <TableHead className="text-slate-500 whitespace-nowrap">Kondisi</TableHead>
+                          <TableHead className="text-slate-500 whitespace-nowrap text-right">Nilai Perolehan</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1170,7 +1170,7 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm leading-relaxed pt-2">
               Berita Acara berhasil diterbitkan dan diarsipkan! Silakan unduh dokumen lengkap dengan lampirannya melalui
-              menu <strong>Pusat Arsip Berita Acara</strong>.
+              menu <strong>Pusat Arsip BA &amp; Surat Pernyataan</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">

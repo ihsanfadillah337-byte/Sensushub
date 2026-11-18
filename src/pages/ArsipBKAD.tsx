@@ -215,7 +215,7 @@ export default function ArsipBKAD() {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border border-gray-200 overflow-hidden">
+            <div className="rounded-xl border border-slate-100 overflow-hidden">
               <Table>
                 <TableHeader className="bg-gray-50">
                   <TableRow>
@@ -337,8 +337,8 @@ export default function ArsipBKAD() {
                 )}
 
                 {/* Dokumen fisik & PDF */}
-                <div className="rounded-md border border-gray-200 overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                <div className="rounded-xl border border-slate-100 overflow-hidden">
+                  <div className="bg-slate-50/70 px-4 py-2.5 border-b border-slate-100">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                       <Download className="h-3.5 w-3.5" />
                       Berkas Dokumen
@@ -373,8 +373,8 @@ export default function ArsipBKAD() {
                 </div>
 
                 {/* Tembusan */}
-                <div className="rounded-md border border-gray-200 overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                <div className="rounded-xl border border-slate-100 overflow-hidden">
+                  <div className="bg-slate-50/70 px-4 py-2.5 border-b border-slate-100">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                       <Users className="h-3.5 w-3.5" />
                       Tembusan
@@ -394,8 +394,8 @@ export default function ArsipBKAD() {
                 </div>
 
                 {/* Daftar Aset */}
-                <div className="rounded-md border border-gray-200 overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                <div className="rounded-xl border border-slate-100 overflow-hidden">
+                  <div className="bg-slate-50/70 px-4 py-2.5 border-b border-slate-100">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                       <Package className="h-3.5 w-3.5" />
                       Daftar Aset Tereklasifikasi

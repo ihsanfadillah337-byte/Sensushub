@@ -70,11 +70,11 @@ export default function MasterDataSection({
   };
 
   return (
-    <div className="rounded-md border border-gray-200 bg-white">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
+    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
         {icon}
         <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-        <Badge variant="outline" className="ml-auto px-2 py-0.5 text-[11px] font-semibold rounded border bg-slate-100 text-slate-700 border-slate-200 tabular-nums">
+        <Badge variant="outline" className="ml-auto px-2.5 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-700 tabular-nums">
           {items.length}
         </Badge>
       </div>
@@ -97,7 +97,7 @@ export default function MasterDataSection({
       </div>
 
       {items.length > 0 && (
-        <div className="border-t border-gray-200">
+        <div className="border-t border-slate-100">
           <ul className="divide-y divide-gray-200">
             {items.map((item, index) => (
               <li key={item.id} className="group flex items-center justify-between px-4 py-2 hover:bg-gray-50 transition-colors">
@@ -139,7 +139,7 @@ export default function MasterDataSection({
 
       {items.length === 0 && (
         <div className="px-5 pb-5">
-          <div className="rounded-md border border-dashed border-gray-200 py-6 flex flex-col items-center text-gray-500">
+          <div className="rounded-xl border border-dashed border-slate-200 py-6 flex flex-col items-center text-gray-500">
             <p className="text-xs font-medium">Belum ada data</p>
             <p className="text-xs mt-0.5 text-gray-500">Tambahkan item di atas.</p>
           </div>

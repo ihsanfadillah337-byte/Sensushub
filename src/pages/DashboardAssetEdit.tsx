@@ -297,7 +297,7 @@ export default function DashboardAssetEdit() {
 
       {/* Klasifikasi Aset */}
       {(masterDivisi.length > 0 || masterKib.length > 0) && (
-        <section className="rounded-md border border-gray-200 bg-white">
+        <section className="rounded-2xl border border-slate-100 bg-white shadow-sm">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
             <Building2 className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Klasifikasi Aset</h2>
@@ -345,7 +345,7 @@ export default function DashboardAssetEdit() {
       )}
 
       {/* Informasi Dasar */}
-      <section className="rounded-md border border-gray-200 bg-white">
+      <section className="rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
           <Package className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-foreground">Informasi Dasar</h2>
@@ -387,7 +387,7 @@ export default function DashboardAssetEdit() {
 
       {/* Dynamic Custom Columns based on KIB */}
       {selectedKib && customColumns.length > 0 && (
-        <section className="rounded-md border border-gray-200 bg-white">
+        <section className="rounded-2xl border border-slate-100 bg-white shadow-sm">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
             <h2 className="text-sm font-semibold text-foreground">Kolom Custom — {kibLabel}</h2>
           </div>
@@ -449,7 +449,7 @@ export default function DashboardAssetEdit() {
       )}
 
       {/* Media */}
-      <section className="rounded-md border border-gray-200 bg-white">
+      <section className="rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
           <Upload className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-foreground">Foto Aset</h2>

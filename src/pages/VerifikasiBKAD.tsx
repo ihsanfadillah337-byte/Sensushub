@@ -499,7 +499,7 @@ export default function VerifikasiBKAD() {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border border-gray-200 overflow-hidden">
+            <div className="rounded-xl border border-slate-100 overflow-hidden">
               <Table>
                 <TableHeader className="bg-gray-50">
                   <TableRow>
@@ -609,7 +609,7 @@ export default function VerifikasiBKAD() {
                   </div>
                 </div>
 
-                <div className="rounded-md border border-gray-200 overflow-hidden">
+                <div className="rounded-xl border border-slate-100 overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                       <FileText className="h-3.5 w-3.5" />
@@ -641,7 +641,7 @@ export default function VerifikasiBKAD() {
                   </div>
                 </div>
 
-                <div className="rounded-md border border-gray-200 overflow-hidden">
+                <div className="rounded-xl border border-slate-100 overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                       <Users className="h-3.5 w-3.5" />
@@ -661,7 +661,7 @@ export default function VerifikasiBKAD() {
                   </div>
                 </div>
 
-                <div className="rounded-md border border-gray-200 overflow-hidden">
+                <div className="rounded-xl border border-slate-100 overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                       <Package className="h-3.5 w-3.5" />

@@ -46,7 +46,7 @@ export default function DashboardRekonsiliasi() {
       </div>
 
       {/* ── Main Tab Bar (Vercel / GitHub underline style) ── */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-slate-200/60">
         <nav className="flex gap-0 -mb-px">
           {mainTabs.map((tab) => {
             const isActive = activeTab === tab.key;

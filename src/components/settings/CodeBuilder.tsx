@@ -210,7 +210,7 @@ export default function CodeBuilder({ kibLabel }: CodeBuilderProps) {
   return (
     <div className="space-y-5">
       {/* Live Preview */}
-      <div className="rounded-md border border-gray-200 bg-white px-4 py-3">
+      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm px-4 py-3">
         <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
           Live Preview — {kibLabel}
         </p>

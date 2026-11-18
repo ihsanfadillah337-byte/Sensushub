@@ -180,7 +180,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
       </div>
       
       {!isLocked && (
-        <div className="flex justify-end pt-4 border-t border-gray-200">
+        <div className="flex justify-end pt-4 border-t border-slate-100">
           <Button onClick={handleSave} disabled={saving || isLocked} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Simpan Pengaturan

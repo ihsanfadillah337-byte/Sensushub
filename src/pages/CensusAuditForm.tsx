@@ -448,7 +448,7 @@ export default function CensusAuditForm() {
       )}
 
       {/* Asset Summary Card */}
-      <Card className="bg-white border border-gray-200 rounded-md overflow-hidden">
+      <Card className="bg-white border-slate-100 rounded-2xl shadow-sm overflow-hidden">
         <div className="bg-muted/30 border-b border-border/40 px-5 py-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ringkasan Aset</p>
         </div>
@@ -483,7 +483,7 @@ export default function CensusAuditForm() {
       </Card>
 
       {/* GPS Status */}
-      <Card className="bg-white border border-gray-200 rounded-md">
+      <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
         <CardContent className="p-4 flex items-center gap-3">
           <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${gpsCoords ? 'bg-chart-3/10' : gpsError ? 'bg-destructive/10' : 'bg-warning/10'}`}>
             <MapPinned className={`h-4.5 w-4.5 ${gpsCoords ? 'text-chart-3' : gpsError ? 'text-destructive' : 'text-warning'}`} />
@@ -505,7 +505,7 @@ export default function CensusAuditForm() {
       </Card>
 
       {/* Audit Form */}
-      <Card className="bg-white border border-gray-200 rounded-md">
+      <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
         <div className="bg-primary/5 border-b border-primary/10 px-5 py-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">Data Audit Lapangan</p>
         </div>

@@ -12,7 +12,7 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
 Table.displayName = "Table";
 
 const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
-  ({ className, ...props }, ref) => <thead ref={ref} className={cn("bg-gray-50 [&_tr]:border-b [&_tr]:border-gray-200", className)} {...props} />,
+  ({ className, ...props }, ref) => <thead ref={ref} className={cn("bg-slate-50/70 [&_tr]:border-b [&_tr]:border-slate-100", className)} {...props} />,
 );
 TableHeader.displayName = "TableHeader";
 
@@ -25,7 +25,7 @@ TableBody.displayName = "TableBody";
 
 const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => (
-    <tfoot ref={ref} className={cn("border-t border-gray-200 bg-gray-50 font-medium [&>tr]:last:border-b-0", className)} {...props} />
+    <tfoot ref={ref} className={cn("border-t border-slate-100 bg-slate-50/70 font-medium [&>tr]:last:border-b-0", className)} {...props} />
   ),
 );
 TableFooter.displayName = "TableFooter";
@@ -34,7 +34,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
   ({ className, ...props }, ref) => (
     <tr
       ref={ref}
-      className={cn("border-b border-gray-100 transition-colors data-[state=selected]:bg-blue-50 hover:bg-gray-50", className)}
+      className={cn("border-b border-slate-100 transition-colors data-[state=selected]:bg-blue-50 hover:bg-slate-50/80", className)}
       {...props}
     />
   ),
@@ -46,7 +46,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
     <th
       ref={ref}
       className={cn(
-        "py-2 px-2.5 text-left align-middle text-xs font-semibold uppercase tracking-wider text-gray-700 [&:has([role=checkbox])]:pr-0",
+        "py-2 px-2.5 text-left align-middle text-xs font-semibold uppercase tracking-wider text-slate-500 [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}

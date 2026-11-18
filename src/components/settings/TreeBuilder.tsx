@@ -276,7 +276,7 @@ export default function TreeBuilder({ levels, tree, onLevelsChange, onTreeChange
   };
 
   return (
-    <div className="rounded-md border border-gray-200 bg-white p-4 space-y-4">
+    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-4">
       {/* Level Definition */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">

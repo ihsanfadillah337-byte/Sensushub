@@ -719,7 +719,7 @@ export default function PapanRekonsiliasi() {
               </div>
             ) : anomalies.length === 0 ? (
               /* ───── Empty State Anomali ───── */
-              <Card className="border-gray-200 bg-white rounded-md">
+              <Card className="border-slate-100 bg-white rounded-2xl shadow-sm">
                 <CardContent className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="h-20 w-20 rounded-md bg-gray-100 flex items-center justify-center mb-5">
                     <CheckCircle2 className="h-10 w-10 text-gray-400" />
@@ -749,7 +749,7 @@ export default function PapanRekonsiliasi() {
               <>
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Card className="bg-white border border-gray-200 rounded-md">
+                  <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center">
@@ -760,7 +760,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Total Anomali</p>
                     </CardContent>
                   </Card>
-                  <Card className="bg-white border border-gray-200 rounded-md">
+                  <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center">
@@ -771,7 +771,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Rusak Berat</p>
                     </CardContent>
                   </Card>
-                  <Card className="bg-white border border-gray-200 rounded-md">
+                  <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -782,7 +782,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Dari Keluhan Publik</p>
                     </CardContent>
                   </Card>
-                  <Card className="bg-white border border-gray-200 rounded-md">
+                  <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-chart-3/10 flex items-center justify-center">
@@ -796,7 +796,7 @@ export default function PapanRekonsiliasi() {
                 </div>
 
                 {/* Anomaly Table */}
-                <div className="rounded-md bg-white border border-gray-200 overflow-hidden">
+                <div className="rounded-xl border border-slate-100 overflow-hidden">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -932,7 +932,7 @@ export default function PapanRekonsiliasi() {
               </div>
             ) : draftPengajuanItems.length === 0 ? (
               /* ───── Empty State Finalisasi ───── */
-              <Card className="border-gray-200 bg-white rounded-md">
+              <Card className="border-slate-100 bg-white rounded-2xl shadow-sm">
                 <CardContent className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="h-20 w-20 rounded-md bg-primary/10 flex items-center justify-center mb-5">
                     <Package className="h-10 w-10 text-primary" />
@@ -1002,7 +1002,7 @@ export default function PapanRekonsiliasi() {
 
                 {/* Finalisasi Stats */}
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  <Card className="bg-white border border-gray-200 rounded-md">
+                  <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-chart-3/10 flex items-center justify-center">
@@ -1013,7 +1013,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Total Siap Diajukan</p>
                     </CardContent>
                   </Card>
-                  <Card className="bg-white border border-gray-200 rounded-md">
+                  <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center">
@@ -1024,7 +1024,7 @@ export default function PapanRekonsiliasi() {
                       <p className="text-xs text-muted-foreground mt-0.5">Kategori Rusak Berat</p>
                     </CardContent>
                   </Card>
-                  <Card className="bg-white border border-gray-200 rounded-md">
+                  <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -1038,7 +1038,7 @@ export default function PapanRekonsiliasi() {
                 </div>
 
                 {/* Finalisasi Buffer Table */}
-                <div className="rounded-md bg-white border border-gray-200 overflow-hidden">
+                <div className="rounded-xl border border-slate-100 overflow-hidden">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>

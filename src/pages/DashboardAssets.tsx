@@ -176,7 +176,7 @@ export default function DashboardAssets() {
             kib: a.kib || null,
             custom_data: (typeof a.custom_data === "object" && a.custom_data ? a.custom_data : {}) as Record<string, unknown>,
           }))}
-          companyName={companyName || "Perusahaan Saya"}
+          companyName={companyName || "Instansi Saya"}
           baseUrl={window.location.origin}
           mode={mode}
         />
@@ -260,8 +260,8 @@ export default function DashboardAssets() {
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
       const title = selectedIds.size > 0
-        ? `Laporan Aset Terpilih (${exportData.length}) - ${companyName || "Perusahaan"}`
-        : `Laporan Inventaris Aset - ${companyName || "Perusahaan"}`;
+        ? `Laporan Aset Terpilih (${exportData.length}) - ${companyName || "Instansi"}`
+        : `Laporan Inventaris Aset - ${companyName || "Instansi"}`;
       doc.setFontSize(16);
       doc.text(title, 14, 18);
       doc.setFontSize(10);
@@ -280,7 +280,7 @@ export default function DashboardAssets() {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text(`${companyName || "Perusahaan"} — Dicetak: ${new Date().toLocaleDateString("id-ID")}`, 14, pageH - 8);
+        doc.text(`${companyName || "Instansi"} — Dicetak: ${new Date().toLocaleDateString("id-ID")}`, 14, pageH - 8);
         doc.text(`Halaman ${i} / ${totalPages}`, pageW - 14, pageH - 8, { align: "right" });
       }
 
@@ -303,7 +303,7 @@ export default function DashboardAssets() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Daftar Aset</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Kelola semua aset inventaris perusahaan Anda.</p>
+          <p className="text-xs text-gray-500 mt-0.5">Kelola seluruh data inventaris Barang Milik Daerah (BMD) instansi Anda.</p>
         </div>
         <div className="flex items-center gap-2 self-start flex-wrap">
           {selectedIds.size > 0 && (
@@ -345,7 +345,8 @@ export default function DashboardAssets() {
         </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Bar & Table Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -372,7 +373,7 @@ export default function DashboardAssets() {
         )}
       </div>
 
-      <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-slate-100 overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
         ) : filteredAssets.length === 0 ? (
@@ -462,7 +463,7 @@ export default function DashboardAssets() {
 
         {/* ── Pagination Footer ── */}
         {!isLoading && totalItems > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-slate-100">
             {/* Left: info text */}
             <p className="text-xs text-muted-foreground order-2 sm:order-1">
               Menampilkan{" "}
@@ -518,6 +519,7 @@ export default function DashboardAssets() {
             </div>
           </div>
         )}
+      </div>
       </div>
 
       {/* Single Delete */}

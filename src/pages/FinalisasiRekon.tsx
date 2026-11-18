@@ -231,7 +231,7 @@ function ReprintDialog({ arc, onClose, tenantSettings }: { arc: ArchiveRow; onCl
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Download className="h-5 w-5 text-blue-700" /> Unduh Ulang Surat</DialogTitle>
         </DialogHeader>
-        <div className="rounded-md border border-gray-200 p-4 space-y-2 bg-gray-50 text-[13px]">
+        <div className="rounded-xl border border-slate-200 p-4 space-y-2 bg-slate-50 text-[13px]">
           <p><strong>ID Unik Batch:</strong> {arc.nomor_surat || "—"}</p>
           <p><strong>Tanggal:</strong> {tglSurat}</p>
           <p><strong>Jenis KIB:</strong> {arc.jenis_kib || "—"}</p>
@@ -484,16 +484,16 @@ export default function FinalisasiRekon() {
         <div>
           <h1 className="text-xl font-semibold text-gray-900 tracking-tight flex items-center gap-2">
             <FileCheck2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700" />
-            Arsip Berita Acara
+            Arsip BA &amp; Surat Pernyataan
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Pusat arsip resmi Berita Acara penerbitan BMD. Cari, filter, dan cetak ulang dokumen lengkap dengan lampiran.
+            Pusat arsip resmi Berita Acara &amp; Surat Pernyataan penerbitan BMD. Cari, filter, dan cetak ulang dokumen lengkap dengan lampiran.
           </p>
         </div>
       </div>
 
       {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+      <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3">
         <Archive className="h-4 w-4 text-blue-700 mt-0.5 shrink-0" />
         <p className="text-[13px] text-blue-800 leading-relaxed">
           Dokumen yang diterbitkan oleh Wizard akan langsung muncul di sini. Gunakan tombol <strong>Cetak</strong> untuk mengunduh ulang
@@ -503,7 +503,7 @@ export default function FinalisasiRekon() {
       </div>
 
       {/* Filter + Search Card */}
-      <Card className="bg-white border border-gray-200 rounded-md">
+      <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
             <Filter className="h-4 w-4" /> Pencarian &amp; Filter Arsip
@@ -573,7 +573,7 @@ export default function FinalisasiRekon() {
       </Card>
 
       {/* Table card */}
-      <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-slate-100 overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-10 w-full" />))}
@@ -582,10 +582,10 @@ export default function FinalisasiRekon() {
           <div className="flex flex-col items-center justify-center py-16 text-gray-500">
             <Package className="h-10 w-10 mb-3 opacity-40" />
             <p className="text-sm font-medium">
-              {archives.length === 0 ? "Belum ada arsip Berita Acara yang diterbitkan." : "Tidak ada arsip yang cocok dengan filter."}
+              {archives.length === 0 ? "Belum ada arsip BA & Surat Pernyataan yang diterbitkan." : "Tidak ada arsip yang cocok dengan filter."}
             </p>
             <p className="text-xs mt-1">
-              {archives.length === 0 ? "Gunakan menu Pengajuan Surat untuk menerbitkan Berita Acara baru." : "Coba ubah kata kunci atau reset filter."}
+              {archives.length === 0 ? "Gunakan menu Pengajuan Reklasifikasi untuk membuat BA & Surat Pernyataan baru." : "Coba ubah kata kunci atau reset filter."}
             </p>
           </div>
         ) : (
@@ -594,14 +594,14 @@ export default function FinalisasiRekon() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-12 bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">No</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">ID Unik Batch / Nomor Surat</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Tanggal</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Jenis KIB</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Jumlah Aset</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Total Nilai</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center">Status</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-center w-48">Aksi</TableHead>
+                    <TableHead className="w-12 text-slate-500 text-center">No</TableHead>
+                    <TableHead className="text-slate-500">ID Unik Batch / Nomor Surat</TableHead>
+                    <TableHead className="text-slate-500">Tanggal</TableHead>
+                    <TableHead className="text-slate-500">Jenis KIB</TableHead>
+                    <TableHead className="text-slate-500 text-center">Jumlah Aset</TableHead>
+                    <TableHead className="text-slate-500 text-right">Total Nilai</TableHead>
+                    <TableHead className="text-slate-500 text-center">Status</TableHead>
+                    <TableHead className="text-slate-500 text-center w-48">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -670,7 +670,7 @@ export default function FinalisasiRekon() {
             </div>
 
             {/* Pagination */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-gray-200 bg-gray-50">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-slate-100 bg-slate-50/70">
               <p className="text-xs text-gray-500">
                 Menampilkan <strong>{indexOfFirstItem + 1}</strong>–<strong>{Math.min(indexOfLastItem, totalItems)}</strong> dari <strong>{totalItems}</strong> arsip
               </p>

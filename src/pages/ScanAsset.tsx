@@ -222,7 +222,7 @@ export default function ScanAsset() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-slate-50/60">
         <div className="mx-auto max-w-md px-4 py-6 space-y-5">
           <Skeleton className="aspect-[4/3] w-full rounded-md" />
           <Skeleton className="h-6 w-2/3" />
@@ -282,12 +282,12 @@ export default function ScanAsset() {
   const isUsulRusakBerat = statusUsulan === "Menunggu Update SIMDA" || kondisiAset === "Rusak Berat";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50/60">
       <div className="mx-auto max-w-md px-4 py-6 space-y-5">
 
         {/* Usul Hapus Warning Banner */}
         {isUsulHapus && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 flex items-start gap-3">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 flex items-start gap-3">
             <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-destructive">Aset Dalam Proses Penghapusan</p>
@@ -300,7 +300,7 @@ export default function ScanAsset() {
 
         {/* Usul Rubah Kondisi Warning Banner */}
         {!isUsulHapus && isUsulRusakBerat && (
-          <div className="rounded-md border border-warning/30 bg-warning/5 px-4 py-3 flex items-start gap-3">
+          <div className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 flex items-start gap-3">
             <ShieldAlert className="h-5 w-5 text-warning shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-warning">Diusulkan Rubah Kondisi (Rusak Berat)</p>
@@ -311,7 +311,7 @@ export default function ScanAsset() {
           </div>
         )}
         {/* Hero / Photo placeholder */}
-        <div className="relative aspect-[4/3] w-full rounded-md bg-muted flex items-center justify-center overflow-hidden">
+        <div className="relative aspect-[4/3] w-full rounded-xl bg-muted flex items-center justify-center overflow-hidden">
           {asset.image_url ? (
             <img src={asset.image_url} alt={asset.nama_aset} className="object-cover w-full h-full" />
           ) : (
@@ -326,14 +326,14 @@ export default function ScanAsset() {
         <div className="space-y-1">
           <h1 className="text-xl font-semibold text-gray-900">{asset.nama_aset}</h1>
           <p className="text-sm font-mono text-muted-foreground">{asset.kode_aset}</p>
-          <Badge className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${statusStyle.bg} ${statusStyle.color} ${statusStyle.border} hover:opacity-90`}>
+          <Badge className={`px-2.5 py-0.5 text-[11px] font-medium rounded-full inline-flex items-center ${statusStyle.bg} ${statusStyle.color} hover:opacity-90`}>
             {statusStyle.label}
           </Badge>
         </div>
 
         {/* Info grid */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="bg-white border border-gray-200 rounded-md">
+          <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
             <CardContent className="flex items-start gap-2 p-3">
               <Tag className="h-4 w-4 mt-0.5 text-primary shrink-0" />
               <div>
@@ -343,7 +343,7 @@ export default function ScanAsset() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white border border-gray-200 rounded-md">
+          <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
             <CardContent className="flex items-start gap-2 p-3">
               <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
               <div>
@@ -353,11 +353,11 @@ export default function ScanAsset() {
             </CardContent>
           </Card>
 
-          <Card className="col-span-2 bg-white border border-gray-200 rounded-md">
+          <Card className="col-span-2 bg-white border-slate-100 rounded-2xl shadow-sm">
             <CardContent className="flex items-start gap-2 p-3">
               <Building2 className="h-4 w-4 mt-0.5 text-primary shrink-0" />
               <div>
-                <p className="text-[11px] text-muted-foreground leading-none mb-0.5">Perusahaan</p>
+                <p className="text-[11px] text-muted-foreground leading-none mb-0.5">Instansi</p>
                 <p className="text-sm font-medium text-foreground">{companyName}</p>
               </div>
             </CardContent>

@@ -298,8 +298,8 @@ export default function DashboardSettings() {
       <MasterDataSection title="Master KIB" icon={<FolderOpen className="h-4 w-4 text-primary" />} items={masterKib} setItems={setMasterKib} labelPlaceholder="cth: Peralatan dan Mesin" codePlaceholder="cth: 02" onEditCode={(kibLabel) => setCodeBuilderKib(kibLabel)} />
 
       {/* Letterhead / PDF Settings */}
-      <section className="bg-white rounded-md border border-gray-200 overflow-hidden">
-        <div className="border-b border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
+      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="border-b border-slate-100 bg-slate-50/70 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 tracking-tight">Kop Surat PDF</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -313,8 +313,8 @@ export default function DashboardSettings() {
       </section>
 
       {/* Custom Columns per KIB */}
-      <div className="rounded-md border border-gray-200 bg-white">
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-200">
+      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-slate-100">
           <Columns3 className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-gray-900">Pengaturan Kolom Custom</h2>
           <div className="ml-auto flex items-center gap-2">
@@ -384,7 +384,7 @@ export default function DashboardSettings() {
               </div>
 
               {newType === "dropdown" && (
-                <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-4">
+                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <Label className="text-xs font-medium text-muted-foreground">Kelola Opsi Dropdown</Label>
                   {simpleOptions.map((opt, idx) => (
                     <div key={idx} className="flex items-center gap-2">

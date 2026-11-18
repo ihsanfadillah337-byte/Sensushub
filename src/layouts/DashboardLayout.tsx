@@ -8,7 +8,7 @@ export default function DashboardLayout() {
   return (
     <CustomColumnsProvider>
       <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
+        <div className="min-h-screen flex w-full bg-slate-50/60">
           <AppSidebar />
           <div className="flex-1 flex flex-col min-w-0">
             <DashboardHeader />

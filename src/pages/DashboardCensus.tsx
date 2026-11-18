@@ -357,7 +357,7 @@ export default function DashboardCensus() {
           </Button>
         </div>
 
-        <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
+        <div className="rounded-xl border border-slate-100 overflow-hidden">
           {isLoading ? (
             <div className="p-6 space-y-3">
               {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
@@ -372,12 +372,12 @@ export default function DashboardCensus() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kode Aset</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Nama Aset</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden md:table-cell">Lokasi</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Kondisi</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Terakhir Cek</TableHead>
-                    <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 text-right">Aksi</TableHead>
+                    <TableHead className="text-slate-500">Kode Aset</TableHead>
+                    <TableHead className="text-slate-500">Nama Aset</TableHead>
+                    <TableHead className="text-slate-500 hidden md:table-cell">Lokasi</TableHead>
+                    <TableHead className="text-slate-500">Kondisi</TableHead>
+                    <TableHead className="text-slate-500 hidden sm:table-cell">Terakhir Cek</TableHead>
+                    <TableHead className="text-slate-500 text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

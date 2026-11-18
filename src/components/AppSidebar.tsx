@@ -31,8 +31,8 @@ const menuItems: MenuItem[] = [
   { title: "Verifikasi BKAD", url: "/dashboard/verifikasi-bkad", icon: ShieldCheck, roles: ["staf_bkad"] },
   { title: "Arsip BKAD", url: "/dashboard/arsip-bkad", icon: Archive, roles: ["staf_bkad"] },
   { title: "Rekonsiliasi Aset", url: "/dashboard/rekonsiliasi", icon: Scale, roles: ["super_admin", "operator"] },
-  { title: "Pengajuan Surat", url: "/dashboard/pengajuan-surat", icon: FileSignature, roles: ["super_admin"] },
-  { title: "Arsip Berita Acara", url: "/dashboard/finalisasi-rekon", icon: FileCheck2, roles: ["super_admin"] },
+  { title: "Pengajuan Reklasifikasi", url: "/dashboard/pengajuan-surat", icon: FileSignature, roles: ["super_admin"] },
+  { title: "Arsip BA & Surat Pernyataan", url: "/dashboard/finalisasi-rekon", icon: FileCheck2, roles: ["super_admin"] },
   { title: "Manajemen Pengguna", url: "/dashboard/users", icon: Users, roles: ["super_admin"] },
   { title: "Pengaturan", url: "/dashboard/settings", icon: Settings, roles: ["super_admin"] },
 ];
@@ -49,7 +49,7 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-slate-200 bg-white dark:border-sidebar-border dark:bg-sidebar">
+    <Sidebar collapsible="icon" className="border-r border-slate-200/60 bg-white dark:border-sidebar-border dark:bg-sidebar">
       <SidebarHeader className="p-4">
         {!collapsed ? (
           <div className="flex items-center gap-2.5">
@@ -85,8 +85,8 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end
-                      className="rounded-md transition-colors duration-150 text-slate-600 hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-accent-foreground"
-                      activeClassName="bg-blue-50 text-blue-700 font-medium dark:bg-sidebar-accent dark:text-sidebar-accent-foreground"
+                      className="rounded-xl transition-colors duration-150 text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-accent-foreground"
+                      activeClassName="rounded-xl bg-primary/10 text-primary font-medium dark:bg-sidebar-accent dark:text-sidebar-accent-foreground"
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
@@ -104,7 +104,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={signOut}
-              className="rounded-md transition-colors duration-150 hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-destructive"
+              className="rounded-xl transition-colors duration-150 hover:bg-slate-50 text-sidebar-foreground/70 hover:text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
               {!collapsed && <span>Keluar</span>}

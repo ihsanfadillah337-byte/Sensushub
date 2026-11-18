@@ -230,8 +230,8 @@ export default function UserManagement() {
         </Dialog>
       </div>
 
-      <Card className="border-gray-200">
-        <CardHeader className="py-3 border-b border-gray-200 bg-gray-50">
+      <Card className="border-slate-100 shadow-sm">
+        <CardHeader className="py-3 border-b border-slate-100 bg-slate-50/70">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -247,9 +247,9 @@ export default function UserManagement() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Nama Pegawai</TableHead>
-                  <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200">Role</TableHead>
-                  <TableHead className="bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider py-2 px-2.5 border-b border-gray-200 hidden sm:table-cell">Waktu Didaftarkan</TableHead>
+                  <TableHead className="text-slate-500">Nama Pegawai</TableHead>
+                  <TableHead className="text-slate-500">Role</TableHead>
+                  <TableHead className="text-slate-500 hidden sm:table-cell">Waktu Didaftarkan</TableHead>
                   {/* <TableHead className="text-right px-6">Aksi</TableHead> */}
                 </TableRow>
               </TableHeader>
@@ -273,7 +273,7 @@ export default function UserManagement() {
                   </TableRow>
                 ) : (
                   filteredUsers.map((u) => (
-                    <TableRow key={u.id} className="hover:bg-gray-50">
+                    <TableRow key={u.id} className="hover:bg-slate-50/80">
                       <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">
                         <div className="font-medium text-gray-900">
                           {u.full_name || "Tanpa Nama"}
