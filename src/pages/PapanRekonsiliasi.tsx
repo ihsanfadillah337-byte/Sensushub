@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCustomColumns } from "@/contexts/CustomColumnsContext";
+import { cekDuplikasiReklasifikasi } from "@/lib/reklasifikasiValidation";
 import * as XLSX from "xlsx";
 import {
   AlertTriangle, CheckCircle2, Wrench, Users, ClipboardCheck,
@@ -365,6 +366,17 @@ export default function PapanRekonsiliasi() {
   // ─── BATCH: Ajukan Semua draft_pengajuan ke BKAD (Dual-Approval Step 2) ───
   const handleAjukanKeBKAD = async () => {
     if (draftPengajuanItems.length === 0) return;
+
+    // Guard penolakan duplikasi reklasifikasi: pastikan tidak ada aset yang
+    // sudah terikat pada pengajuan aktif (menunggu_bkad) / sudah disetujui.
+    for (const item of draftPengajuanItems) {
+      const dupCheck = await cekDuplikasiReklasifikasi(item.assetId, companyId, "batch");
+      if (dupCheck.isDuplicate) {
+        toast.error(dupCheck.reason);
+        return;
+      }
+    }
+
     setIsBatching(true);
     try {
       const ids = draftPengajuanItems.map((item) => item.assetId);

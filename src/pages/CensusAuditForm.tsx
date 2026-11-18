@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getKondisi, getKondisiStyle } from "@/lib/kondisi";
 import { getSmartLocation } from "@/lib/smartLocation";
+import { cekDuplikasiReklasifikasi } from "@/lib/reklasifikasiValidation";
 import {
   ClipboardCheck, ArrowLeft, MapPin, Tag, Building2, Camera,
   Loader2, PackageX, CheckCircle2, MapPinned, AlertTriangle, PartyPopper
@@ -65,7 +66,7 @@ export default function CensusAuditForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
 
   // Form state
   const [kondisi, setKondisi] = useState("");
@@ -174,6 +175,16 @@ export default function CensusAuditForm() {
     if (isCatatanRequired && !catatan.trim()) {
       toast.error("Catatan wajib diisi untuk kondisi atau usulan yang dipilih.");
       return;
+    }
+
+    // Guard penolakan duplikasi reklasifikasi: hanya saat kondisi "Rusak Berat"
+    // (aset ini akan masuk antrean finalisasi rekon / pengajuan reklasifikasi).
+    if (kondisi === "Rusak Berat") {
+      const dupCheck = await cekDuplikasiReklasifikasi(asset!.id, companyId, "entry");
+      if (dupCheck.isDuplicate) {
+        toast.error(dupCheck.reason);
+        return;
+      }
     }
 
     setSubmitting(true);

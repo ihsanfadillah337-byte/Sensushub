@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCustomColumns } from "@/contexts/CustomColumnsContext";
+import { cekDuplikasiReklasifikasi } from "@/lib/reklasifikasiValidation";
 import { _psNumber, generateBeritaAcaraPDF, generateSuratPernyataanPDF, type DualPdfInput } from "@/utils/pdfGenerators";
 import {
   FileSignature, Plus, ArrowLeft, ArrowRight, Check, Trash2,
@@ -761,6 +762,16 @@ function WizardDialog({ open, onClose, tenantSettings }: { open: boolean; onClos
     if (!companyId) return;
     setSubmitting(true);
     try {
+      // Guard penolakan duplikasi reklasifikasi: validasi seluruh aset terpilih
+      // sebelum bundel surat usulan (Berita Acara) dikirim ke BKAD.
+      for (const asset of selectedAssets) {
+        const dupCheck = await cekDuplikasiReklasifikasi(asset.id, companyId, "batch");
+        if (dupCheck.isDuplicate) {
+          toast.error(dupCheck.reason);
+          return;
+        }
+      }
+
       // Build payload snapshot full aset terpilih
       const assetSnapshotFull = selectedAssets.map((a: any) => _buildAssetSnapshot(a));
 

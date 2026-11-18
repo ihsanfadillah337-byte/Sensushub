@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { cekDuplikasiReklasifikasi } from "@/lib/reklasifikasiValidation";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -218,6 +219,16 @@ export default function DashboardReports() {
     if (!resolveReport) return;
     setIsSubmitting(true);
     try {
+      // Guard penolakan duplikasi reklasifikasi: saat laporan diteruskan ke
+      // antrean reklasifikasi (Diusulkan Rubah Kondisi / Rusak Berat).
+      if (resolusiForm.aksi === "Diusulkan Rubah Kondisi (Rusak Berat)" && resolveReport.asset_id) {
+        const dupCheck = await cekDuplikasiReklasifikasi(resolveReport.asset_id, companyId, "entry");
+        if (dupCheck.isDuplicate) {
+          toast.error(dupCheck.reason);
+          return;
+        }
+      }
+
       const resolusi = {
         aksi: resolusiForm.aksi,
         biaya: Math.round(Number(resolusiForm.biaya) || 0),
@@ -257,7 +268,7 @@ export default function DashboardReports() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [resolveReport, resolusiForm, queryClient]);
+  }, [resolveReport, resolusiForm, queryClient, companyId]);
 
   const counts = {
     Menunggu: reports.filter((r) => r.status === "Menunggu").length,
