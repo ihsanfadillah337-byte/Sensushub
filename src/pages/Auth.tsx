@@ -82,7 +82,7 @@ export default function Auth() {
 
   return (
     <div className="min-h-dvh md:h-dvh md:overflow-hidden w-full flex items-center justify-center p-4 md:p-6 bg-slate-100/80 font-sans selection:bg-blue-100">
-      <main className="relative z-10 w-full max-w-5xl md:max-h-[calc(100dvh-3rem)] rounded-2xl overflow-hidden shadow-lg border border-slate-200/70 grid grid-cols-1 lg:grid-cols-12">
+      <main className="relative z-10 animate-soft-in w-full max-w-5xl md:max-h-[calc(100dvh-3rem)] rounded-2xl overflow-hidden shadow-lg border border-slate-200/70 grid grid-cols-1 lg:grid-cols-12">
         
         {/* Left Column: Hero Civic Showcase (7/12 = ~58%) */}
         <div className="relative lg:col-span-7 flex flex-col justify-between p-6 sm:p-8 lg:p-9 overflow-hidden bg-slate-50">
@@ -92,6 +92,7 @@ export default function Auth() {
             <img
               src="/bg-bkad.jpg"
               alt="Gedung BKAD Kabupaten Bandung"
+              decoding="async"
               className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.42] grayscale-[15%] pointer-events-none"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-white/65 via-white/35 to-slate-100/70 pointer-events-none" />
@@ -108,7 +109,7 @@ export default function Auth() {
           </div>
 
           {/* Center Content: Typography */}
-          <div className="relative z-10 max-w-xl my-auto py-6">
+          <div className="relative z-10 max-w-xl my-auto py-6 animate-soft-in soft-delay-1">
             <h1 className="text-2xl lg:text-[30px] leading-tight text-[#0F172A] font-bold tracking-tight mb-4 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
               Transformasi Digital Tata Kelola Aset Daerah
             </h1>
@@ -134,11 +135,11 @@ export default function Auth() {
 
         {/* Right Column: Authentication Form (5/12 = ~42%) */}
         <div className="relative z-10 lg:col-span-5 p-6 sm:p-8 lg:p-9 flex flex-col justify-center bg-slate-50/70 text-[#1E293B]">
-          <div className="max-w-[400px] w-full mx-auto space-y-6 bg-white border border-slate-100 shadow-sm rounded-2xl p-6 md:p-8">
+          <div className="max-w-[400px] w-full mx-auto space-y-6 bg-white border border-slate-100 shadow-sm rounded-2xl p-6 md:p-8 animate-soft-in soft-delay-2">
             {/* Header */}
             <div className="space-y-2 text-left">
-              <h2 className="text-2xl font-bold text-[#0F172A] tracking-tight">Portal SIPPA-BMD</h2>
-              <p className="text-slate-500 font-medium text-sm leading-relaxed">
+              <h2 className="text-lg font-bold tracking-tight text-slate-800">Portal SIPPA-BMD</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">
                 Akses terpadu pengelola aset & tim rekon BKAD Kab. Bandung.
               </p>
             </div>
@@ -164,11 +165,11 @@ export default function Auth() {
               )}
               
               <div className="space-y-1.5 text-left">
-                <Label htmlFor="email" className="text-[12px] font-bold text-[#1E293B] flex items-center justify-between">
+                <Label htmlFor="email" className="text-[11px] font-semibold text-[#1E293B] flex items-center justify-between">
                   Alamat Surel Kedinasan / NIP
                 </Label>
                 <div className="relative flex items-center group">
-                  <Mail className="absolute left-4 h-[20px] w-[20px] text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                  <Mail size={15} className="absolute left-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                   <Input
                     id="email"
                     type="email"
@@ -176,22 +177,22 @@ export default function Auth() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    className="w-full h-10 pl-12 pr-4 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-slate-700 shadow-sm"
+                    className="w-full h-9 pl-12 pr-4 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-[12.5px] text-slate-700 shadow-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5 text-left">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-[12px] font-bold text-[#1E293B]">
+                  <Label htmlFor="password" className="text-[11px] font-semibold text-[#1E293B]">
                     Kata Sandi Portal
                   </Label>
-                  <button type="button" className="text-[11px] font-bold text-blue-600 hover:underline transition-colors">
+                  <button type="button" className="text-[11px] font-semibold text-blue-600 hover:underline transition-colors">
                     Lupa Password?
                   </button>
                 </div>
                 <div className="relative flex items-center group">
-                  <Lock className="absolute left-4 h-[20px] w-[20px] text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                  <Lock size={15} className="absolute left-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -199,14 +200,14 @@ export default function Auth() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="w-full h-10 pl-12 pr-12 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-slate-700 shadow-sm"
+                    className="w-full h-9 pl-12 pr-12 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-[12.5px] text-slate-700 shadow-sm"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-[20px] w-[20px]" /> : <Eye className="h-[20px] w-[20px]" />}
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
@@ -220,20 +221,20 @@ export default function Auth() {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer accent-blue-600"
                   />
-                  <label htmlFor="remember" className="text-[12px] font-medium text-slate-500 group-hover:text-[#1E293B] transition-colors cursor-pointer select-none">
+                  <label htmlFor="remember" className="text-[11px] text-slate-500 whitespace-nowrap group-hover:text-[#1E293B] transition-colors cursor-pointer select-none">
                     Ingat kredensial di perangkat ini
                   </label>
                 </div>
                 <div className="flex items-center gap-1.5 text-slate-400">
                   <Lock className="h-[14px] w-[14px] text-emerald-600" />
-                  <span className="text-[11px] font-bold uppercase tracking-tight">SSL 256-Bit</span>
+                  <span className="text-[9.5px] font-bold uppercase tracking-wider whitespace-nowrap">SSL 256-Bit</span>
                 </div>
               </div>
 
               <div className="flex flex-col gap-2 pt-1">
                 <Button 
                   type="submit" 
-                  className="w-full h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/20 transition-all duration-200 flex items-center justify-center gap-2 group active:scale-[0.99]" 
+                  className="w-full h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[12.5px] font-semibold shadow-md shadow-blue-600/20 transition-all duration-200 flex items-center justify-center gap-2 group soft-btn-press active:scale-[0.99]" 
                   disabled={loading}
                 >
                   {loading ? (
@@ -250,7 +251,7 @@ export default function Auth() {
                   type="button" 
                   variant="outline" 
                   onClick={() => setIsLogin(!isLogin)}
-                  className="w-full h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#1E293B] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] shadow-sm"
+                  className="w-full h-9 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#1E293B] text-[12.5px] font-semibold transition-all duration-200 flex items-center justify-center gap-2 soft-btn-press active:scale-[0.99] shadow-sm"
                 >
                   {isLogin ? (
                     <>
@@ -269,7 +270,7 @@ export default function Auth() {
 
             {/* Footer Text */}
             <div className="mt-4 pt-3 text-center">
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">
+              <p className="text-[9px] tracking-wider text-slate-400 text-center">
                 &copy; 2026 & 2027 BKAD KABUPATEN BANDUNG • SIPPA-BMD
               </p>
             </div>
