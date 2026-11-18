@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Package, DollarSign, AlertTriangle, Wrench,
-  ArrowUpRight, ArrowDownRight, Minus, Building2, ClipboardCheck, History, MoreHorizontal,
+  ArrowUpRight, ArrowDownRight, Minus, Building2, History, MoreHorizontal,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +28,6 @@ const PIE_COLORS: Record<string, string> = {
   "KIB D - Jalan/Irigasi/Jaringan": "#f59e0b",
   "KIB E - Aset Tetap Lainnya": "#14b8a6",
   "KIB Lainnya": "#94a3b8",
-};
-
-const ICON_COLORS: Record<string, string> = {
-  emerald: "bg-emerald-50 text-emerald-600",
-  blue: "bg-blue-50 text-blue-600",
-  amber: "bg-amber-50 text-amber-600",
-  red: "bg-red-50 text-red-600",
 };
 
 const STATUS_REKON_META: Record<string, { label: string; cls: string }> = {
@@ -236,16 +228,20 @@ function deltaFromSeries(series: number[]): Delta {
 
 // --- Soft-UI Components ---
 
-const StatCard = ({ label, value, icon: Icon, trend, color, sparklineData, hint }: any) => {
+const StatCard = ({ label, value, trend, sparklineData, hint, formatDelta }: any) => {
   const dir = trend?.dir ?? "flat";
   const trendCls =
     dir === "up" ? "bg-emerald-50 text-emerald-600" : dir === "down" ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500";
+  const deltaText =
+    formatDelta && trend?.pct === null
+      ? formatDelta(Math.abs(trend?.delta ?? 0))
+      : `${Math.abs(trend?.delta ?? 0)}`;
   const trendText = !trend
     ? ""
     : trend.pct !== null
     ? `${Math.abs(trend.pct)}%`
     : trend.delta !== 0
-    ? `${trend.delta > 0 ? "+" : "-"}${Math.abs(trend.delta)} baru`
+    ? `${trend.delta > 0 ? "+" : "-"}${deltaText} baru`
     : "0%";
   const sparkColor = dir === "down" ? "#ef4444" : "#10b981";
 
@@ -258,23 +254,18 @@ const StatCard = ({ label, value, icon: Icon, trend, color, sparklineData, hint 
             <p className="text-2xl font-bold text-slate-700 tracking-tight">{value}</p>
             {hint && <p className="text-[10px] font-medium text-slate-400">{hint}</p>}
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className={`p-2 rounded-xl ${ICON_COLORS[color] || ICON_COLORS.emerald}`}>
-              <Icon size={20} />
+          {trend && (
+            <div className={`flex items-center whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded-full ${trendCls}`}>
+              {dir === "up" ? (
+                <ArrowUpRight size={12} className="mr-0.5" />
+              ) : dir === "down" ? (
+                <ArrowDownRight size={12} className="mr-0.5" />
+              ) : (
+                <Minus size={12} className="mr-0.5" />
+              )}
+              {trendText}
             </div>
-            {trend && (
-              <div className={`flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${trendCls}`}>
-                {dir === "up" ? (
-                  <ArrowUpRight size={12} className="mr-0.5" />
-                ) : dir === "down" ? (
-                  <ArrowDownRight size={12} className="mr-0.5" />
-                ) : (
-                  <Minus size={12} className="mr-0.5" />
-                )}
-                {trendText}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Sparkline real-time dari agregasi 6 bulan terakhir */}
@@ -468,24 +459,6 @@ export default function DashboardOverview() {
     enabled: !!companyId || isBKAD,
   });
 
-  const { data: audits = [], isLoading: loadingAudits } = useQuery({
-    queryKey: ["audits-overview", companyId, role],
-    queryFn: async () => {
-      let query = (supabase as any)
-        .from("asset_audits")
-        .select("id, kondisi, created_at, assets!inner(company_id)");
-      if (!isBKAD) query = query.eq("assets.company_id", companyId!);
-      const { data, error } = await query;
-      if (error) {
-        console.warn("Gagal memuat audit overview:", error.message);
-        return [];
-      }
-      return data ?? [];
-    },
-    // Khusus akun BKAD tidak perlu menarik seluruh tabel asset_audits (agregasi makro tidak memakainya).
-    enabled: !isBKAD && !!companyId,
-  });
-
   const { data: archives = [], isLoading: loadingArchives } = useQuery({
     queryKey: ["archives-overview", companyId, role],
     queryFn: async () => {
@@ -512,19 +485,19 @@ export default function DashboardOverview() {
     enabled: isBKAD,
   });
 
-  const isLoading = loadingAssets || loadingReports || loadingAudits || loadingArchives;
+  const isLoading = loadingAssets || loadingReports || loadingArchives;
 
   if (isLoading) return <DashboardSkeleton />;
 
   return isBKAD ? (
     <DashboardBKAD assets={assets} reports={reports} archives={archives} companies={companies} />
   ) : (
-    <DashboardSKPD assets={assets} reports={reports} audits={audits} archives={archives} />
+    <DashboardSKPD assets={assets} reports={reports} archives={archives} />
   );
 }
 
 // --- Dashboard SKPD (Operator) ---
-function DashboardSKPD({ assets, reports, audits, archives }: any) {
+function DashboardSKPD({ assets, reports, archives }: any) {
   const [filter, setFilter] = useState<Granularity>("Bulan");
 
   const stats = useMemo(() => {
@@ -562,12 +535,9 @@ function DashboardSKPD({ assets, reports, audits, archives }: any) {
       );
     const sparkReklas = monthlyCount6(reklasRows, (r: any) => r.approved_at || r.created_at);
 
-    // Tren laporan kendala & kerusakan: asset_reports + audit berkondisi rusak
-    const brokenAudits = audits.filter((au: any) => String(au?.kondisi || "").toLowerCase().includes("rusak"));
-    const trendDates = [
-      ...reports.map((r: any) => r.created_at),
-      ...brokenAudits.map((au: any) => au.created_at),
-    ];
+    // Tren laporan kendala & kerusakan: hanya dari asset_reports agar sinkron
+    // dengan kartu KPI Laporan Kendala (tidak digabung dengan baris asset_audits sensus massal).
+    const trendDates = reports.map((r: any) => r.created_at);
 
     // Status mutasi terakhir: ambil dari bundel archives milik SKPD ini (urut tanggal
     // pengajuan/persetujuan terbaru), lalu pecah item asetnya — agar tanggal yang tampil
@@ -620,17 +590,17 @@ function DashboardSKPD({ assets, reports, audits, archives }: any) {
       sparkReklas,
       sparkReports,
     };
-  }, [assets, reports, audits, archives]);
+  }, [assets, reports, archives]);
 
   const trendData = useMemo(() => buildTrendSeries(stats.trendDates, filter), [stats.trendDates, filter]);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatCard label="Total Aset Aktif" value={stats.totalActive} icon={Package} color="emerald" trend={deltaFromSeries(stats.sparkActive)} sparklineData={toSpark(stats.sparkActive)} />
-        <StatCard label="Nilai Kapital" value={formatRupiah(stats.totalNilai)} icon={DollarSign} color="blue" trend={deltaFromSeries(stats.sparkNilai)} sparklineData={toSpark(stats.sparkNilai)} />
-        <StatCard label="Aset Reklasifikasi" value={stats.reclassified} icon={AlertTriangle} color="amber" trend={deltaFromSeries(stats.sparkReklas)} sparklineData={toSpark(stats.sparkReklas)} />
-        <StatCard label="Laporan Kendala" value={stats.reportsCount} icon={Wrench} color="red" trend={deltaFromSeries(stats.sparkReports)} sparklineData={toSpark(stats.sparkReports)} />
+        <StatCard label="Total Aset Aktif" value={stats.totalActive} trend={deltaFromSeries(stats.sparkActive)} sparklineData={toSpark(stats.sparkActive)} />
+        <StatCard label="Nilai Kapital" value={formatRupiah(stats.totalNilai)} trend={deltaFromSeries(stats.sparkNilai)} sparklineData={toSpark(stats.sparkNilai)} formatDelta={formatRupiah} />
+        <StatCard label="Aset Reklasifikasi" value={stats.reclassified} trend={deltaFromSeries(stats.sparkReklas)} sparklineData={toSpark(stats.sparkReklas)} />
+        <StatCard label="Laporan Kendala" value={stats.reportsCount} trend={deltaFromSeries(stats.sparkReports)} sparklineData={toSpark(stats.sparkReports)} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -785,10 +755,10 @@ function DashboardBKAD({ assets, reports, archives, companies }: any) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatCard label="Antrean Verifikasi" value={stats.queue} icon={ClipboardCheck} color="amber" trend={deltaFromSeries(stats.sparkQueue)} sparklineData={toSpark(stats.sparkQueue)} />
-        <StatCard label="Aset Reklasifikasi" value={stats.reclassified} icon={AlertTriangle} color="red" trend={deltaFromSeries(stats.sparkReklas)} sparklineData={toSpark(stats.sparkReklas)} />
-        <StatCard label="Nilai Mutasi" value={formatRupiah(stats.mutationValue)} icon={DollarSign} color="emerald" trend={deltaFromSeries(stats.sparkMutasi)} sparklineData={toSpark(stats.sparkMutasi)} />
-        <StatCard label="SKPD Melapor" value={stats.skpdReporting} icon={Building2} color="blue" trend={deltaFromSeries(stats.sparkSkpd)} sparklineData={toSpark(stats.sparkSkpd)} hint={stats.skpdReportingHint} />
+        <StatCard label="Antrean Verifikasi" value={stats.queue} trend={deltaFromSeries(stats.sparkQueue)} sparklineData={toSpark(stats.sparkQueue)} />
+        <StatCard label="Aset Reklasifikasi" value={stats.reclassified} trend={deltaFromSeries(stats.sparkReklas)} sparklineData={toSpark(stats.sparkReklas)} />
+        <StatCard label="Nilai Mutasi" value={formatRupiah(stats.mutationValue)} trend={deltaFromSeries(stats.sparkMutasi)} sparklineData={toSpark(stats.sparkMutasi)} formatDelta={formatRupiah} />
+        <StatCard label="SKPD Melapor" value={stats.skpdReporting} trend={deltaFromSeries(stats.sparkSkpd)} sparklineData={toSpark(stats.sparkSkpd)} hint={stats.skpdReportingHint} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
