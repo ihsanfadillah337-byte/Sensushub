@@ -164,6 +164,59 @@
   overflow: hidden;
 }
 
+/* ─── Soft-UI Micro-animations (GPU-composited only: opacity + transform) ─── */
+@keyframes softFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-soft-in {
+  animation: softFadeUp 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.soft-delay-1 { animation-delay: 40ms; }
+.soft-delay-2 { animation-delay: 80ms; }
+.soft-delay-3 { animation-delay: 120ms; }
+.soft-delay-4 { animation-delay: 160ms; }
+
+.soft-card-interactive {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease;
+}
+.soft-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.12);
+}
+
+.soft-btn-press {
+  transition: transform 150ms ease;
+}
+.soft-btn-press:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-soft-in,
+  .soft-delay-1,
+  .soft-delay-2,
+  .soft-delay-3,
+  .soft-delay-4 {
+    animation: none !important;
+  }
+  .soft-card-interactive,
+  .soft-btn-press {
+    transition: none !important;
+  }
+  .soft-card-interactive:hover {
+    transform: none;
+  }
+}
+
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {

@@ -325,7 +325,7 @@ export default function PengajuanSuratPage() {
         </div>
       )}
 
-      <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
+      <Card className="bg-white border-slate-100 rounded-2xl shadow-sm soft-card-interactive">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold text-gray-900">Riwayat Arsip Dokumen</CardTitle>
         </CardHeader>

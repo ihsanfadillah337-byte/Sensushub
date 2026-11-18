@@ -606,7 +606,7 @@ export default function ArsipBKAD() {
       </div>
 
       {activeTab === "arsip" ? (
-        <Card>
+        <Card className="soft-card-interactive">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -771,7 +771,7 @@ export default function ArsipBKAD() {
           </div>
 
           {/* Tabel + Aksi Ekspor */}
-          <Card>
+          <Card className="soft-card-interactive">
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>

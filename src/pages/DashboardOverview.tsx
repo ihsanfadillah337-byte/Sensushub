@@ -228,7 +228,7 @@ function deltaFromSeries(series: number[]): Delta {
 
 // --- Soft-UI Components ---
 
-const StatCard = ({ label, value, trend, sparklineData, hint, formatDelta }: any) => {
+const StatCard = ({ label, value, trend, sparklineData, hint, formatDelta, delayClass }: any) => {
   const dir = trend?.dir ?? "flat";
   const trendCls =
     dir === "up" ? "bg-emerald-50 text-emerald-600" : dir === "down" ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500";
@@ -246,7 +246,7 @@ const StatCard = ({ label, value, trend, sparklineData, hint, formatDelta }: any
   const sparkColor = dir === "down" ? "#ef4444" : "#10b981";
 
   return (
-    <Card className={SOFT_UI_CARD}>
+    <Card className={`${SOFT_UI_CARD} animate-soft-in soft-card-interactive ${delayClass || ""}`}>
       <CardContent className="p-6 relative">
         <div className="flex justify-between items-start mb-4">
           <div className="space-y-1">
@@ -270,7 +270,7 @@ const StatCard = ({ label, value, trend, sparklineData, hint, formatDelta }: any
 
         {/* Sparkline real-time dari agregasi 6 bulan terakhir */}
         <div className="absolute bottom-0 left-0 w-full h-10 opacity-30 pointer-events-none">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={100}>
             <AreaChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <Area type="monotone" dataKey="v" stroke={sparkColor} fill={sparkColor} strokeWidth={2} fillOpacity={0.4} isAnimationActive={false} />
             </AreaChart>
@@ -283,7 +283,7 @@ const StatCard = ({ label, value, trend, sparklineData, hint, formatDelta }: any
 
 const AreaChartCard = ({ title, data, dataKey, xKey = "label", color, filter, setFilter }: any) => {
   return (
-    <Card className={`${SOFT_UI_CARD} col-span-1 xl:col-span-2`}>
+    <Card className={`${SOFT_UI_CARD} animate-soft-in col-span-1 xl:col-span-2`}>
       <CardHeader className="flex flex-row items-center justify-between pb-0 pt-6 px-6">
         <CardTitle className="text-sm font-bold text-slate-600">{title}</CardTitle>
         <div className="flex bg-slate-50 p-1 rounded-xl">
@@ -331,7 +331,9 @@ const AreaChartCard = ({ title, data, dataKey, xKey = "label", color, filter, se
               fill={`url(#grad-${color})`}
               dot={{ r: 4, fill: color, strokeWidth: 2, stroke: "#fff" }}
               activeDot={{ r: 6, strokeWidth: 0 }}
-              isAnimationActive={false}
+              isAnimationActive={true}
+              animationDuration={450}
+              animationEasing="ease-out"
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -342,7 +344,7 @@ const AreaChartCard = ({ title, data, dataKey, xKey = "label", color, filter, se
 
 const DonutChartCard = ({ title, data, total }: any) => {
   return (
-    <Card className={SOFT_UI_CARD}>
+    <Card className={`${SOFT_UI_CARD} animate-soft-in`}>
       <CardHeader>
         <CardTitle className="text-sm font-bold text-slate-600">{title}</CardTitle>
       </CardHeader>
@@ -357,7 +359,9 @@ const DonutChartCard = ({ title, data, total }: any) => {
                 paddingAngle={5}
                 dataKey="value"
                 stroke="none"
-                isAnimationActive={false}
+                isAnimationActive={true}
+                animationDuration={450}
+                animationEasing="ease-out"
               >
                 {data.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || PIE_COLORS["Lainnya"]} />
@@ -599,10 +603,10 @@ function DashboardSKPD({ assets, reports, archives }: any) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatCard label="Total Aset Aktif" value={stats.totalActive} trend={deltaFromSeries(stats.sparkActive)} sparklineData={toSpark(stats.sparkActive)} />
-        <StatCard label="Nilai Kapital" value={formatRupiah(stats.totalNilai)} trend={deltaFromSeries(stats.sparkNilai)} sparklineData={toSpark(stats.sparkNilai)} formatDelta={formatRupiah} />
-        <StatCard label="Aset Reklasifikasi" value={stats.reclassified} trend={deltaFromSeries(stats.sparkReklas)} sparklineData={toSpark(stats.sparkReklas)} />
-        <StatCard label="Laporan Kendala" value={stats.reportsCount} trend={deltaFromSeries(stats.sparkReports)} sparklineData={toSpark(stats.sparkReports)} />
+        <StatCard label="Total Aset Aktif" value={stats.totalActive} trend={deltaFromSeries(stats.sparkActive)} sparklineData={toSpark(stats.sparkActive)} delayClass="soft-delay-1" />
+        <StatCard label="Nilai Kapital" value={formatRupiah(stats.totalNilai)} trend={deltaFromSeries(stats.sparkNilai)} sparklineData={toSpark(stats.sparkNilai)} formatDelta={formatRupiah} delayClass="soft-delay-2" />
+        <StatCard label="Aset Reklasifikasi" value={stats.reclassified} trend={deltaFromSeries(stats.sparkReklas)} sparklineData={toSpark(stats.sparkReklas)} delayClass="soft-delay-3" />
+        <StatCard label="Laporan Kendala" value={stats.reportsCount} trend={deltaFromSeries(stats.sparkReports)} sparklineData={toSpark(stats.sparkReports)} delayClass="soft-delay-4" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -763,10 +767,10 @@ function DashboardBKAD({ assets, reports, archives, companies }: any) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatCard label="Antrean Verifikasi" value={stats.queue} trend={deltaFromSeries(stats.sparkQueue)} sparklineData={toSpark(stats.sparkQueue)} />
-        <StatCard label="Aset Reklasifikasi" value={stats.reclassified} trend={deltaFromSeries(stats.sparkReklas)} sparklineData={toSpark(stats.sparkReklas)} />
-        <StatCard label="Nilai Mutasi" value={formatRupiah(stats.mutationValue)} trend={deltaFromSeries(stats.sparkMutasi)} sparklineData={toSpark(stats.sparkMutasi)} formatDelta={formatRupiah} />
-        <StatCard label="SKPD Melapor" value={stats.skpdReporting} trend={deltaFromSeries(stats.sparkSkpd)} sparklineData={toSpark(stats.sparkSkpd)} hint={stats.skpdReportingHint} />
+        <StatCard label="Antrean Verifikasi" value={stats.queue} trend={deltaFromSeries(stats.sparkQueue)} sparklineData={toSpark(stats.sparkQueue)} delayClass="soft-delay-1" />
+        <StatCard label="Aset Reklasifikasi" value={stats.reclassified} trend={deltaFromSeries(stats.sparkReklas)} sparklineData={toSpark(stats.sparkReklas)} delayClass="soft-delay-2" />
+        <StatCard label="Nilai Mutasi" value={formatRupiah(stats.mutationValue)} trend={deltaFromSeries(stats.sparkMutasi)} sparklineData={toSpark(stats.sparkMutasi)} formatDelta={formatRupiah} delayClass="soft-delay-3" />
+        <StatCard label="SKPD Melapor" value={stats.skpdReporting} trend={deltaFromSeries(stats.sparkSkpd)} sparklineData={toSpark(stats.sparkSkpd)} hint={stats.skpdReportingHint} delayClass="soft-delay-4" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

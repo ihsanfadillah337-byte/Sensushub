@@ -1,10 +1,11 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { CustomColumnsProvider } from "@/contexts/CustomColumnsContext";
 
 export default function DashboardLayout() {
+  const location = useLocation();
   return (
     <CustomColumnsProvider>
       <SidebarProvider>
@@ -12,7 +13,7 @@ export default function DashboardLayout() {
           <AppSidebar />
           <div className="flex-1 flex flex-col min-w-0">
             <DashboardHeader />
-            <main className="flex-1 p-3 sm:p-4 lg:p-5 overflow-auto">
+            <main key={location.pathname} className="flex-1 p-3 sm:p-4 lg:p-5 overflow-auto animate-soft-in">
               <Outlet />
             </main>
           </div>

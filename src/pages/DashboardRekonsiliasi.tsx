@@ -75,7 +75,7 @@ export default function DashboardRekonsiliasi() {
       </div>
 
       {/* ── Tab Content ── */}
-      <div className="focus-visible:outline-none">
+      <div key={activeTab} className="focus-visible:outline-none animate-soft-in">
         {activeTab === "inbox" && <DashboardReports />}
         {activeTab === "sensus" && <DashboardCensus />}
         {activeTab === "papan" && <PapanRekonsiliasi />}

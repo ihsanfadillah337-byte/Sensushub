@@ -346,7 +346,7 @@ export default function DashboardAssets() {
       </div>
 
       {/* Filter Bar & Table Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4 soft-card-interactive">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
