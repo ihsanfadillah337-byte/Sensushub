@@ -80,35 +80,21 @@ export default function Auth() {
     );
   }
 
-  // Civic Backdrop Image from user's reference
-  const civicBackdrop = "https://lh3.googleusercontent.com/aida/AEtjO1XMf1OUziDlnYvO3ceXIJ0iY1mq9rF5XhyKNJSkDHokPLh1M9nQzg50g1RmO4WVWvuwjYpowpHOi8YmMkZFFi571Xwhf0i354Z-rwp2ujV2TnMN-eJXVUjG4QGrFjQH28RQQVQTEDKSBUyEjn_gmCUTOi7Qbw1jJPN61K8IQi25I6SH7PMgo3RV6XkCe8knsNNefv6F0NrDtMe_1dlNbA49ohuHkAsSyHwufFn5IwQ5";
-
   return (
     <div className="min-h-screen w-full bg-[#f8f9ff] flex items-center justify-center p-0 lg:p-10 font-sans selection:bg-blue-100">
-      {/* Full-page BKAD silhouette background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <img
-          src="/bg-bkad.jpg"
-          alt=""
-          className="w-full h-full object-cover object-center opacity-[0.16] grayscale-[35%]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-50/85 via-slate-50/65 to-slate-100/90"></div>
-      </div>
-
       <main className="relative z-10 w-full max-w-[1360px] min-h-screen lg:min-h-[760px] lg:rounded-[32px] border border-slate-200/50 shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12">
         
         {/* Left Column: Hero Civic Showcase (7/12 = ~58%) */}
-        <div className="relative lg:col-span-7 min-h-[540px] lg:min-h-[760px] flex flex-col justify-between p-10 md:p-14 lg:p-20 overflow-hidden bg-[#eff4ff]/30">
+        <div className="relative lg:col-span-7 min-h-[540px] lg:min-h-[760px] flex flex-col justify-between p-10 md:p-14 lg:p-20 overflow-hidden bg-slate-50">
           
           {/* Architectural Backdrop */}
           <div className="absolute inset-0 z-0">
-            <img 
-              src={civicBackdrop} 
-              alt="Gedung Balai Kota Bandung" 
-              className="absolute inset-0 w-full h-full object-cover object-center opacity-30 select-none pointer-events-none mix-blend-luminosity"
+            <img
+              src="/bg-bkad.jpg"
+              alt="Gedung BKAD Kabupaten Bandung"
+              className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.22] grayscale-[25%] pointer-events-none"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-white/40"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-white"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-white/75 via-white/50 to-slate-100/85 pointer-events-none" />
             <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-100/40 blur-[100px] pointer-events-none"></div>
           </div>
 
@@ -147,8 +133,8 @@ export default function Auth() {
         </div>
 
         {/* Right Column: Authentication Form (5/12 = ~42%) */}
-        <div className="relative z-10 lg:col-span-5 p-10 md:p-14 lg:p-20 flex flex-col justify-center text-[#1E293B]">
-          <div className="max-w-[400px] w-full mx-auto space-y-10 bg-white/90 backdrop-blur-md border border-slate-100 shadow-sm rounded-2xl p-8 md:p-10">
+        <div className="relative z-10 lg:col-span-5 p-10 md:p-14 lg:p-20 flex flex-col justify-center bg-slate-50/70 text-[#1E293B]">
+          <div className="max-w-[400px] w-full mx-auto space-y-10 bg-white border border-slate-100 shadow-sm rounded-2xl p-8 md:p-10">
             {/* Header */}
             <div className="space-y-2 text-left">
               <h2 className="text-2xl font-bold text-[#0F172A] tracking-tight">Portal SIPPA-BMD</h2>
