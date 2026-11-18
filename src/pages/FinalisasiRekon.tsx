@@ -201,6 +201,40 @@ function _isRevisiBundle(arc: ArchiveRow): boolean {
   return _bkadSnapshotItems(arc).some((it: any) => it._bkad_status === "rejected");
 }
 
+// Fallback: kompres gambar ke JPEG Data URL bila upload storage gagal karena policy.
+function _compressImageToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Gagal membaca berkas gambar."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Gagal memuat gambar."));
+      img.onload = () => {
+        try {
+          const maxDim = 1280;
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            const scale = Math.min(maxDim / width, maxDim / height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject(new Error("Canvas tidak didukung browser."));
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.75));
+        } catch (e) {
+          reject(e);
+        }
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // ─── Reprint Dialog (Arsip) ───────────────────────────────
 function ReprintDialog({ arc, onClose, tenantSettings }: { arc: ArchiveRow; onClose: () => void; tenantSettings?: any }) {
   const ot = arc.data_otorisasi || {};
@@ -394,6 +428,7 @@ function UploadScanDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; onClos
 
 // ─── Kirim Ulang Revisi Dialog ────────────────────────────
 function KirimUlangRevisiDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; onClose: () => void; onSuccess: () => void }) {
+  const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [photoFiles, setPhotoFiles] = useState<Record<number, File>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -402,8 +437,8 @@ function KirimUlangRevisiDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; 
   const approvedItems = snapshot.filter((it: any) => it._bkad_status === "approved");
   const rejectedItems = snapshot.filter((it: any) => it._bkad_status === "rejected");
 
-  // Perbarui custom_data.status_rekon sebuah aset (revisi_bkad -> menunggu_bkad)
-  const applyStatusRekon = async (assetRowId: string) => {
+  // Perbarui custom_data aset (revisi_bkad -> menunggu_bkad) + simpan URL foto perbaikan.
+  const applyStatusRekon = async (assetRowId: string, fotoUrl?: string) => {
     const { data: row, error: getErr } = await supabase
       .from("assets")
       .select("custom_data")
@@ -414,7 +449,13 @@ function KirimUlangRevisiDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; 
     const cd = row?.custom_data && typeof row.custom_data === "object" ? { ...(row.custom_data as object) } : {};
     const { error: upErr } = await supabase
       .from("assets")
-      .update({ custom_data: { ...cd, status_rekon: "menunggu_bkad" } } as any)
+      .update({
+        custom_data: {
+          ...cd,
+          status_rekon: "menunggu_bkad",
+          ...(fotoUrl ? { rekon_foto_bukti: fotoUrl } : {}),
+        },
+      } as any)
       .eq("id", assetRowId);
     if (upErr) throw upErr;
   };
@@ -439,67 +480,65 @@ function KirimUlangRevisiDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; 
       }
 
       // 1b. (Opsional) unggah foto bukti perbaikan per aset yang ditolak.
-      //     Foto menggantikan image_url report / foto_url audit agar tampil di panel BKAD.
+      //     URL foto disimpan ke 3 lokasi: snapshot bundel, custom_data aset, dan riwayat audit baru.
+      //     Map berikut dipakai agar URL bisa dipasangkan kembali ke snapshot / metadata aset.
+      const photoUrlByKey = new Map<string, string>();
+      const photoUrlByAssetId = new Map<string, string>();
+      const photoUrlByKode = new Map<string, string>();
+
       const photoTargets = rejectedItems
         .map((it: any, idx: number) => ({ it, idx }))
         .filter(({ idx }) => photoFiles[idx]);
       for (const { it, idx } of photoTargets) {
         const photoFile = photoFiles[idx];
         const photoExt = photoFile.name.split(".").pop() || "jpg";
-        const photoPath = `perbaikan/${arc.id}_${_bkadItemKey(it) || idx}_${Date.now()}.${photoExt}`;
+        const photoPath = `perbaikan-foto/${arc.id}_${_bkadItemKey(it) || idx}_${Date.now()}.${photoExt}`;
+
+        // Bucket "dokumen_usulan" sudah terbukti lolos RLS Operator (dipakai PDF revisi).
+        let photoUrl = "";
         const { error: photoUpErr } = await supabase.storage
-          .from("report-evidence")
+          .from("dokumen_usulan")
           .upload(photoPath, photoFile);
-        if (photoUpErr) throw photoUpErr;
-        const { data: { publicUrl: photoUrl } } = supabase.storage
-          .from("report-evidence")
-          .getPublicUrl(photoPath);
+        if (!photoUpErr) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("dokumen_usulan")
+            .getPublicUrl(photoPath);
+          photoUrl = publicUrl;
+        } else {
+          // Fallback: kompres gambar ke JPEG Data URL agar proses kirim ulang tidak gagal.
+          console.warn("Upload foto bukti ke storage gagal, memakai fallback Data URL:", photoUpErr.message);
+          try {
+            photoUrl = await _compressImageToDataUrl(photoFile);
+          } catch (e: any) {
+            console.error("Fallback kompresi foto gagal:", e);
+          }
+        }
+        if (!photoUrl) continue;
+
+        const itemKey = _bkadItemKey(it);
+        const kodeAset = it?.kode_barang || it?.kode_aset || "";
+        if (itemKey) photoUrlByKey.set(itemKey, photoUrl);
+        if (kodeAset) photoUrlByKode.set(String(kodeAset), photoUrl);
 
         // Resolve UUID aset: prioritas asset_id snapshot, fallback kode_aset.
         let assetId = _bkadItemAssetId(it);
-        if (!assetId) {
-          const kode = it?.kode_barang || it?.kode_aset;
-          if (kode) {
-            const { data: a } = await supabase.from("assets").select("id").eq("kode_aset", kode).maybeSingle();
-            assetId = (a as any)?.id || "";
-          }
+        if (!assetId && kodeAset) {
+          const { data: a } = await supabase.from("assets").select("id").eq("kode_aset", kodeAset).maybeSingle();
+          assetId = (a as any)?.id || "";
         }
-        if (!assetId) continue;
+        if (assetId) photoUrlByAssetId.set(assetId, photoUrl);
 
-        // Mengikuti prioritas baca VerifikasiBKAD (report.image_url > audit.foto_url).
-        const { data: reports } = await supabase
-          .from("asset_reports")
-          .select("id")
-          .eq("asset_id", assetId)
-          .order("created_at", { ascending: false })
-          .limit(1);
-        const latestReport = (reports ?? [])[0];
-        const { data: audits } = await supabase
-          .from("asset_audits")
-          .select("id")
-          .eq("asset_id", assetId)
-          .order("created_at", { ascending: false })
-          .limit(1);
-        const latestAudit = (audits ?? [])[0];
-
-        if (latestReport) {
-          const { error: rErr } = await supabase.from("asset_reports").update({ image_url: photoUrl } as any).eq("id", (latestReport as any).id);
-          if (rErr) throw rErr;
-        }
-        if (latestAudit) {
-          const { error: aErr } = await supabase.from("asset_audits").update({ foto_url: photoUrl } as any).eq("id", (latestAudit as any).id);
-          if (aErr) throw aErr;
-        }
-        if (!latestReport && !latestAudit) {
-          // Belum ada baris foto -> buat baris audit baru agar tampil di panel BKAD.
+        // (c) Riwayat audit BARU via INSERT (bukan UPDATE yang rawan terblokir RLS).
+        if (assetId) {
           const { error: insErr } = await supabase.from("asset_audits").insert({
             asset_id: assetId,
             kondisi: it?.kondisi || it?.Kondisi || "Rusak Ringan",
             tindak_lanjut: "Perbaikan foto bukti oleh SKPD",
             foto_url: photoUrl,
             catatan: "Foto bukti perbaikan diunggah saat kirim ulang revisi.",
+            auditor_id: user?.id || null,
           } as any);
-          if (insErr) throw insErr;
+          if (insErr) console.warn("Gagal menyimpan riwayat audit foto bukti:", insErr.message);
         }
       }
 
@@ -512,13 +551,17 @@ function KirimUlangRevisiDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; 
         : ((existingOto.assets as any[]) || []);
       const rejectedKeys = new Set(rejectedItems.map((it: any) => _bkadItemKey(it)));
       const detailUpdated = detailArray.map((d: any) => {
-        if (rejectedKeys.has(_bkadItemKey(d))) {
+        const dKey = _bkadItemKey(d);
+        if (rejectedKeys.has(dKey)) {
+          // (a) Snapshot bundel: simpan URL foto perbaikan agar langsung terbaca BKAD.
+          const foto = photoUrlByKey.get(dKey);
           return {
             ...d,
             _bkad_status: "pending" as const,
             _bkad_catatan_sebelumnya: d?._bkad_catatan || d?._bkad_catatan_sebelumnya || "",
             _bkad_catatan: "",
             _bkad_checked_at: "",
+            ...(foto ? { foto_perbaikan_url: foto, foto_url: foto } : {}),
           };
         }
         // item approved dibiarkan apa adanya (tetap "approved")
@@ -539,20 +582,23 @@ function KirimUlangRevisiDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; 
 
       // 3. Update assets yang direvisi: revisi_bkad -> menunggu_bkad.
       //    Prioritas UUID asset_id, fallback kode_aset hanya bila id tidak ada.
+      //    (b) Metadata aset: sertakan rekon_foto_bukti agar panel BKAD punya cadangan sumber foto.
       const idTargets = rejectedItems.map((it: any) => _bkadItemAssetId(it)).filter((v: string) => !!v);
       const kodeTargets = rejectedItems
         .filter((it: any) => !_bkadItemAssetId(it))
         .map((it: any) => it?.kode_barang || it?.kode_aset)
         .filter((v: any) => typeof v === "string" && v);
 
-      await Promise.all(idTargets.map((id: string) => applyStatusRekon(id)));
+      await Promise.all(idTargets.map((id: string) => applyStatusRekon(id, photoUrlByAssetId.get(id))));
       if (kodeTargets.length > 0) {
         const { data: rows, error: kErr } = await supabase
           .from("assets")
-          .select("id")
+          .select("id, kode_aset")
           .in("kode_aset", kodeTargets);
         if (kErr) throw kErr;
-        await Promise.all((rows ?? []).map((r: any) => applyStatusRekon(r.id)));
+        await Promise.all(
+          (rows ?? []).map((r: any) => applyStatusRekon(r.id, photoUrlByKode.get(String(r.kode_aset))))
+        );
       }
 
       toast.success("Bundel revisi berhasil dikirim ulang ke BKAD.");

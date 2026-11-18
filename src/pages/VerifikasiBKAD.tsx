@@ -175,6 +175,7 @@ export default function VerifikasiBKAD() {
     _bkad_checked_at?: string;
     _bkad_catatan_sebelumnya?: string;
     fotoUrl?: string;
+    fotoSource?: "perbaikan" | "rekon_aset" | "audit" | "report" | "snapshot";
     raw: any;
   }
 
@@ -186,6 +187,7 @@ export default function VerifikasiBKAD() {
   const [confirmFinalOpen, setConfirmFinalOpen] = useState(false);
   const [finalMode, setFinalMode] = useState<"approve" | "reject">("approve");
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [fotoError, setFotoError] = useState(false);
 
   // RBAC GLOBAL — hanya staf_bkad yang boleh di sini.
   // PENTING: tunggu proses loading profil selesai sebelum mengevaluasi role,
@@ -484,6 +486,10 @@ export default function VerifikasiBKAD() {
         item.kode_barang || item.kode_aset || item.assetData?.kode_aset || item.asset_id || item.id || String(i);
       const assetId = item.asset_id || item.id || (item as any).assetData?.id || "";
       const status = (item as any)._bkad_status || "pending";
+      // Prioritas 1: foto hasil perbaikan SKPD dari snapshot bundel data_otorisasi.
+      const fotoPerbaikan = (item as any).foto_perbaikan_url as string | undefined;
+      const fotoSnapshot =
+        fotoPerbaikan || (item as any).foto_url || (item as any).image_url || undefined;
       return {
         key: `${kodeBarang}-${i}`,
         kode_barang: kodeBarang,
@@ -509,7 +515,8 @@ export default function VerifikasiBKAD() {
         _bkad_catatan: (item as any)._bkad_catatan || "",
         _bkad_checked_at: (item as any)._bkad_checked_at || "",
         _bkad_catatan_sebelumnya: (item as any)._bkad_catatan_sebelumnya || "",
-        fotoUrl: undefined,
+        fotoUrl: fotoSnapshot,
+        fotoSource: fotoPerbaikan ? "perbaikan" : fotoSnapshot ? "snapshot" : undefined,
         raw: item,
       };
     });
@@ -527,39 +534,89 @@ export default function VerifikasiBKAD() {
     const firstPendingIdx = items.findIndex((it) => it._bkad_status === "pending");
     setSelectedAuditIndex(firstPendingIdx >= 0 ? firstPendingIdx : 0);
 
-    // Fetch foto bukti untuk setiap aset (dari asset_reports.image_url / asset_audits.foto_url)
+    // Fetch foto bukti untuk setiap aset.
+    // Prioritas: (1) snapshot bundel [sudah dipasang di buildAuditItems] →
+    // (2) custom_data.rekon_foto_bukti → (3) audit baru → (4) report/audit terbaru.
     setPhotoLoading(true);
     try {
-      const assetIds = items.map((it) => it.asset_id).filter((v): v is string => !!v);
+      const assetIds = Array.from(
+        new Set(items.map((it) => it.asset_id).filter((v): v is string => !!v))
+      );
+      const kodeAsets = Array.from(
+        new Set(
+          items
+            .filter((it) => !it.asset_id && it.kode_barang && it.kode_barang !== "—")
+            .map((it) => it.kode_barang)
+        )
+      );
+
+      type FotoHit = { url: string; source: "rekon_aset" | "audit" | "report" };
+      const rowsAcc: any[] = [];
+      const selectCols = `
+        id, kode_aset, custom_data,
+        asset_reports (image_url, created_at, status),
+        asset_audits (foto_url, created_at)
+      `;
       if (assetIds.length > 0) {
-        const { data, error } = await supabase
-          .from("assets")
-          .select(`
-            id, kode_aset,
-            asset_reports (image_url, created_at, status),
-            asset_audits (foto_url, created_at)
-          `)
-          .in("id", assetIds);
-        if (!error && data) {
-          const fotoMap = new Map<string, string>();
-          (data as any[]).forEach((row) => {
-            let foto: string | undefined;
-            // Prioritaskan foto dari report terbaru (status Menunggu/Diproses), lalu audit terbaru
-            const reports = (row.asset_reports || []) as any[];
-            const audits = (row.asset_audits || []) as any[];
-            const latestReport = reports
-              .filter((r) => r.image_url)
-              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-            const latestAudit = audits
-              .filter((a) => a.foto_url)
-              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-            foto = latestReport?.image_url || latestAudit?.foto_url;
-            if (foto) fotoMap.set(row.id, foto);
-          });
-          setAuditItems((prev) =>
-            prev.map((it) => (it.asset_id && fotoMap.has(it.asset_id) ? { ...it, fotoUrl: fotoMap.get(it.asset_id) } : it))
-          );
-        }
+        const { data, error } = await supabase.from("assets").select(selectCols).in("id", assetIds);
+        if (!error && data) rowsAcc.push(...(data as any[]));
+      }
+      // Fallback bila asset_id di snapshot kosong: cocokkan lewat kode_aset.
+      if (kodeAsets.length > 0) {
+        const { data, error } = await supabase.from("assets").select(selectCols).in("kode_aset", kodeAsets);
+        if (!error && data) rowsAcc.push(...(data as any[]));
+      }
+
+      if (rowsAcc.length > 0) {
+        const fotoById = new Map<string, FotoHit>();
+        const fotoByKode = new Map<string, FotoHit>();
+
+        rowsAcc.forEach((row) => {
+          const reports = (row.asset_reports || []) as any[];
+          const audits = (row.asset_audits || []) as any[];
+          const latestReport = reports
+            .filter((r) => r.image_url)
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+          const latestAudit = audits
+            .filter((a) => a.foto_url)
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+          // Prioritas 2: metadata aset custom_data.rekon_foto_bukti
+          const rekonFoto =
+            row.custom_data && typeof row.custom_data === "object"
+              ? (row.custom_data as any).rekon_foto_bukti
+              : undefined;
+
+          let hit: FotoHit | undefined;
+          if (typeof rekonFoto === "string" && rekonFoto) {
+            hit = { url: rekonFoto, source: "rekon_aset" };
+          } else if (
+            latestAudit &&
+            (!latestReport ||
+              new Date(latestAudit.created_at).getTime() > new Date(latestReport.created_at).getTime())
+          ) {
+            hit = { url: latestAudit.foto_url, source: "audit" };
+          } else if (latestReport?.image_url) {
+            hit = { url: latestReport.image_url, source: "report" };
+          } else if (latestAudit?.foto_url) {
+            hit = { url: latestAudit.foto_url, source: "audit" };
+          }
+          if (!hit) return;
+          if (row.id) fotoById.set(row.id, hit);
+          if (row.kode_aset) fotoByKode.set(String(row.kode_aset), hit);
+        });
+
+        setAuditItems((prev) =>
+          prev.map((it) => {
+            // Prioritas 1 (snapshot) tidak boleh tertimpa.
+            if (it.fotoUrl) return it;
+            const hit =
+              (it.asset_id && fotoById.get(it.asset_id)) ||
+              (it.kode_barang && fotoByKode.get(it.kode_barang));
+            if (!hit) return it;
+            return { ...it, fotoUrl: hit.url, fotoSource: hit.source };
+          })
+        );
       }
     } catch (e) {
       console.error("Gagal fetch foto bukti", e);
@@ -583,6 +640,11 @@ export default function VerifikasiBKAD() {
   }, [auditDoc, auditItems]);
 
   const selectedItem = auditItems[selectedAuditIndex] || null;
+
+  // Reset status gagal-muat gambar saat aset terpilih atau URL fotonya berubah.
+  useEffect(() => {
+    setFotoError(false);
+  }, [selectedAuditIndex, selectedItem?.fotoUrl]);
 
   // Set status per-baris + auto-next ke pending berikutnya
   const setItemStatus = (index: number, status: "approved" | "rejected", catatan = "") => {
@@ -899,16 +961,24 @@ export default function VerifikasiBKAD() {
 
                         {/* Foto bukti */}
                         <div className="rounded-2xl border border-slate-100 p-3">
-                          <p className="text-[11px] uppercase tracking-wider text-slate-400 mb-2">Foto Bukti Lapangan</p>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <p className="text-[11px] uppercase tracking-wider text-slate-400">Foto Bukti Lapangan</p>
+                            {(selectedItem.fotoSource === "perbaikan" || selectedItem.fotoSource === "rekon_aset") && (
+                              <Badge className="rounded-full bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-medium">
+                                Foto Perbaikan SKPD
+                              </Badge>
+                            )}
+                          </div>
                           {photoLoading ? (
                             <div className="h-48 flex items-center justify-center text-slate-400 text-sm">
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Memuat foto...
                             </div>
-                          ) : selectedItem.fotoUrl ? (
+                          ) : selectedItem.fotoUrl && !fotoError ? (
                             <a href={selectedItem.fotoUrl} target="_blank" rel="noopener noreferrer" className="block">
                               <img
                                 src={selectedItem.fotoUrl}
                                 alt={selectedItem.nama_aset}
+                                onError={() => setFotoError(true)}
                                 className="w-full max-h-72 object-cover rounded-xl border border-slate-100 hover:opacity-90 transition"
                               />
                               <p className="text-[11px] text-primary mt-1.5 flex items-center gap-1">
@@ -918,7 +988,9 @@ export default function VerifikasiBKAD() {
                           ) : (
                             <div className="h-48 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                               <ImageOff className="h-8 w-8 mb-1" />
-                              <p className="text-sm">Tidak ada foto bukti terlampir</p>
+                              <p className="text-sm">
+                                {fotoError ? "Foto gagal dimuat" : "Tidak ada foto bukti terlampir"}
+                              </p>
                             </div>
                           )}
                         </div>
