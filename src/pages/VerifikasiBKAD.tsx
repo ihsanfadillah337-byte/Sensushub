@@ -372,7 +372,21 @@ export default function VerifikasiBKAD() {
           const item = items.find(
             (it) => (it.asset_id && it.asset_id === row.id) || (it.kode_barang && it.kode_barang === row.kode_aset)
           );
-          cd["Kondisi"] = item?.kondisi || rekomendasiToKondisi(item?.rekomendasi) || cd["Kondisi"];
+          // Kondisi akhir saat reklasifikasi ke "04 - Aset Lainnya".
+          // Prioritaskan rekomendasi BKAD (perubahan kondisi → "Rusak Berat") dan
+          // ABAIKAN nilai stale "Baik" dari snapshot agar master ikut tersinkron.
+          const kondisiTerekam = String(item?.kondisi || "").trim();
+          const kondisiRekomendasi = rekomendasiToKondisi(item?.rekomendasi || "");
+          const kondisiFinal =
+            kondisiRekomendasi === "Rusak Berat"
+              ? "Rusak Berat"
+              : kondisiTerekam && kondisiTerekam !== "Baik" && kondisiTerekam !== "—"
+                ? kondisiTerekam
+                : "Rusak Berat";
+          // Tulis ke SEMUA key yang dibaca getKondisi() (custom_data.Kondisi & custom_data.kondisi).
+          // Catatan: tabel `assets` tidak punya kolom native `kondisi` (lihat types.ts).
+          cd["Kondisi"] = kondisiFinal;
+          cd["kondisi"] = kondisiFinal;
           cd["status_rekon"] = "disetujui";
           delete cd["rekon_catatan_bkad"];
           delete cd["rekon_ditolak_by"];
@@ -428,6 +442,7 @@ export default function VerifikasiBKAD() {
       queryClient.invalidateQueries({ queryKey: ["bkad-pending-documents"] });
       queryClient.invalidateQueries({ queryKey: ["document-archives"] });
       queryClient.invalidateQueries({ queryKey: ["assets"] });
+      queryClient.invalidateQueries({ queryKey: ["census-assets"] });
       queryClient.invalidateQueries({ queryKey: ["rekon-assets-joined"] });
       closeAudit();
       setConfirmFinalOpen(false);
