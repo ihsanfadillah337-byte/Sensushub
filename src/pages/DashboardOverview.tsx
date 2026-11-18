@@ -272,7 +272,7 @@ const StatCard = ({ label, value, trend, sparklineData, hint, formatDelta }: any
         <div className="absolute bottom-0 left-0 w-full h-10 opacity-30 pointer-events-none">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-              <Area type="monotone" dataKey="v" stroke={sparkColor} fill={sparkColor} strokeWidth={2} fillOpacity={0.4} />
+              <Area type="monotone" dataKey="v" stroke={sparkColor} fill={sparkColor} strokeWidth={2} fillOpacity={0.4} isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -299,7 +299,7 @@ const AreaChartCard = ({ title, data, dataKey, xKey = "label", color, filter, se
         </div>
       </CardHeader>
       <CardContent className="h-[300px] p-6 pt-2">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" debounce={100}>
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
@@ -331,6 +331,7 @@ const AreaChartCard = ({ title, data, dataKey, xKey = "label", color, filter, se
               fill={`url(#grad-${color})`}
               dot={{ r: 4, fill: color, strokeWidth: 2, stroke: "#fff" }}
               activeDot={{ r: 6, strokeWidth: 0 }}
+              isAnimationActive={false}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -347,7 +348,7 @@ const DonutChartCard = ({ title, data, total }: any) => {
       </CardHeader>
       <CardContent className="flex flex-col items-center">
         <div className="relative w-full h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={100}>
             <PieChart>
               <Pie
                 data={data}
@@ -356,6 +357,7 @@ const DonutChartCard = ({ title, data, total }: any) => {
                 paddingAngle={5}
                 dataKey="value"
                 stroke="none"
+                isAnimationActive={false}
               >
                 {data.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || PIE_COLORS["Lainnya"]} />
@@ -605,7 +607,7 @@ function DashboardSKPD({ assets, reports, archives }: any) {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <AreaChartCard
-          title="Tren Laporan Kendala & Kerusakan"
+          title="Tren Laporan Kendala Lapangan"
           data={trendData}
           dataKey="value"
           xKey="label"
@@ -726,10 +728,16 @@ function DashboardBKAD({ assets, reports, archives, companies }: any) {
     // Sparkline dinamis
     const sparkQueue = monthlyCount6(queueDocs, (a: any) => a.created_at);
     // Aset sah direklasifikasi dihitung dari item bundel "disetujui" memakai tanggal mutasi.
-    const reklasRows = approved.flatMap((a: any) =>
-      flattenOtorisasi(a.data_otorisasi).map(() => ({ approved_at: a.approved_at, created_at: a.created_at })),
-    );
-    const sparkReklas = monthlyCount6(reklasRows, (r: any) => r.approved_at || r.created_at);
+    // Tanggal diparsing SEKALI per bundel (bukan per item) agar new Date() tidak diulang
+    // di dalam loop bertingkat — tiap item hanya menambah hitungan sejumlah asetnya.
+    const reklasMonths = last6Months();
+    const sparkReklas = new Array(6).fill(0);
+    approved.forEach((a: any) => {
+      const items = flattenOtorisasi(a.data_otorisasi);
+      if (!items.length) return;
+      const i = monthIndexOf(a.approved_at || a.created_at, reklasMonths);
+      if (i >= 0) sparkReklas[i] += items.length;
+    });
     const sparkMutasi = monthlySum6(approved, (a: any) => a.approved_at || a.created_at, (a: any) => a.total_nilai || 0);
     const sparkSkpd = monthlyUnique6(nonDraft, (a: any) => a.created_at, (a: any) => String(a.company_id || ""));
 
