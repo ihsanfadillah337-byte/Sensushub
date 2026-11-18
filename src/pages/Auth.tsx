@@ -81,20 +81,20 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#f8f9ff] flex items-center justify-center p-0 lg:p-10 font-sans selection:bg-blue-100">
-      <main className="relative z-10 w-full max-w-[1360px] min-h-screen lg:min-h-[760px] lg:rounded-[32px] border border-slate-200/50 shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+    <div className="min-h-dvh md:h-dvh md:overflow-hidden w-full flex items-center justify-center p-4 md:p-6 bg-slate-100/80 font-sans selection:bg-blue-100">
+      <main className="relative z-10 w-full max-w-5xl md:max-h-[calc(100dvh-3rem)] rounded-2xl overflow-hidden shadow-lg border border-slate-200/70 grid grid-cols-1 lg:grid-cols-12">
         
         {/* Left Column: Hero Civic Showcase (7/12 = ~58%) */}
-        <div className="relative lg:col-span-7 min-h-[540px] lg:min-h-[760px] flex flex-col justify-between p-10 md:p-14 lg:p-20 overflow-hidden bg-slate-50">
+        <div className="relative lg:col-span-7 flex flex-col justify-between p-6 sm:p-8 lg:p-9 overflow-hidden bg-slate-50">
           
           {/* Architectural Backdrop */}
           <div className="absolute inset-0 z-0">
             <img
               src="/bg-bkad.jpg"
               alt="Gedung BKAD Kabupaten Bandung"
-              className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.22] grayscale-[25%] pointer-events-none"
+              className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.42] grayscale-[15%] pointer-events-none"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/75 via-white/50 to-slate-100/85 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/65 via-white/35 to-slate-100/70 pointer-events-none" />
             <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-100/40 blur-[100px] pointer-events-none"></div>
           </div>
 
@@ -108,15 +108,15 @@ export default function Auth() {
           </div>
 
           {/* Center Content: Typography */}
-          <div className="relative z-10 max-w-xl my-auto py-10">
-            <h1 className="text-[36px] lg:text-[44px] leading-[1.1] text-[#0F172A] font-bold tracking-tight mb-6">
+          <div className="relative z-10 max-w-xl my-auto py-6">
+            <h1 className="text-2xl lg:text-[30px] leading-tight text-[#0F172A] font-bold tracking-tight mb-4 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
               Transformasi Digital Tata Kelola Aset Daerah
             </h1>
-            <p className="text-lg text-slate-500 font-medium leading-relaxed max-w-md">
+            <p className="text-sm lg:text-base text-slate-500 font-medium leading-relaxed max-w-md drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
               Platform rekonsiliasi, inventarisasi otomatis, dan audit real-time Barang Milik Daerah.
             </p>
             
-            <div className="flex flex-wrap gap-3 mt-10">
+            <div className="flex flex-wrap gap-3 mt-6">
               <div className="flex items-center gap-2.5 bg-white border border-slate-200/60 px-4 py-2 rounded-xl shadow-sm">
                 <ShieldCheck className="h-4 w-4 text-blue-600" />
                 <span className="text-[12px] font-bold text-slate-600">Akuntabel & Terintegrasi</span>
@@ -133,8 +133,8 @@ export default function Auth() {
         </div>
 
         {/* Right Column: Authentication Form (5/12 = ~42%) */}
-        <div className="relative z-10 lg:col-span-5 p-10 md:p-14 lg:p-20 flex flex-col justify-center bg-slate-50/70 text-[#1E293B]">
-          <div className="max-w-[400px] w-full mx-auto space-y-10 bg-white border border-slate-100 shadow-sm rounded-2xl p-8 md:p-10">
+        <div className="relative z-10 lg:col-span-5 p-6 sm:p-8 lg:p-9 flex flex-col justify-center bg-slate-50/70 text-[#1E293B]">
+          <div className="max-w-[400px] w-full mx-auto space-y-6 bg-white border border-slate-100 shadow-sm rounded-2xl p-6 md:p-8">
             {/* Header */}
             <div className="space-y-2 text-left">
               <h2 className="text-2xl font-bold text-[#0F172A] tracking-tight">Portal SIPPA-BMD</h2>
@@ -143,7 +143,7 @@ export default function Auth() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
               {!isLogin && (
                 <div className="space-y-1.5 text-left">
                   <Label htmlFor="company-name" className="text-[12px] font-bold text-[#1E293B] flex items-center justify-between">
@@ -157,7 +157,7 @@ export default function Auth() {
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       disabled={loading}
-                      className="w-full pl-12 pr-4 py-6 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-slate-700 shadow-sm"
+                      className="w-full h-10 pl-12 pr-4 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-slate-700 shadow-sm"
                     />
                   </div>
                 </div>
@@ -176,7 +176,7 @@ export default function Auth() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    className="w-full pl-12 pr-4 py-6 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-slate-700 shadow-sm"
+                    className="w-full h-10 pl-12 pr-4 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-slate-700 shadow-sm"
                   />
                 </div>
               </div>
@@ -199,7 +199,7 @@ export default function Auth() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="w-full pl-12 pr-12 py-6 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-slate-700 shadow-sm"
+                    className="w-full h-10 pl-12 pr-12 rounded-xl bg-[#f8f9ff] border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-slate-700 shadow-sm"
                   />
                   <button 
                     type="button"
@@ -230,10 +230,10 @@ export default function Auth() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 pt-2">
+              <div className="flex flex-col gap-2 pt-1">
                 <Button 
                   type="submit" 
-                  className="w-full py-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/20 transition-all duration-200 flex items-center justify-center gap-2 group active:scale-[0.99]" 
+                  className="w-full h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/20 transition-all duration-200 flex items-center justify-center gap-2 group active:scale-[0.99]" 
                   disabled={loading}
                 >
                   {loading ? (
@@ -250,7 +250,7 @@ export default function Auth() {
                   type="button" 
                   variant="outline" 
                   onClick={() => setIsLogin(!isLogin)}
-                  className="w-full py-6 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#1E293B] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] shadow-sm"
+                  className="w-full h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#1E293B] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] shadow-sm"
                 >
                   {isLogin ? (
                     <>
@@ -268,7 +268,7 @@ export default function Auth() {
             </form>
 
             {/* Footer Text */}
-            <div className="pt-10 text-center">
+            <div className="mt-4 pt-3 text-center">
               <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">
                 &copy; 2026 & 2027 BKAD KABUPATEN BANDUNG • SIPPA-BMD
               </p>
