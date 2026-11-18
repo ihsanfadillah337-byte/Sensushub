@@ -29,7 +29,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
     const fetchSettings = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("tenant_settings")
           .select("*")
           .eq("company_id", companyId)
@@ -66,7 +66,7 @@ export default function LetterheadSettings({ isLocked }: { isLocked: boolean }) 
         margin_top: settings.margin_top || 60,
       };
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("tenant_settings")
         .upsert(payload, { onConflict: "company_id" });
 

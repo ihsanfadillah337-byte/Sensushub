@@ -82,7 +82,7 @@ function LabelContent({ asset, baseUrl, companyName, year }: { asset: LabelAsset
     <>
       <View style={s.header}>
         <Text style={s.headerLeft}>SENSUS ASET</Text>
-        <Text style={s.headerRight} numberOfLines={1}>{companyName}</Text>
+        <Text style={{ ...s.headerRight, maxLines: 1 }}>{companyName}</Text>
       </View>
       <View style={s.body}>
         <View style={s.colLeft}>

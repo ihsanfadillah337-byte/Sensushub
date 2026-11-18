@@ -5,7 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCustomColumns } from "@/contexts/CustomColumnsContext";
 import {
   Archive, Search, ChevronLeft, ChevronRight, Loader2, Package,
-  Printer, Download, Filter, Calendar, FileCheck2, FileText, Upload, CheckCircle2
+  Printer, Download, Filter, Calendar, FileCheck2, FileText, Upload, CheckCircle2,
+  RotateCcw, AlertTriangle, Send, ImagePlus
 } from "lucide-react";
 import { generateBeritaAcaraPDF, generateSuratPernyataanPDF, type DualPdfInput } from "@/utils/pdfGenerators";
 import { Button } from "@/components/ui/button";
@@ -176,6 +177,28 @@ function _psBuildLampiranRows(arc: ArchiveRow): { rows: any[]; headers: string[]
   });
   if (typeof arc.total_nilai === "number" && arc.total_nilai > 0 && total === 0) total = arc.total_nilai;
   return { rows, headers, nilaiKey, total };
+}
+
+// ─── Revisi BKAD Helpers ─────────────────────────────────
+// Bundel dianggap "perlu revisi" bila status_approval === "ditolak" DAN
+// memiliki minimal satu baris aset dengan _bkad_status === "rejected"
+// di dalam snapshot data_otorisasi.
+function _bkadSnapshotItems(arc: ArchiveRow): any[] {
+  return _psFlatten(arc).filter((it: any) => it && typeof it === "object");
+}
+
+function _bkadItemKey(it: any): string {
+  return String(it?.kode_barang || it?.kode_aset || it?.asset_id || it?.id || "");
+}
+
+// UUID aset dari snapshot (prioritas) — dipakai untuk mencocokkan baris assets.
+function _bkadItemAssetId(it: any): string {
+  return String(it?.asset_id || it?.id || it?.assetData?.id || "");
+}
+
+function _isRevisiBundle(arc: ArchiveRow): boolean {
+  if (arc.status_approval !== "ditolak") return false;
+  return _bkadSnapshotItems(arc).some((it: any) => it._bkad_status === "rejected");
 }
 
 // ─── Reprint Dialog (Arsip) ───────────────────────────────
@@ -369,6 +392,312 @@ function UploadScanDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; onClos
   );
 }
 
+// ─── Kirim Ulang Revisi Dialog ────────────────────────────
+function KirimUlangRevisiDialog({ arc, onClose, onSuccess }: { arc: ArchiveRow; onClose: () => void; onSuccess: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [photoFiles, setPhotoFiles] = useState<Record<number, File>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const snapshot = _bkadSnapshotItems(arc);
+  const approvedItems = snapshot.filter((it: any) => it._bkad_status === "approved");
+  const rejectedItems = snapshot.filter((it: any) => it._bkad_status === "rejected");
+
+  // Perbarui custom_data.status_rekon sebuah aset (revisi_bkad -> menunggu_bkad)
+  const applyStatusRekon = async (assetRowId: string) => {
+    const { data: row, error: getErr } = await supabase
+      .from("assets")
+      .select("custom_data")
+      .eq("id", assetRowId)
+      .maybeSingle();
+    if (getErr) throw getErr;
+    if (!row) return;
+    const cd = row?.custom_data && typeof row.custom_data === "object" ? { ...(row.custom_data as object) } : {};
+    const { error: upErr } = await supabase
+      .from("assets")
+      .update({ custom_data: { ...cd, status_rekon: "menunggu_bkad" } } as any)
+      .eq("id", assetRowId);
+    if (upErr) throw upErr;
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      // 1a. (Opsional) unggah ulang berkas PDF pengganti
+      let newDocUrl: string | undefined;
+      if (file) {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${arc.id}_revisi_${Date.now()}.${fileExt}`;
+        const filePath = `arsip/${fileName}`;
+        const { error: uploadError } = await supabase.storage
+          .from("dokumen_usulan")
+          .upload(filePath, file);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage
+          .from("dokumen_usulan")
+          .getPublicUrl(filePath);
+        newDocUrl = publicUrl;
+      }
+
+      // 1b. (Opsional) unggah foto bukti perbaikan per aset yang ditolak.
+      //     Foto menggantikan image_url report / foto_url audit agar tampil di panel BKAD.
+      const photoTargets = rejectedItems
+        .map((it: any, idx: number) => ({ it, idx }))
+        .filter(({ idx }) => photoFiles[idx]);
+      for (const { it, idx } of photoTargets) {
+        const photoFile = photoFiles[idx];
+        const photoExt = photoFile.name.split(".").pop() || "jpg";
+        const photoPath = `perbaikan/${arc.id}_${_bkadItemKey(it) || idx}_${Date.now()}.${photoExt}`;
+        const { error: photoUpErr } = await supabase.storage
+          .from("report-evidence")
+          .upload(photoPath, photoFile);
+        if (photoUpErr) throw photoUpErr;
+        const { data: { publicUrl: photoUrl } } = supabase.storage
+          .from("report-evidence")
+          .getPublicUrl(photoPath);
+
+        // Resolve UUID aset: prioritas asset_id snapshot, fallback kode_aset.
+        let assetId = _bkadItemAssetId(it);
+        if (!assetId) {
+          const kode = it?.kode_barang || it?.kode_aset;
+          if (kode) {
+            const { data: a } = await supabase.from("assets").select("id").eq("kode_aset", kode).maybeSingle();
+            assetId = (a as any)?.id || "";
+          }
+        }
+        if (!assetId) continue;
+
+        // Mengikuti prioritas baca VerifikasiBKAD (report.image_url > audit.foto_url).
+        const { data: reports } = await supabase
+          .from("asset_reports")
+          .select("id")
+          .eq("asset_id", assetId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const latestReport = (reports ?? [])[0];
+        const { data: audits } = await supabase
+          .from("asset_audits")
+          .select("id")
+          .eq("asset_id", assetId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const latestAudit = (audits ?? [])[0];
+
+        if (latestReport) {
+          const { error: rErr } = await supabase.from("asset_reports").update({ image_url: photoUrl } as any).eq("id", (latestReport as any).id);
+          if (rErr) throw rErr;
+        }
+        if (latestAudit) {
+          const { error: aErr } = await supabase.from("asset_audits").update({ foto_url: photoUrl } as any).eq("id", (latestAudit as any).id);
+          if (aErr) throw aErr;
+        }
+        if (!latestReport && !latestAudit) {
+          // Belum ada baris foto -> buat baris audit baru agar tampil di panel BKAD.
+          const { error: insErr } = await supabase.from("asset_audits").insert({
+            asset_id: assetId,
+            kondisi: it?.kondisi || it?.Kondisi || "Rusak Ringan",
+            tindak_lanjut: "Perbaikan foto bukti oleh SKPD",
+            foto_url: photoUrl,
+            catatan: "Foto bukti perbaikan diunggah saat kirim ulang revisi.",
+          } as any);
+          if (insErr) throw insErr;
+        }
+      }
+
+      // 2. Update data_otorisasi: rejected -> pending, approved tetap approved
+      const existingOto: Record<string, any> = arc.data_otorisasi
+        ? { ...(arc.data_otorisasi as Record<string, any>) }
+        : { aset_detail: [] };
+      const detailArray = Array.isArray(existingOto.aset_detail)
+        ? existingOto.aset_detail
+        : ((existingOto.assets as any[]) || []);
+      const rejectedKeys = new Set(rejectedItems.map((it: any) => _bkadItemKey(it)));
+      const detailUpdated = detailArray.map((d: any) => {
+        if (rejectedKeys.has(_bkadItemKey(d))) {
+          return {
+            ...d,
+            _bkad_status: "pending" as const,
+            _bkad_catatan_sebelumnya: d?._bkad_catatan || d?._bkad_catatan_sebelumnya || "",
+            _bkad_catatan: "",
+            _bkad_checked_at: "",
+          };
+        }
+        // item approved dibiarkan apa adanya (tetap "approved")
+        return d;
+      });
+
+      const { error: docErr } = await supabase
+        .from("document_archives")
+        .update({
+          status_approval: "menunggu_bkad",
+          status: "Menunggu Verifikasi BKAD",
+          catatan_bkad: `Dikirim ulang oleh SKPD: ${rejectedItems.length} aset direvisi, ${approvedItems.length} aset tetap disetujui.`,
+          data_otorisasi: { ...existingOto, aset_detail: detailUpdated },
+          ...(newDocUrl ? { dokumen_url: newDocUrl } : {}),
+        } as any)
+        .eq("id", arc.id);
+      if (docErr) throw docErr;
+
+      // 3. Update assets yang direvisi: revisi_bkad -> menunggu_bkad.
+      //    Prioritas UUID asset_id, fallback kode_aset hanya bila id tidak ada.
+      const idTargets = rejectedItems.map((it: any) => _bkadItemAssetId(it)).filter((v: string) => !!v);
+      const kodeTargets = rejectedItems
+        .filter((it: any) => !_bkadItemAssetId(it))
+        .map((it: any) => it?.kode_barang || it?.kode_aset)
+        .filter((v: any) => typeof v === "string" && v);
+
+      await Promise.all(idTargets.map((id: string) => applyStatusRekon(id)));
+      if (kodeTargets.length > 0) {
+        const { data: rows, error: kErr } = await supabase
+          .from("assets")
+          .select("id")
+          .in("kode_aset", kodeTargets);
+        if (kErr) throw kErr;
+        await Promise.all((rows ?? []).map((r: any) => applyStatusRekon(r.id)));
+      }
+
+      toast.success("Bundel revisi berhasil dikirim ulang ke BKAD.");
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Gagal mengirim ulang revisi ke BKAD.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <RotateCcw className="h-5 w-5 text-rose-600" /> Kirim Ulang Revisi ke BKAD
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Banner peringatan revisi */}
+          <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+            <AlertTriangle className="h-4 w-4 text-rose-600 mt-0.5 shrink-0" />
+            <div className="text-[13px] text-rose-800 leading-relaxed">
+              <p className="font-semibold">Bundel ini dikembalikan BKAD untuk revisi parsial.</p>
+              <p className="mt-1">
+                <span className="font-semibold">{approvedItems.length} aset disetujui</span> (tetap terkunci, tidak perlu dicek ulang) dan{" "}
+                <span className="font-semibold">{rejectedItems.length} aset ditolak</span> yang harus diperbaiki lalu diajukan ulang.
+              </p>
+              <p className="mt-1 text-rose-700">
+                ID Batch: <span className="font-mono">{arc.nomor_surat || arc.id}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Daftar aset ditolak + catatan */}
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wide text-rose-700">
+              Rincian Aset yang Ditolak ({rejectedItems.length})
+            </Label>
+            <div className="rounded-xl border border-rose-100 overflow-hidden">
+              <div className="max-h-64 overflow-y-auto divide-y divide-rose-100">
+                {rejectedItems.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-xs text-gray-500">Tidak ada aset yang ditolak.</p>
+                ) : (
+                  rejectedItems.map((it: any, idx: number) => (
+                    <div key={_bkadItemKey(it) || idx} className="px-4 py-3 bg-white">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium text-gray-900 truncate">
+                            {_psNama(it) !== "-" ? _psNama(it) : `Aset ${_bkadItemKey(it)}`}
+                          </p>
+                          <p className="text-[11px] font-mono text-gray-500">{_bkadItemKey(it) || "—"}</p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 bg-rose-50 text-rose-700 border-rose-200 text-[10px]">
+                          Ditolak
+                        </Badge>
+                      </div>
+                      <div className="mt-2 flex items-start gap-1.5 rounded-md bg-rose-50/70 px-2.5 py-1.5">
+                        <AlertTriangle className="h-3 w-3 text-rose-600 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-rose-700 leading-relaxed">
+                          {it._bkad_catatan || it._bkad_catatan_sebelumnya || "Perlu perbaikan data."}
+                        </p>
+                      </div>
+                      {/* Opsional: foto bukti perbaikan pengganti untuk aset ini */}
+                      <div className="mt-2 flex items-center gap-2">
+                        <label
+                          htmlFor={`revisi-foto-${idx}`}
+                          className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[11px] font-medium cursor-pointer transition ${
+                            photoFiles[idx]
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          {photoFiles[idx] ? <CheckCircle2 className="h-3 w-3" /> : <ImagePlus className="h-3 w-3" />}
+                          {photoFiles[idx] ? "Foto dipilih" : "Foto Bukti Perbaikan (opsional)"}
+                        </label>
+                        <input
+                          id={`revisi-foto-${idx}`}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={submitting}
+                          onChange={(e) => {
+                            const picked = e.target.files?.[0];
+                            setPhotoFiles((prev) => {
+                              const next = { ...prev };
+                              if (picked) next[idx] = picked;
+                              else delete next[idx];
+                              return next;
+                            });
+                          }}
+                        />
+                        {photoFiles[idx] && (
+                          <span className="text-[10px] text-slate-500 truncate max-w-[140px]">
+                            {photoFiles[idx].name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Opsional unggah berkas pengganti */}
+          <div className="space-y-2">
+            <Label htmlFor="revisi-file">
+              Unggah Ulang Dokumen (Opsional)
+            </Label>
+            <p className="text-[12px] text-gray-500 leading-relaxed">
+              Lakukan hanya jika perbaikan mengubah isi Berita Acara / Surat Pernyataan. Format: PDF.
+            </p>
+            <Input
+              id="revisi-file"
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              disabled={submitting}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-3 border-t border-border">
+          <Button variant="outline" onClick={onClose} disabled={submitting}>
+            Batal
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || rejectedItems.length === 0}
+            className="gap-1.5 bg-rose-600 hover:bg-rose-700 text-white"
+          >
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Kirim Ulang Revisi ke BKAD
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Constants ───────────────────────────────────────────
 const ITEMS_PER_PAGE = 10;
 
@@ -387,6 +716,7 @@ export default function FinalisasiRekon() {
   const [currentPage, setCurrentPage] = useState(1);
   const [reprintArc, setReprintArc] = useState<ArchiveRow | null>(null);
   const [uploadArc, setUploadArc] = useState<ArchiveRow | null>(null);
+  const [revisiArc, setRevisiArc] = useState<ArchiveRow | null>(null);
 
   // Fetch document_archives — seluruh riwayat pengajuan operator (sorted newest first)
   const { data: archives = [], isLoading } = useQuery({
@@ -410,7 +740,7 @@ export default function FinalisasiRekon() {
   const { data: tenantSettings } = useQuery({
     queryKey: ["tenant-settings", companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("tenant_settings")
         .select("*")
         .eq("company_id", companyId!)
@@ -446,6 +776,12 @@ export default function FinalisasiRekon() {
       return true;
     });
   }, [archives, searchQuery, filterKib, tglFrom, tglTo]);
+
+  // Bundel yang dikembalikan BKAD untuk revisi parsial (perlu dikirim ulang)
+  const revisiBundles = useMemo(
+    () => (archives as ArchiveRow[]).filter(_isRevisiBundle),
+    [archives]
+  );
 
   const totalItems = filteredArchives.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -501,6 +837,18 @@ export default function FinalisasiRekon() {
           dan meneruskannya ke meja verifikasi BKAD.
         </p>
       </div>
+
+      {/* Banner revisi: bundel yang dikembalikan BKAD */}
+      {revisiBundles.length > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 text-rose-600 mt-0.5 shrink-0" />
+          <p className="text-[13px] text-rose-800 leading-relaxed">
+            <strong>{revisiBundles.length} bundel</strong> dikembalikan BKAD untuk revisi parsial. Buka tombol{" "}
+            <strong>Kirim Ulang</strong> pada baris terkait untuk meninjau aset yang ditolak, memperbaiki,
+            lalu mengajukan ulang ke BKAD tanpa mengecek kembali aset yang sudah disetujui.
+          </p>
+        </div>
+      )}
 
       {/* Filter + Search Card */}
       <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
@@ -615,8 +963,9 @@ export default function FinalisasiRekon() {
                       (typeof arc.total_nilai === "number" && arc.total_nilai > 0)
                         ? arc.total_nilai
                         : built.total;
+                    const isRevisi = _isRevisiBundle(arc);
                     return (
-                      <TableRow key={arc.id} className="hover:bg-gray-50">
+                      <TableRow key={arc.id} className={isRevisi ? "bg-rose-50/40 hover:bg-rose-50/60" : "hover:bg-gray-50"}>
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center">{indexOfFirstItem + i + 1}</TableCell>
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 font-medium">{arc.nomor_surat || <span className="text-gray-500 italic">—</span>}</TableCell>
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{formatTgl(arc.tanggal_surat)}</TableCell>
@@ -626,13 +975,16 @@ export default function FinalisasiRekon() {
                         <TableCell className="text-center">
                           <Badge 
                             variant="outline" 
-                            className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center ${
-                              arc.status_approval === "menunggu_bkad" 
-                                ? "bg-amber-50 text-amber-700 border-amber-200" 
-                                : "bg-green-50 text-green-700 border-green-200"
+                            className={`px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center gap-1 ${
+                              isRevisi
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : arc.status_approval === "menunggu_bkad" 
+                                  ? "bg-amber-50 text-amber-700 border-amber-200" 
+                                  : "bg-green-50 text-green-700 border-green-200"
                             }`}
                           >
-                            {arc.status || "—"}
+                            {isRevisi && <RotateCcw className="h-3 w-3" />}
+                            {isRevisi ? "Perlu Revisi" : (arc.status || "—")}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
@@ -648,7 +1000,18 @@ export default function FinalisasiRekon() {
                               <span className="text-xs font-medium text-blue-700">Cetak</span>
                             </Button>
                             
-                            {(arc.status_approval === "draft" || !arc.status_approval) && (
+                            {isRevisi ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1.5 hover:bg-rose-50"
+                                onClick={() => setRevisiArc(arc)}
+                                title="Tinjau aset yang ditolak & kirim ulang revisi ke BKAD"
+                              >
+                                <RotateCcw className="h-4 w-4 text-rose-600" />
+                                <span className="text-xs font-medium text-rose-600">Kirim Ulang</span>
+                              </Button>
+                            ) : (arc.status_approval === "draft" || !arc.status_approval) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -726,6 +1089,14 @@ export default function FinalisasiRekon() {
         <UploadScanDialog
           arc={uploadArc}
           onClose={() => setUploadArc(null)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ["document-archives-ba"] })}
+        />
+      )}
+
+      {revisiArc && (
+        <KirimUlangRevisiDialog
+          arc={revisiArc}
+          onClose={() => setRevisiArc(null)}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ["document-archives-ba"] })}
         />
       )}

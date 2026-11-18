@@ -27,7 +27,8 @@ export function useDynamicColumnOptions(companyId: string | undefined, columnNam
         if (data) {
           const uniqueValues = new Set<string>();
           data.forEach((row) => {
-            const val = row.custom_data?.[columnName as keyof typeof row.custom_data];
+            const cd = row.custom_data as Record<string, unknown> | null;
+            const val = cd?.[columnName];
             if (val && typeof val === "string" && val.trim() !== "") {
               uniqueValues.add(val.trim());
             } else if (val && typeof val === "number") {

@@ -8,7 +8,7 @@ import { _psNumber, generateBeritaAcaraPDF, generateSuratPernyataanPDF, type Dua
 import {
   FileSignature, Plus, ArrowLeft, ArrowRight, Check, Trash2,
   FileText, Download, Loader2, AlertCircle, CheckCircle2, Printer,
-  ListChecks
+  ListChecks, RotateCcw, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -161,6 +161,13 @@ function _psFlatten(arc: ArchiveRow): any[] {
   return list;
 }
 
+// Bundel "perlu revisi": status_approval === "ditolak" dan memiliki baris aset
+// dengan _bkad_status === "rejected" di dalam snapshot data_otorisasi.
+function _psIsRevisiBundle(arc: ArchiveRow): boolean {
+  if (!arc || arc.status_approval !== "ditolak") return false;
+  return _psFlatten(arc).some((it: any) => it && typeof it === "object" && it._bkad_status === "rejected");
+}
+
 function _psBuildLampiranRows(arc: ArchiveRow): { rows: any[]; headers: string[]; nilaiKey: string; total: number } {
   const legacyOtor = typeof arc.data_otorisasi === "object" && arc.data_otorisasi !== null ? arc.data_otorisasi : {};
   if (Array.isArray(legacyOtor.lampiran_data) && legacyOtor.lampiran_data.length > 0) {
@@ -245,6 +252,7 @@ function _psBuildLampiranRows(arc: ArchiveRow): { rows: any[]; headers: string[]
 export default function PengajuanSuratPage() {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [reprintArc, setReprintArc] = useState<any>(null);
 
@@ -263,10 +271,16 @@ export default function PengajuanSuratPage() {
     enabled: !!companyId,
   });
 
+  // Jumlah bundel yang dikembalikan BKAD untuk revisi parsial
+  const revisiBundles = useMemo(
+    () => (archives as any[]).filter(_psIsRevisiBundle),
+    [archives]
+  );
+
   const { data: tenantSettings } = useQuery({
     queryKey: ["tenant-settings", companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("tenant_settings")
         .select("*")
         .eq("company_id", companyId!)
@@ -299,6 +313,17 @@ export default function PengajuanSuratPage() {
           <Plus className="h-4 w-4" /> Buat BA &amp; Surat Pernyataan
         </Button>
       </div>
+
+      {revisiBundles.length > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 text-rose-600 mt-0.5 shrink-0" />
+          <p className="text-[13px] text-rose-800 leading-relaxed">
+            <strong>{revisiBundles.length} bundel</strong> dikembalikan BKAD untuk revisi parsial. Buka{" "}
+            <strong>Arsip BA &amp; Surat Pernyataan</strong> lalu tekan <strong>Kirim Ulang</strong> pada bundel
+            terkait untuk meninjau aset yang ditolak dan mengajukan ulang ke BKAD.
+          </p>
+        </div>
+      )}
 
       <Card className="bg-white border-slate-100 rounded-2xl shadow-sm">
         <CardHeader className="pb-3">
@@ -339,26 +364,45 @@ export default function PengajuanSuratPage() {
                         ? arc.total_nilai
                         : _psFlatten(arc).reduce((acc, it) => acc + _psNilai(it), 0);
                     return (
-                      <TableRow key={arc.id} className="hover:bg-gray-50">
+                      <TableRow key={arc.id} className={_psIsRevisiBundle(arc) ? "bg-rose-50/40 hover:bg-rose-50/60" : "hover:bg-gray-50"}>
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{arc.nomor_surat}</TableCell>
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{formatTgl(arc.tanggal_surat)}</TableCell>
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800">{arc.jenis_kib || "—"}</TableCell>
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-center">{jumlahAset}</TableCell>
                         <TableCell className="py-1.5 px-2.5 text-[13px] text-gray-800 text-right font-semibold">Rp {totalNilai.toLocaleString("id-ID")}</TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-green-50 text-green-700 border-green-200">{arc.status}</Badge>
+                          {_psIsRevisiBundle(arc) ? (
+                            <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center gap-1 bg-rose-50 text-rose-700 border-rose-200">
+                              <RotateCcw className="h-3 w-3" /> Perlu Revisi
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="px-2 py-0.5 text-[11px] font-semibold rounded border inline-flex items-center bg-green-50 text-green-700 border-green-200">{arc.status}</Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1.5 hover:bg-gray-50"
-                            onClick={() => setReprintArc(arc)}
-                            title="Buka dokumen Berita Acara & Surat Pernyataan"
-                          >
-                            <Printer className="h-4 w-4 text-blue-700" />
-                            <span className="text-[12px] font-medium text-blue-700">Cetak Ulang</span>
-                          </Button>
+                          {_psIsRevisiBundle(arc) ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 hover:bg-rose-50"
+                              onClick={() => navigate("/dashboard/finalisasi-rekon")}
+                              title="Buka Pusat Arsip untuk meninjau aset yang ditolak & kirim ulang ke BKAD"
+                            >
+                              <RotateCcw className="h-4 w-4 text-rose-600" />
+                              <span className="text-[12px] font-medium text-rose-600">Tindak Lanjut</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 hover:bg-gray-50"
+                              onClick={() => setReprintArc(arc)}
+                              title="Buka dokumen Berita Acara & Surat Pernyataan"
+                            >
+                              <Printer className="h-4 w-4 text-blue-700" />
+                              <span className="text-[12px] font-medium text-blue-700">Cetak Ulang</span>
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );

@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +7,7 @@ import { useCustomColumns } from "@/contexts/CustomColumnsContext";
 import * as XLSX from "xlsx";
 import {
   AlertTriangle, CheckCircle2, Wrench, Users, ClipboardCheck,
-  ExternalLink, MessageCircle, Shield, FileSpreadsheet, Loader2
+  ExternalLink, MessageCircle, Shield, FileSpreadsheet, Loader2, RotateCcw
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,12 +50,15 @@ interface AnomalyItem {
   reportId?: string;
   fotoUrl?: string;
   assetData: any;
+  isRevisiBkad?: boolean;
+  revisiCatatan?: string;
 }
 
 // ─── Component ──────────────────────────────────────────
 export default function PapanRekonsiliasi() {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { getColumnsForKib, kibColumns, masterKib } = useCustomColumns();
 
   const [activeTab, setActiveTab] = useState("anomali");
@@ -131,8 +135,9 @@ export default function PapanRekonsiliasi() {
       const hasReport = openReports?.length > 0;
       const hasAudit = damagedAudits?.length > 0 || hasArchivedAnomaly;
       const isBuffered = statusRekon === "draft_pengajuan";
+      const isRevisiBkad = statusRekon === "revisi_bkad";
 
-      if (!hasReport && !hasAudit && !isBuffered) return;
+      if (!hasReport && !hasAudit && !isBuffered && !isRevisiBkad) return;
 
       // ─── Persiapan field display (hanya jika lolos syarat mutlak) ───
       let source: AnomalyItem["source"] = "keluhan";
@@ -174,6 +179,31 @@ export default function PapanRekonsiliasi() {
         kondisi = masterKondisi || "Usul Perbaikan";
         if (!deskripsi) deskripsi = cd.rekon_rekomendasi || cd.status_usulan || "Diverifikasi Pengurus Barang";
         if (!latestDate) latestDate = cd.rekon_tanggal || asset.created_at || "";
+      }
+
+      // ─── REVISI BKAD: aset dikembalikan BKAD untuk perbaikan parsial ───
+      // Wajib ditampilkan beserta catatan penolakan agar operator tahu bagian
+      // mana yang harus diperbaiki sebelum mengirim ulang bundel.
+      if (isRevisiBkad) {
+        if (kondisi === "—") kondisi = masterKondisi || "Revisi BKAD";
+        if (!deskripsi) deskripsi = cd.rekon_catatan_bkad || "Dikembalikan BKAD untuk revisi";
+        anomalyResult.push({
+          assetId: asset.id,
+          kodeAset: asset.kode_aset,
+          namaAset: asset.nama_aset,
+          source,
+          kondisi,
+          deskripsi,
+          reportCount: openReports.length,
+          latestDate: latestDate || cd.rekon_tanggal || "",
+          reporterContact,
+          reportId: hasReport ? openReports[0].id : undefined,
+          fotoUrl,
+          assetData: asset,
+          isRevisiBkad: true,
+          revisiCatatan: String(cd.rekon_catatan_bkad || ""),
+        });
+        return;
       }
 
       // ─── BUFFER STATE: draft_pengajuan check ───
@@ -813,7 +843,8 @@ export default function PapanRekonsiliasi() {
                         {anomalies.map((item) => {
                           const src = sourceLabel(item.source);
                           return (
-                            <TableRow key={item.assetId}>
+                            <Fragment key={item.assetId}>
+                            <TableRow className={item.isRevisiBkad ? "bg-rose-50/40" : undefined}>
                               <TableCell>
                                 <div className="max-w-[140px] sm:max-w-[180px]">
                                   <p className="text-sm font-medium text-foreground truncate">{item.namaAset}</p>
@@ -834,9 +865,16 @@ export default function PapanRekonsiliasi() {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline" className={kondisiBadge(item.kondisi)}>
-                                  {item.kondisi}
-                                </Badge>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <Badge variant="outline" className={kondisiBadge(item.kondisi)}>
+                                    {item.kondisi}
+                                  </Badge>
+                                  {item.isRevisiBkad && (
+                                    <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 gap-1">
+                                      <RotateCcw className="h-3 w-3" /> Revisi BKAD
+                                    </Badge>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell className="hidden md:table-cell">
                                 <p className="text-sm text-muted-foreground truncate max-w-[200px]">{item.deskripsi || "—"}</p>
@@ -847,6 +885,26 @@ export default function PapanRekonsiliasi() {
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
                                   {(() => {
+                                    // Aset yang dikembalikan BKAD tidak boleh diubah ke draft_pengajuan
+                                    // (akan memutus aset dari bundel eksisting). Arahkan ke Pusat Arsip.
+                                    if (item.isRevisiBkad) {
+                                      return (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="gap-1.5 text-xs mr-1 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+                                              onClick={() => navigate("/dashboard/finalisasi-rekon")}
+                                            >
+                                              <RotateCcw className="h-3.5 w-3.5" />
+                                              Perbaiki di Pusat Arsip
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>Aset ini dikembalikan BKAD. Perbaiki &amp; kirim ulang dari Pusat Arsip.</TooltipContent>
+                                        </Tooltip>
+                                      );
+                                    }
                                     const customData = (item.assetData.custom_data as Record<string, any>) || {};
                                     const isDiajukan = customData.status_usulan === "Pengajuan Perubahan Kondisi" || customData.status_aset === "Usul Hapus";
                                     if (isDiajukan) {
@@ -909,6 +967,20 @@ export default function PapanRekonsiliasi() {
                                 </div>
                               </TableCell>
                             </TableRow>
+                            {item.isRevisiBkad && item.revisiCatatan && (
+                              <TableRow className="bg-rose-50/30 hover:bg-rose-50/40">
+                                <TableCell colSpan={6} className="py-2">
+                                  <div className="flex items-start gap-2 text-xs text-rose-700">
+                                    <RotateCcw className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                    <span>
+                                      <span className="font-semibold">Catatan Revisi BKAD: </span>
+                                      {item.revisiCatatan}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                            </Fragment>
                           );
                         })}
                       </TableBody>
@@ -1164,6 +1236,18 @@ export default function PapanRekonsiliasi() {
                     <div className="flex items-center justify-center rounded-md border border-dashed border-gray-200 bg-gray-50 py-6 text-xs text-muted-foreground">
                       Tidak ada foto bukti terlampir.
                     </div>
+                  </div>
+                )}
+
+                {selectedAnomaly.isRevisiBkad && (
+                  <div className="rounded-md border border-rose-200 bg-rose-50 p-3 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-rose-700">
+                      <RotateCcw className="h-3.5 w-3.5 shrink-0" />
+                      <span className="text-xs font-semibold uppercase tracking-wide">Dikembalikan BKAD untuk Revisi</span>
+                    </div>
+                    <p className="text-xs text-rose-700 leading-relaxed">
+                      {selectedAnomaly.revisiCatatan || "BKAD meminta perbaikan atas aset ini sebelum bundel diajukan ulang."}
+                    </p>
                   </div>
                 )}
 

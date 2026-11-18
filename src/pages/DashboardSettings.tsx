@@ -351,7 +351,7 @@ export default function DashboardSettings() {
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_auto] gap-3 items-end">
                 <div className="space-y-1.5">
                   <Label htmlFor="col-name" className="text-xs font-medium text-muted-foreground">Nama Kolom</Label>
-                  <Input id="col-name" placeholder="cth: Tahun Perolehan" value={newName} onChange={(e) => setNewName(e.target.value)} disabled={isMaxReached} onKeyDown={(e) => e.key === "Enter" && newType !== "coded_dropdown" && handleAdd()} />
+                  <Input id="col-name" placeholder="cth: Tahun Perolehan" value={newName} onChange={(e) => setNewName(e.target.value)} disabled={isMaxReached} onKeyDown={(e) => e.key === "Enter" && newType !== "coded_dropdown" && handleSaveColumn()} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="col-type" className="text-xs font-medium text-muted-foreground">Tipe Data</Label>
